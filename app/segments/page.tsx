@@ -1,9 +1,10 @@
+import Link from 'next/link';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { Table, TableHeader, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/ui/search-input';
 import { Pagination } from '@/components/ui/pagination';
+import { AddSegmentDialog } from '@/components/add-segment-dialog';
 import { prisma } from '@/lib/db/prisma';
 import { formatRelativeTime, formatNumber } from '@/lib/format';
 
@@ -24,6 +25,11 @@ export default async function SegmentsPage({
     include: { application: true },
   });
 
+  const applications = await prisma.application.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' },
+  });
+
   const totalCount = await prisma.segment.count();
   const totalPages = Math.ceil(totalCount / pageSize);
   const showingStart = skip + 1;
@@ -42,24 +48,12 @@ export default async function SegmentsPage({
               Create and manage user segments
             </p>
           </div>
-          <Button>+ Add Segment</Button>
+          <AddSegmentDialog applications={applications} />
         </div>
 
         {/* Toolbar */}
         <div className="flex items-center gap-4">
           <SearchInput placeholder="Search segments..." className="w-80" />
-          <Button variant="secondary">
-            Type
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-              <path d="M3 5L6 8L9 5H3Z" />
-            </svg>
-          </Button>
-          <Button variant="secondary">
-            Status
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-              <path d="M3 5L6 8L9 5H3Z" />
-            </svg>
-          </Button>
         </div>
 
         {/* Segments Table */}
@@ -112,9 +106,21 @@ export default async function SegmentsPage({
 
               return (
                 <TableRow key={segment.id}>
-                  <TableCell width="120px">{segment.id.slice(0, 12)}</TableCell>
+                  <TableCell width="120px">
+                    <Link
+                      href={`/segments/${segment.id}`}
+                      className="text-[#0D0D0D] hover:underline"
+                    >
+                      {segment.id.slice(0, 12)}
+                    </Link>
+                  </TableCell>
                   <TableCell width="220px" className="font-medium">
-                    {segment.name}
+                    <Link
+                      href={`/segments/${segment.id}`}
+                      className="hover:underline"
+                    >
+                      {segment.name}
+                    </Link>
                   </TableCell>
                   <TableCell width="180px" className="text-[#7A7A7A]">
                     {criteriaDisplay}

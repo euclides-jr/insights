@@ -497,14 +497,14 @@ Response: 200 OK (JSON)
 - [x] Data quality dashboard page (/quality — summary cards, daily breakdown table, 7/14/30d filter, per-field colour coding)
 - [x] API integration tests: tests/api/quality.test.ts — 12 test cases (response shape, filters, alert levels, metric written on violation)
 
-### Phase 6: Segmentation (Week 6) 🔶 Partial
+### Phase 6: Segmentation (Week 6) ✅ Complete
 
-- [ ] Implement segment CRUD API endpoints (GET/POST/PUT/DELETE /api/segments)
-- [ ] Segment evaluation engine (criteria → matching userId query)
-- [ ] Segment refresh logic (background job / on-demand)
-- [ ] Segment export (CSV and JSON) — GET /api/segments/:id/export
-- [x] Segment dashboard pages (read-only list at /segments; no create/edit/export UI yet)
-- [ ] E2E test: create segment → export → verify users
+- [x] Implement segment CRUD API endpoints (GET/POST /api/segments + GET/PUT/DELETE /api/segments/:id)
+- [x] Segment evaluation engine (lib/services/segment-engine.ts — eventFilters with AND/OR logic, count ranges, time windows, property filters)
+- [x] Segment refresh logic (PUT /api/segments/:id with refresh: true; also triggers on criteria update)
+- [x] Segment export (CSV and JSON) — GET /api/segments/:id/export?format=csv|json
+- [x] Segment dashboard pages (list at /segments with Add Segment dialog; detail/edit at /segments/[id])
+- [x] API integration tests: tests/api/segments.test.ts — 24 test cases covering CRUD, evaluation, export (CSV + JSON), error paths
 
 ### Phase 7: Polish & Deployment (Week 7) ⏳ Not Started
 

@@ -3,6 +3,7 @@ import { DashboardLayout } from '@/components/dashboard-layout';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableRow, TableCell } from '@/components/ui/table';
 import { Pagination } from '@/components/ui/pagination';
+import { QualityAppFilter } from '@/components/quality-app-filter';
 import { prisma } from '@/lib/db/prisma';
 import { format } from 'date-fns';
 import {
@@ -164,31 +165,11 @@ export default async function QualityPage({
           {/* Filters */}
           <div className="flex items-center gap-3 flex-shrink-0 pt-2">
             {/* Application picker */}
-            <form
-              method="get"
-              action="/quality"
-              className="flex items-center gap-3"
-            >
-              {days !== 7 && (
-                <input type="hidden" name="days" value={String(days)} />
-              )}
-              <select
-                name="applicationId"
-                defaultValue={applicationId}
-                onChange={(e) => {
-                  // handled server-side via form submit
-                  void e;
-                }}
-                className="h-9 px-3 border border-[#E8E8E8] bg-white text-sm focus:outline-none focus:border-[#0D0D0D] transition-colors"
-              >
-                <option value="">All Applications</option>
-                {applications.map((app) => (
-                  <option key={app.id} value={app.id}>
-                    {app.name}
-                  </option>
-                ))}
-              </select>
-            </form>
+            <QualityAppFilter
+              applications={applications}
+              selectedId={applicationId}
+              days={days}
+            />
 
             {/* Days filter */}
             <div className="flex items-center border border-[#E8E8E8] bg-white text-sm overflow-hidden">
