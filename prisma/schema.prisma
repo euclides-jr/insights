@@ -1,0 +1,110 @@
+// Event Analytics Service - Prisma Schema
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Application represents a distinct web or mobile application sending events
+model Application {
+  id        String            @id @default(uuid())
+  name      String
+  apiKey    String            @unique
+  status    ApplicationStatus @default(ACTIVE)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  events             Event[]
+  eventSchemas       EventSchema[]
+  segments           Segment[]
+  dataQualityMetrics DataQualityMetric[]
+
+  @@map("applications")
+}
+
+enum ApplicationStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+// Event represents a single user interaction or system occurrence
+model Event {
+  id            String   @id @default(uuid())
+  eventId       String   @unique // For idempotency/deduplication
+  applicationId String
+  eventName     String
+  userId        String
+  sessionId     String
+  timestamp     DateTime
+  properties    Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  // Indexes for optimal query performance
+  @@index([applicationId, timestamp])
+  @@index([applicationId, eventName, timestamp])
+  @@index([userId, timestamp])
+  @@index([sessionId])
+  @@index([eventName])
+  @@map("events")
+}
+
+// EventSchema defines the expected structure for a specific event type
+model EventSchema {
+  id               String   @id @default(uuid())
+  applicationId    String
+  eventName        String
+  version          Int      @default(1)
+  schemaDefinition Json // Property definitions with types and validation rules
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, eventName, version])
+  @@index([applicationId, eventName])
+  @@map("event_schemas")
+}
+
+// Segment represents a dynamic group of users defined by event behavior criteria
+model Segment {
+  id              String   @id @default(uuid())
+  applicationId   String
+  name            String
+  description     String?
+  criteria        Json // Segment definition rules (event filters, logic, etc.)
+  memberCount     Int      @default(0)
+  lastRefreshedAt DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("segments")
+}
+
+// DataQualityMetric tracks aggregated statistics about event data health
+model DataQualityMetric {
+  id                    String   @id @default(uuid())
+  applicationId         String
+  date                  DateTime // Date for this metric snapshot
+  eventsReceived        Int      @default(0)
+  eventsRejected        Int      @default(0)
+  validationFailureRate Float    @default(0)
+  duplicateRate         Float    @default(0)
+  completenessRate      Float    @default(0)
+  createdAt             DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, date])
+  @@index([applicationId, date])
+  @@map("data_quality_metrics")
+}
