@@ -81,3 +81,9 @@ jobs:
 
       - name: Run unit & API tests
         run: bun run test --run
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium firefox webkit
+
+      - name: Run E2E tests
+        run: bun run test:e2e
