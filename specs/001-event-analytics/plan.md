@@ -473,11 +473,11 @@ Response: 200 OK (JSON)
 
 ### Phase 3: Query Interface (Week 3) ✅ Complete
 
-- [X] Implement POST /api/query endpoint (app/api/query/route.ts)
-- [X] Query builder service with filters and aggregations (lib/services/query-builder.ts)
-- [X] Optimize database indexes for query performance (composite indexes in schema were already present)
-- [X] Build query page in dashboard (app/query/page.tsx + components/query-form.tsx)
-- [ ] E2E test: query events with various filters
+- [x] Implement POST /api/query endpoint (app/api/query/route.ts)
+- [x] Query builder service with filters and aggregations (lib/services/query-builder.ts)
+- [x] Optimize database indexes for query performance (composite indexes in schema were already present)
+- [x] Build query page in dashboard (app/query/page.tsx + components/query-form.tsx)
+- [X] E2E test: query events with various filters (tests/e2e/query.spec.ts — 15 tests)
 
 ### Phase 4: Schema Management (Week 4) 🔶 Partial
 
