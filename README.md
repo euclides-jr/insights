@@ -1,36 +1,156 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Insights
+
+A self-hosted event analytics platform for tracking user interactions, monitoring data quality, and extracting insights from your applications.
+
+## Features
+
+- **Event Tracking** — Ingest single or batched events from any web or mobile app via a simple REST API
+- **Application Management** — Register multiple applications, each with its own API key
+- **Event Schemas** — Define and version expected event structures for validation
+- **User Segments** — Build dynamic user groups using event-based AND/OR criteria
+- **Analytics Queries** — Filter, aggregate, and group events with a flexible query builder
+- **Data Quality Monitoring** — Track validation failures, duplicates, and completeness metrics
+- **Dashboard** — View event trends, quality metrics, and application overviews at a glance
+
+## Tech Stack
+
+- **[Next.js](https://nextjs.org/)** (App Router) + **[React](https://react.dev/)** + **[TypeScript](https://www.typescriptlang.org/)**
+- **[Prisma](https://www.prisma.io/)** ORM with **[PostgreSQL](https://www.postgresql.org/)**
+- **[Tailwind CSS](https://tailwindcss.com/)** for styling
+- **[Zod](https://zod.dev/)** for schema validation
+- **[Vitest](https://vitest.dev/)** for unit tests and **[Playwright](https://playwright.dev/)** for end-to-end tests
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) 18+ (or [Bun](https://bun.sh/))
+- A running [PostgreSQL](https://www.postgresql.org/) instance
 
 ## Getting Started
 
-First, run the development server:
+### 1. Install dependencies
+
+```bash
+npm install
+# or
+bun install
+```
+
+### 2. Configure the environment
+
+Create a `.env` file at the project root and set your database connection string:
+
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/insights"
+```
+
+### 3. Set up the database
+
+Generate the Prisma client and apply migrations:
+
+```bash
+npm run db:generate
+npm run db:migrate
+```
+
+Optionally seed the database with sample data:
+
+```bash
+npm run db:seed
+```
+
+### 4. Start the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to access the dashboard.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Available Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the development server |
+| `npm run build` | Build for production |
+| `npm start` | Start the production server |
+| `npm run lint` | Lint the codebase with ESLint |
+| `npm run db:generate` | Generate the Prisma client |
+| `npm run db:migrate` | Run database migrations (dev) |
+| `npm run db:push` | Push schema changes without migrations |
+| `npm run db:studio` | Open Prisma Studio |
+| `npm run db:seed` | Seed the database with sample data |
+| `npm run test` | Run unit tests with Vitest |
+| `npm run test:ui` | Run unit tests with the Vitest UI |
+| `npm run test:e2e` | Run end-to-end tests with Playwright |
+| `npm run test:e2e:ui` | Run end-to-end tests with the Playwright UI |
 
-## Learn More
+## Sending Events
 
-To learn more about Next.js, take a look at the following resources:
+Authenticate requests using the `X-API-Key` header. Retrieve your API key from the **Applications** section of the dashboard.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Single event:**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+curl -X POST http://localhost:3000/api/events \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key_here" \
+  -d '{
+    "eventName": "page_view",
+    "userId": "user_123",
+    "sessionId": "session_456",
+    "properties": { "page": "/dashboard" }
+  }'
+```
 
-## Deploy on Vercel
+**Batch events (up to 100):**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+curl -X POST http://localhost:3000/api/events \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key_here" \
+  -d '[
+    { "eventName": "page_view", "userId": "user_123", "sessionId": "session_456" },
+    { "eventName": "button_click", "userId": "user_123", "sessionId": "session_456", "properties": { "button_id": "signup" } }
+  ]'
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**JavaScript:**
+
+```typescript
+const response = await fetch('http://localhost:3000/api/events', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': 'your_api_key_here',
+  },
+  body: JSON.stringify({
+    eventName: 'page_view',
+    userId: 'user_123',
+    sessionId: 'session_456',
+    properties: { page: window.location.pathname },
+  }),
+});
+```
+
+See [docs/API.md](docs/API.md) for the full API reference.
+
+## Project Structure
+
+```
+app/
+  api/          # REST API route handlers (events, applications, schemas, segments, query, quality)
+  applications/ # Application management pages
+  events/       # Event browser pages
+  schemas/      # Schema management pages
+  segments/     # Segment builder pages
+  query/        # Analytics query builder pages
+  quality/      # Data quality dashboard pages
+  page.tsx      # Main dashboard
+components/     # Shared React components
+lib/
+  services/     # Business logic (query builder, segment engine)
+  db/           # Database client configuration
+prisma/         # Prisma schema, migrations, and seed script
+docs/           # API documentation
+tests/          # Unit and end-to-end tests
+```
