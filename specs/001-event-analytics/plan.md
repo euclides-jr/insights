@@ -455,21 +455,21 @@ Response: 200 OK (JSON)
 
 ### Phase 1: Foundation (Week 1) ✅ Complete
 
-- [X] Set up Next.js project with TypeScript
-- [X] Configure Prisma with PostgreSQL
-- [X] Define Prisma schema (Application, Event, EventSchema entities)
-- [X] Create migrations
-- [X] Set up testing infrastructure (Vitest, Playwright)
-- [X] Implement basic authentication middleware (API key validation)
+- [x] Set up Next.js project with TypeScript
+- [x] Configure Prisma with PostgreSQL
+- [x] Define Prisma schema (Application, Event, EventSchema entities)
+- [x] Create migrations
+- [x] Set up testing infrastructure (Vitest, Playwright)
+- [x] Implement basic authentication middleware (API key validation)
 
 ### Phase 2: Event Ingestion (Week 2) ✅ Complete
 
-- [X] Implement POST /api/events endpoint
-- [X] Event validation and schema checking (schema enforcement + Zod shape validation)
-- [X] Deduplication logic (skipDuplicates on unique eventId)
-- [X] Batch ingestion (POST /api/events accepts single object or array up to 100 events)
-- [X] Unit and integration tests for ingestion (tests/api/events.test.ts — 20 test cases)
-- [X] E2E test: send event → verify storage (tests/e2e/events.spec.ts)
+- [x] Implement POST /api/events endpoint
+- [x] Event validation and schema checking (schema enforcement + Zod shape validation)
+- [x] Deduplication logic (skipDuplicates on unique eventId)
+- [x] Batch ingestion (POST /api/events accepts single object or array up to 100 events)
+- [x] Unit and integration tests for ingestion (tests/api/events.test.ts — 20 test cases)
+- [x] E2E test: send event → verify storage (tests/e2e/events.spec.ts)
 
 ### Phase 3: Query Interface (Week 3) ⏳ Not Started
 
@@ -482,15 +482,15 @@ Response: 200 OK (JSON)
 ### Phase 4: Schema Management (Week 4) 🔶 Partial
 
 - [ ] Implement schema CRUD API endpoints (GET/POST/PUT/DELETE /api/schemas)
-- [X] Event validation against schemas (active schemas enforced in POST /api/events — required fields + type checking)
+- [x] Event validation against schemas (active schemas enforced in POST /api/events — required fields + type checking)
 - [ ] Schema versioning handling (model supports versioning; version-tolerance logic not yet implemented)
 - [ ] Schema management dashboard pages (read-only list at /schemas; no create/edit UI yet)
-- [X] E2E test: send valid/invalid event against active schema (covered in tests/api/events.test.ts Schema Enforcement block)
+- [x] E2E test: send valid/invalid event against active schema (covered in tests/api/events.test.ts Schema Enforcement block)
 
 ### Phase 5: Data Quality (Week 5) 🔶 Partial
 
-- [X] Implement DataQualityMetric model (applicationId + date unique key; eventsReceived, eventsRejected, validationFailureRate, completenessRate)
-- [X] Track validation failures and completeness (upserted in POST /api/events on schema violations)
+- [x] Implement DataQualityMetric model (applicationId + date unique key; eventsReceived, eventsRejected, validationFailureRate, completenessRate)
+- [x] Track validation failures and completeness (upserted in POST /api/events on schema violations)
 - [ ] Data quality dashboard page (/quality route not yet created)
 - [ ] Alert logic for quality thresholds
 - [ ] E2E test: trigger quality issues → verify metrics
@@ -501,14 +501,14 @@ Response: 200 OK (JSON)
 - [ ] Segment evaluation engine (criteria → matching userId query)
 - [ ] Segment refresh logic (background job / on-demand)
 - [ ] Segment export (CSV and JSON) — GET /api/segments/:id/export
-- [X] Segment dashboard pages (read-only list at /segments; no create/edit/export UI yet)
+- [x] Segment dashboard pages (read-only list at /segments; no create/edit/export UI yet)
 - [ ] E2E test: create segment → export → verify users
 
 ### Phase 7: Polish & Deployment (Week 7) ⏳ Not Started
 
 - [ ] Performance optimization (query tuning, indexing)
 - [ ] Load testing and benchmarking
-- [X] Documentation (docs/API.md — event ingestion API reference)
+- [x] Documentation (docs/API.md — event ingestion API reference)
 - [ ] Deployment to Vercel or cloud platform
 - [ ] Set up monitoring and logging
 - [ ] Final E2E test suite run
@@ -574,7 +574,7 @@ npx prisma db seed
 - [ ] Event ingestion API latency p95 <200ms (not yet benchmarked)
 - [ ] Query response time <3s for 10M events (query interface not yet built)
 - [ ] Successfully ingest 10,000 events/min (not yet load tested)
-- [X] Zero data loss with idempotency testing (skipDuplicates on eventId; tested in events.test.ts)
+- [x] Zero data loss with idempotency testing (skipDuplicates on eventId; tested in events.test.ts)
 - [ ] 80%+ test coverage (event ingestion well-covered; query/segments/quality not yet tested)
 - [ ] All E2E user flows passing (event flow covered; query/schema/segment/export flows pending)
 - [ ] Successfully export segments in <2 minutes (export not yet implemented)
