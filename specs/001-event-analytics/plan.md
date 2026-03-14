@@ -471,12 +471,12 @@ Response: 200 OK (JSON)
 - [x] Unit and integration tests for ingestion (tests/api/events.test.ts — 20 test cases)
 - [x] E2E test: send event → verify storage (tests/e2e/events.spec.ts)
 
-### Phase 3: Query Interface (Week 3) ⏳ Not Started
+### Phase 3: Query Interface (Week 3) ✅ Complete
 
-- [ ] Implement POST /api/query endpoint
-- [ ] Query builder service with filters and aggregations
-- [ ] Optimize database indexes for query performance (partial — composite indexes already in schema)
-- [ ] Build query page in dashboard (server component)
+- [X] Implement POST /api/query endpoint (app/api/query/route.ts)
+- [X] Query builder service with filters and aggregations (lib/services/query-builder.ts)
+- [X] Optimize database indexes for query performance (composite indexes in schema were already present)
+- [X] Build query page in dashboard (app/query/page.tsx + components/query-form.tsx)
 - [ ] E2E test: query events with various filters
 
 ### Phase 4: Schema Management (Week 4) 🔶 Partial
