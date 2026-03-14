@@ -8,12 +8,12 @@ export interface QueryRequest {
   applicationId: string;
   eventName?: string;
   startDate: string; // ISO 8601
-  endDate: string;   // ISO 8601
+  endDate: string; // ISO 8601
   filters?: Record<string, string | number | boolean>;
   aggregation?: 'count' | 'unique_users' | 'avg' | 'sum';
   aggregationField?: string; // JSON property key; required for avg/sum
-  groupBy?: string;          // JSON property key to group results by
-  limit?: number;            // max 10000, default 1000
+  groupBy?: string; // JSON property key to group results by
+  limit?: number; // max 10000, default 1000
 }
 
 export interface QueryResult {

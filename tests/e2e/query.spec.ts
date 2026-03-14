@@ -24,7 +24,7 @@ test.describe('Query Explorer Page', () => {
     await expect(
       page.locator('input[type="datetime-local"]').nth(1),
     ).toBeVisible(); // end date
-    await expect(page.getByText('Aggregation')).toBeVisible();
+    await expect(page.getByText('Aggregation', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Run Query' })).toBeVisible();
   });
 

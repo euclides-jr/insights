@@ -477,7 +477,7 @@ Response: 200 OK (JSON)
 - [x] Query builder service with filters and aggregations (lib/services/query-builder.ts)
 - [x] Optimize database indexes for query performance (composite indexes in schema were already present)
 - [x] Build query page in dashboard (app/query/page.tsx + components/query-form.tsx)
-- [X] E2E test: query events with various filters (tests/e2e/query.spec.ts — 15 tests)
+- [x] E2E test: query events with various filters (tests/e2e/query.spec.ts — 15 tests)
 
 ### Phase 4: Schema Management (Week 4) 🔶 Partial
 

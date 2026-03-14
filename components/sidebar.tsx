@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 const navigation = [
-  { name: "Dashboard", href: "/" },
-  { name: "Events", href: "/events" },
-  { name: "Query Explorer", href: "/query" },
-  { name: "Applications", href: "/applications" },
-  { name: "Schemas", href: "/schemas" },
-  { name: "Segments", href: "/segments" },
+  { name: 'Dashboard', href: '/' },
+  { name: 'Events', href: '/events' },
+  { name: 'Query Explorer', href: '/query' },
+  { name: 'Applications', href: '/applications' },
+  { name: 'Schemas', href: '/schemas' },
+  { name: 'Segments', href: '/segments' },
 ];
 
 export function Sidebar() {
@@ -43,16 +43,16 @@ export function Sidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors font-[family-name:var(--font-space-grotesk)]",
+                    'flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors font-[family-name:var(--font-space-grotesk)]',
                     isActive
-                      ? "bg-[#E42313] text-white"
-                      : "text-[#0D0D0D] hover:bg-[#FAFAFA]"
+                      ? 'bg-[#E42313] text-white'
+                      : 'text-[#0D0D0D] hover:bg-[#FAFAFA]',
                   )}
                 >
                   <span
                     className={cn(
-                      "w-1.5 h-1.5 rounded-full",
-                      isActive ? "bg-white" : "bg-[#E8E8E8]"
+                      'w-1.5 h-1.5 rounded-full',
+                      isActive ? 'bg-white' : 'bg-[#E8E8E8]',
                     )}
                   />
                   {item.name}

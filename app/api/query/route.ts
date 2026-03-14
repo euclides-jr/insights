@@ -58,7 +58,10 @@ export async function POST(request: NextRequest) {
     // 1. Authenticate
     const apiKey = request.headers.get('x-api-key');
     if (!apiKey) {
-      return NextResponse.json({ error: 'Missing X-API-Key header' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Missing X-API-Key header' },
+        { status: 401 },
+      );
     }
 
     const application = await prisma.application.findUnique({
@@ -104,7 +107,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Internal server error';
+    const message =
+      error instanceof Error ? error.message : 'Internal server error';
 
     // Surface property-key validation errors as 400
     if (message.startsWith('Invalid property key')) {
@@ -112,7 +116,10 @@ export async function POST(request: NextRequest) {
     }
 
     console.error('Query error:', error);
-    return NextResponse.json({ error: 'Internal server error', message }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error', message },
+      { status: 500 },
+    );
   }
 }
 

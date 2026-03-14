@@ -17,15 +17,13 @@ interface QueryResult {
 }
 
 export function QueryForm({ applications }: { applications: Application[] }) {
-  const [applicationId, setApplicationId] = useState(
-    applications[0]?.id ?? '',
-  );
+  const [applicationId, setApplicationId] = useState(applications[0]?.id ?? '');
   const [eventName, setEventName] = useState('');
-  const [startDate, setStartDate] = useState(
-    () => new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+  const [startDate, setStartDate] = useState(() =>
+    new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
   );
-  const [endDate, setEndDate] = useState(
-    () => new Date().toISOString().slice(0, 16),
+  const [endDate, setEndDate] = useState(() =>
+    new Date().toISOString().slice(0, 16),
   );
   const [aggregation, setAggregation] = useState<
     'count' | 'unique_users' | 'avg' | 'sum'
@@ -62,7 +60,8 @@ export function QueryForm({ applications }: { applications: Application[] }) {
     };
     if (eventName) body.eventName = eventName;
     if (groupBy) body.groupBy = groupBy;
-    if (needsField && aggregationField) body.aggregationField = aggregationField;
+    if (needsField && aggregationField)
+      body.aggregationField = aggregationField;
 
     try {
       const res = await fetch('/api/query', {
@@ -91,7 +90,12 @@ export function QueryForm({ applications }: { applications: Application[] }) {
         className="bg-white border border-[#E8E8E8] p-8 space-y-6"
       >
         {/* Hidden API key for the selected app */}
-        <input type="hidden" name="apiKey" readOnly value={selectedApp?.apiKey ?? ''} />
+        <input
+          type="hidden"
+          name="apiKey"
+          readOnly
+          value={selectedApp?.apiKey ?? ''}
+        />
 
         <div className="grid grid-cols-2 gap-6">
           {/* Application */}
@@ -116,7 +120,9 @@ export function QueryForm({ applications }: { applications: Application[] }) {
           <div className="space-y-2">
             <label className="text-sm font-medium text-[#0D0D0D] font-(family-name:--font-space-grotesk)">
               Event Name
-              <span className="ml-1 text-[#7A7A7A] font-normal">(optional)</span>
+              <span className="ml-1 text-[#7A7A7A] font-normal">
+                (optional)
+              </span>
             </label>
             <Input
               value={eventName}
@@ -193,7 +199,9 @@ export function QueryForm({ applications }: { applications: Application[] }) {
           <div className="space-y-2">
             <label className="text-sm font-medium text-[#0D0D0D] font-(family-name:--font-space-grotesk)">
               Group By
-              <span className="ml-1 text-[#7A7A7A] font-normal">(optional)</span>
+              <span className="ml-1 text-[#7A7A7A] font-normal">
+                (optional)
+              </span>
             </label>
             <Input
               value={groupBy}
@@ -236,7 +244,8 @@ export function QueryForm({ applications }: { applications: Application[] }) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-[#0D0D0D] font-(family-name:--font-space-grotesk)">
-              Results ({result.totalCount} row{result.totalCount !== 1 ? 's' : ''})
+              Results ({result.totalCount} row
+              {result.totalCount !== 1 ? 's' : ''})
             </h2>
             <span className="text-xs text-[#7A7A7A]">
               {result.executionTimeMs} ms
@@ -259,7 +268,10 @@ export function QueryForm({ applications }: { applications: Application[] }) {
                 </tr>
               </thead>
               <tbody>
-                {result.results.length === 0 ? (
+                {result.results.length === 0 ||
+                (result.results.length === 1 &&
+                  Object.keys(result.results[0]).length === 1 &&
+                  result.results[0].value === 0) ? (
                   <tr>
                     <td
                       colSpan={1}
