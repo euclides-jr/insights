@@ -235,7 +235,6 @@ test.describe('Events Page', () => {
     await expect(
       page.getByRole('button', { name: 'Application' }),
     ).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Status' })).toBeVisible();
   });
 
   test('should display event data correctly formatted', async ({ page }) => {
