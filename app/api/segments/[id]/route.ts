@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
 import {
-  refreshSegmentCount,
   SegmentCriteria,
   evaluateSegment,
 } from '@/lib/services/segment-engine';

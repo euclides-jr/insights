@@ -9,12 +9,20 @@
 // JavaScript/TypeScript SDK (Web)
 // ============================================================================
 
+interface TrackedEvent {
+  eventName: string;
+  userId: string;
+  sessionId: string;
+  timestamp: string;
+  properties: Record<string, unknown>;
+}
+
 class EventPulseSDK {
   private apiKey: string;
   private apiUrl: string;
   private sessionId: string;
   private userId: string | null = null;
-  private batchQueue: any[] = [];
+  private batchQueue: TrackedEvent[] = [];
   private batchSize: number = 10;
   private flushInterval: number = 5000; // 5 seconds
 
@@ -53,7 +61,7 @@ class EventPulseSDK {
    */
   async track(
     eventName: string,
-    properties?: Record<string, any>,
+    properties?: Record<string, unknown>,
     options?: { immediate?: boolean },
   ) {
     if (!this.userId) {
@@ -95,7 +103,7 @@ class EventPulseSDK {
   /**
    * Send events to the API
    */
-  private async sendEvents(events: any[]) {
+  private async sendEvents(events: TrackedEvent[]) {
     try {
       const response = await fetch(`${this.apiUrl}/api/events`, {
         method: 'POST',
