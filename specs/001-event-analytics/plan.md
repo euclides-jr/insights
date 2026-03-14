@@ -50,8 +50,7 @@ specs/001-event-analytics/
 app/
 ├── api/
 │   ├── events/
-│   │   ├── route.ts              # POST /api/events - event ingestion
-│   │   └── batch/route.ts        # POST /api/events/batch - batch ingestion
+│   │   └── route.ts              # POST /api/events - single and batch ingestion
 │   ├── applications/
 │   │   └── route.ts              # GET/POST /api/applications
 │   ├── schemas/
@@ -217,46 +216,51 @@ tests/
 **POST /api/events**
 
 ```typescript
-Request:
-{
-  eventId: string;           // Client-generated unique ID for idempotency
+// Single event
+Request: { ...Event }
+// Batch (up to 100 events)
+Request: Array<Event>
+
+type Event = {
+  eventId?: string;          // Optional; auto-generated if not provided (idempotency)
   eventName: string;
   userId: string;
   sessionId: string;
-  timestamp?: string;        // ISO 8601, defaults to server time if missing
+  timestamp?: string;        // ISO 8601; defaults to server time if missing
   properties?: Record<string, any>;
 }
 Headers:
-  Authorization: Bearer <API_KEY>
+  X-API-Key: <API_KEY>
 
 Response: 201 Created
 {
   success: true;
-  eventId: string;
+  received: number;          // Total events in request
+  created: number;           // Events actually stored (0 if all were duplicates)
+  rejected?: number;         // Present only when schema violations occurred
+  violations?: Array<{       // Present only when rejected > 0
+    eventName: string;
+    violations: Array<{ property: string; message: string }>;
+  }>;
+  applicationId: string;
+  applicationName: string;
 }
 
-Response: 400 Bad Request (validation failure)
+Response: 400 Bad Request (malformed payload)
 {
-  success: false;
   error: "Validation failed";
-  details: [{field: string, message: string}];
-}
-```
-
-**POST /api/events/batch**
-
-```typescript
-Request:
-{
-  events: Array<Event>; // Max 100 events per batch
+  details: Array<{ field: string; message: string }>;
 }
 
-Response: 201 Created
+Response: 422 Unprocessable Entity (all events fail active schema)
 {
-  success: true;
-  accepted: number;
+  error: "Schema validation failed";
+  received: number;
   rejected: number;
-  errors: Array<{index: number, error: string}>;
+  violations: Array<{
+    eventName: string;
+    violations: Array<{ property: string; message: string }>;
+  }>;
 }
 ```
 
@@ -463,11 +467,9 @@ Response: 200 OK (JSON)
 - [X] Implement POST /api/events endpoint
 - [X] Event validation and schema checking (schema enforcement + Zod shape validation)
 - [X] Deduplication logic (skipDuplicates on unique eventId)
-- [X] Batch ingestion endpoint (handled in POST /api/events — accepts single object or array; separate /batch route not needed)
+- [X] Batch ingestion (POST /api/events accepts single object or array up to 100 events)
 - [X] Unit and integration tests for ingestion (tests/api/events.test.ts — 20 test cases)
 - [X] E2E test: send event → verify storage (tests/e2e/events.spec.ts)
-
-> **Note**: Auth uses `X-API-Key` header instead of `Authorization: Bearer` — simpler for SDK integration.
 
 ### Phase 3: Query Interface (Week 3) ⏳ Not Started
 
