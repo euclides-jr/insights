@@ -2,10 +2,8 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
-import pg from 'pg';
 
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -42,8 +40,8 @@ async function main() {
   const [webApp, mobileApp, adminApp] = await Promise.all([
     prisma.application.upsert({
       where: { apiKey: 'demo_app_key_123' },
-      update: { name: 'EventPulse Web' },
-      create: { name: 'EventPulse Web', apiKey: 'demo_app_key_123' },
+      update: { name: 'Demo Web App' },
+      create: { name: 'Demo Web App', apiKey: 'demo_app_key_123' },
     }),
     prisma.application.upsert({
       where: { apiKey: 'mobile_app_key_456' },
@@ -64,6 +62,19 @@ async function main() {
 
   // ── 2. Event Schemas (Web App) ─────────────────────────────────────────────
   const schemaRows = [
+    {
+      applicationId: webApp.id,
+      eventName: 'button_click',
+      version: 1,
+      schemaDefinition: {
+        properties: {
+          buttonId: { type: 'string', required: true },
+          page: { type: 'string', required: true },
+          label: { type: 'string', required: false },
+        },
+      },
+      isActive: true,
+    },
     {
       applicationId: webApp.id,
       eventName: 'purchase',
