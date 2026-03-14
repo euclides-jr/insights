@@ -2,8 +2,8 @@ import { DashboardLayout } from '@/components/dashboard-layout';
 import { ApplicationsHeader } from '@/components/applications-header';
 import { Table, TableHeader, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/ui/search-input';
+import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { Pagination } from '@/components/ui/pagination';
 import { prisma } from '@/lib/db/prisma';
 import { formatRelativeTime, formatNumber } from '@/lib/format';
@@ -11,30 +11,39 @@ import { formatRelativeTime, formatNumber } from '@/lib/format';
 export default async function ApplicationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string; status?: string }>;
 }) {
   const params = await searchParams;
   const currentPage = Number(params.page) || 1;
   const pageSize = 10;
   const skip = (currentPage - 1) * pageSize;
+  const q = params.q?.trim() || '';
+  const status = params.status || '';
 
-  const applications = await prisma.application.findMany({
-    take: pageSize,
-    skip,
-    orderBy: { updatedAt: 'desc' },
-    include: {
-      _count: {
-        select: { events: true },
-      },
-      events: {
-        take: 1,
-        orderBy: { timestamp: 'desc' },
-        select: { timestamp: true },
-      },
-    },
-  });
+  const filters: Record<string, unknown>[] = [];
+  if (q) filters.push({ name: { contains: q, mode: 'insensitive' as const } });
+  if (status) filters.push({ status });
+  const where = filters.length ? { AND: filters } : {};
 
-  const totalCount = await prisma.application.count();
+  const [applications, totalCount] = await Promise.all([
+    prisma.application.findMany({
+      where,
+      take: pageSize,
+      skip,
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        _count: {
+          select: { events: true },
+        },
+        events: {
+          take: 1,
+          orderBy: { timestamp: 'desc' },
+          select: { timestamp: true },
+        },
+      },
+    }),
+    prisma.application.count({ where }),
+  ]);
   const totalPages = Math.ceil(totalCount / pageSize);
   const showingStart = skip + 1;
   const showingEnd = Math.min(skip + pageSize, totalCount);
@@ -48,12 +57,14 @@ export default async function ApplicationsPage({
         {/* Toolbar */}
         <div className="flex items-center gap-4">
           <SearchInput placeholder="Search applications..." className="w-80" />
-          <Button variant="secondary">
-            Status
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-              <path d="M3 5L6 8L9 5H3Z" />
-            </svg>
-          </Button>
+          <FilterDropdown
+            label="Status"
+            paramName="status"
+            options={[
+              { label: 'Active', value: 'ACTIVE' },
+              { label: 'Inactive', value: 'INACTIVE' },
+            ]}
+          />
         </div>
 
         {/* Applications Table */}

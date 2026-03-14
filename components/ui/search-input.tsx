@@ -1,12 +1,58 @@
 'use client';
 
+import { Suspense, useCallback, useRef, useState } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
-interface SearchInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface SearchInputProps {
+  placeholder?: string;
   className?: string;
+  /** URL param name to sync with. Defaults to "q" */
+  paramName?: string;
 }
 
-export function SearchInput({ className, ...props }: SearchInputProps) {
+function SearchInputInner({
+  placeholder,
+  className,
+  paramName = 'q',
+}: SearchInputProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const urlValue = searchParams.get(paramName) ?? '';
+  const [value, setValue] = useState(urlValue);
+  const [syncedUrlValue, setSyncedUrlValue] = useState(urlValue);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // When the URL param changes externally (back/forward navigation), reset
+  // local input value. Using state (not a ref) for the comparison is the
+  // React-recommended pattern for "adjusting state when a prop changes".
+  if (syncedUrlValue !== urlValue) {
+    setSyncedUrlValue(urlValue);
+    setValue(urlValue);
+  }
+
+  const updateUrl = useCallback(
+    (query: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (query) {
+        params.set(paramName, query);
+      } else {
+        params.delete(paramName);
+      }
+      params.delete('page');
+      router.push(pathname + '?' + params.toString());
+    },
+    [router, pathname, searchParams, paramName],
+  );
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const next = e.target.value;
+    setValue(next);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => updateUrl(next), 300);
+  };
+
   return (
     <div className="relative">
       <svg
@@ -33,12 +79,31 @@ export function SearchInput({ className, ...props }: SearchInputProps) {
       </svg>
       <input
         type="text"
+        value={value}
+        onChange={handleChange}
+        placeholder={placeholder}
         className={cn(
           'h-9 pl-9 pr-3 text-sm border border-[#E8E8E8] bg-white text-[#0D0D0D] placeholder:text-[#B0B0B0] focus:outline-none focus:border-[#E42313]',
           className,
         )}
-        {...props}
       />
     </div>
+  );
+}
+
+export function SearchInput(props: SearchInputProps) {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className={cn(
+            'relative h-9 border border-[#E8E8E8] bg-white',
+            props.className,
+          )}
+        />
+      }
+    >
+      <SearchInputInner {...props} />
+    </Suspense>
   );
 }

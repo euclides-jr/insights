@@ -11,26 +11,37 @@ import { formatRelativeTime, formatNumber } from '@/lib/format';
 export default async function SegmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string }>;
 }) {
   const params = await searchParams;
   const currentPage = Number(params.page) || 1;
   const pageSize = 10;
   const skip = (currentPage - 1) * pageSize;
+  const q = params.q?.trim() || '';
 
-  const segments = await prisma.segment.findMany({
-    take: pageSize,
-    skip,
-    orderBy: { updatedAt: 'desc' },
-    include: { application: true },
-  });
+  const where = q
+    ? {
+        OR: [
+          { name: { contains: q, mode: 'insensitive' as const } },
+          { description: { contains: q, mode: 'insensitive' as const } },
+        ],
+      }
+    : {};
 
-  const applications = await prisma.application.findMany({
-    select: { id: true, name: true },
-    orderBy: { name: 'asc' },
-  });
-
-  const totalCount = await prisma.segment.count();
+  const [segments, totalCount, applications] = await Promise.all([
+    prisma.segment.findMany({
+      where,
+      take: pageSize,
+      skip,
+      orderBy: { updatedAt: 'desc' },
+      include: { application: true },
+    }),
+    prisma.segment.count({ where }),
+    prisma.application.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
+  ]);
   const totalPages = Math.ceil(totalCount / pageSize);
   const showingStart = skip + 1;
   const showingEnd = Math.min(skip + pageSize, totalCount);

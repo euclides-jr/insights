@@ -3,6 +3,7 @@ import { DashboardLayout } from '@/components/dashboard-layout';
 import { Table, TableHeader, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { SearchInput } from '@/components/ui/search-input';
+import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { Pagination } from '@/components/ui/pagination';
 import { AddSchemaDialog } from '@/components/add-schema-dialog';
 import { prisma } from '@/lib/db/prisma';
@@ -11,21 +12,45 @@ import { formatRelativeTime } from '@/lib/format';
 export default async function SchemasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    q?: string;
+    appId?: string;
+    status?: string;
+  }>;
 }) {
   const params = await searchParams;
   const currentPage = Number(params.page) || 1;
   const pageSize = 10;
   const skip = (currentPage - 1) * pageSize;
+  const q = params.q?.trim() || '';
+  const appId = params.appId || '';
+  const status = params.status || '';
+
+  const filters: Record<string, unknown>[] = [];
+  if (q) {
+    filters.push({
+      OR: [
+        { eventName: { contains: q, mode: 'insensitive' as const } },
+        {
+          application: { name: { contains: q, mode: 'insensitive' as const } },
+        },
+      ],
+    });
+  }
+  if (appId) filters.push({ applicationId: appId });
+  if (status) filters.push({ isActive: status === 'active' });
+  const where = filters.length ? { AND: filters } : {};
 
   const [schemas, totalCount, applications] = await Promise.all([
     prisma.eventSchema.findMany({
+      where,
       take: pageSize,
       skip,
       orderBy: { createdAt: 'desc' },
       include: { application: { select: { id: true, name: true } } },
     }),
-    prisma.eventSchema.count(),
+    prisma.eventSchema.count({ where }),
     prisma.application.findMany({
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
@@ -55,18 +80,19 @@ export default async function SchemasPage({
         {/* Toolbar */}
         <div className="flex items-center gap-4">
           <SearchInput placeholder="Search schemas..." className="w-80" />
-          <button className="flex items-center gap-1 h-9 px-3 border border-[#E8E8E8] bg-white text-sm text-[#0D0D0D] hover:bg-[#FAFAFA] transition-colors">
-            Type
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-              <path d="M3 5L6 8L9 5H3Z" />
-            </svg>
-          </button>
-          <button className="flex items-center gap-1 h-9 px-3 border border-[#E8E8E8] bg-white text-sm text-[#0D0D0D] hover:bg-[#FAFAFA] transition-colors">
-            Status
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-              <path d="M3 5L6 8L9 5H3Z" />
-            </svg>
-          </button>
+          <FilterDropdown
+            label="Application"
+            paramName="appId"
+            options={applications.map((a) => ({ label: a.name, value: a.id }))}
+          />
+          <FilterDropdown
+            label="Status"
+            paramName="status"
+            options={[
+              { label: 'Active', value: 'active' },
+              { label: 'Inactive', value: 'inactive' },
+            ]}
+          />
         </div>
 
         {/* Schemas Table */}

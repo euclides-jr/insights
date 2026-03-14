@@ -3,6 +3,7 @@ import { Table, TableHeader, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/ui/search-input';
+import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { Pagination } from '@/components/ui/pagination';
 import { prisma } from '@/lib/db/prisma';
 import { formatDateTime } from '@/lib/format';
@@ -10,21 +11,41 @@ import { formatDateTime } from '@/lib/format';
 export default async function EventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string; appId?: string }>;
 }) {
   const params = await searchParams;
   const currentPage = Number(params.page) || 1;
   const pageSize = 10;
   const skip = (currentPage - 1) * pageSize;
+  const q = params.q?.trim() || '';
+  const appId = params.appId || '';
 
-  const [events, totalCount] = await Promise.all([
+  const filters: Record<string, unknown>[] = [];
+  if (q) {
+    filters.push({
+      OR: [
+        { eventName: { contains: q, mode: 'insensitive' as const } },
+        { userId: { contains: q, mode: 'insensitive' as const } },
+        { eventId: { contains: q, mode: 'insensitive' as const } },
+      ],
+    });
+  }
+  if (appId) filters.push({ applicationId: appId });
+  const where = filters.length ? { AND: filters } : {};
+
+  const [events, totalCount, allApplications] = await Promise.all([
     prisma.event.findMany({
+      where,
       take: pageSize,
       skip,
       orderBy: { timestamp: 'desc' },
       include: { application: true },
     }),
-    prisma.event.count(),
+    prisma.event.count({ where }),
+    prisma.application.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
   ]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -50,18 +71,14 @@ export default async function EventsPage({
         {/* Toolbar */}
         <div className="flex items-center gap-4">
           <SearchInput placeholder="Search events..." className="w-80" />
-          <Button variant="secondary">
-            Application
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-              <path d="M3 5L6 8L9 5H3Z" />
-            </svg>
-          </Button>
-          <Button variant="secondary">
-            Status
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-              <path d="M3 5L6 8L9 5H3Z" />
-            </svg>
-          </Button>
+          <FilterDropdown
+            label="Application"
+            paramName="appId"
+            options={allApplications.map((a) => ({
+              label: a.name,
+              value: a.id,
+            }))}
+          />
         </div>
 
         {/* Events Table */}
