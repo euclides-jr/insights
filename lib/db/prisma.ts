@@ -1,23 +1,16 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
 
 // PrismaClient singleton to prevent multiple instances in development
 // Learn more: https://pris.ly/d/help/next-js-best-practices
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
-  pool: Pool | undefined;
 };
 
-// Create pool and adapter for Prisma 7.x
-if (!globalForPrisma.pool) {
-  globalForPrisma.pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-  });
-}
-
-const adapter = new PrismaPg(globalForPrisma.pool);
+// Pass connection config directly to avoid @types/pg version conflicts
+// between the project and @prisma/adapter-pg's bundled types
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 
 export const prisma =
   globalForPrisma.prisma ??
