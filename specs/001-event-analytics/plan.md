@@ -479,13 +479,14 @@ Response: 200 OK (JSON)
 - [x] Build query page in dashboard (app/query/page.tsx + components/query-form.tsx)
 - [x] E2E test: query events with various filters (tests/e2e/query.spec.ts — 15 tests)
 
-### Phase 4: Schema Management (Week 4) 🔶 Partial
+### Phase 4: Schema Management (Week 4) ✅ Complete
 
-- [ ] Implement schema CRUD API endpoints (GET/POST/PUT/DELETE /api/schemas)
+- [x] Implement schema CRUD API endpoints (GET/POST/PUT/DELETE /api/schemas + GET/PUT/DELETE /api/schemas/:id)
 - [x] Event validation against schemas (active schemas enforced in POST /api/events — required fields + type checking)
-- [ ] Schema versioning handling (model supports versioning; version-tolerance logic not yet implemented)
-- [ ] Schema management dashboard pages (read-only list at /schemas; no create/edit UI yet)
+- [x] Schema versioning handling (PUT /api/schemas/:id with properties deactivates old version and creates v+1)
+- [x] Schema management dashboard pages (list at /schemas with Add Schema dialog; detail/edit at /schemas/[id])
 - [x] E2E test: send valid/invalid event against active schema (covered in tests/api/events.test.ts Schema Enforcement block)
+- [x] API integration tests: tests/api/schemas.test.ts — 23 test cases covering all CRUD, versioning, and error paths
 
 ### Phase 5: Data Quality (Week 5) 🔶 Partial
 
