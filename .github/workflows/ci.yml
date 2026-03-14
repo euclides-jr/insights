@@ -55,5 +55,29 @@ jobs:
       - name: Run database migrations
         run: bunx prisma migrate deploy
 
+      - name: Seed database
+        run: bun run db:seed
+
+      - name: Build application
+        run: bun run build
+
+      - name: Start application server
+        run: bun run start &
+
+      - name: Wait for server to be ready
+        run: |
+          echo "Waiting for server to start (up to 60 seconds)..."
+          MAX_RETRIES=30
+          for i in $(seq 1 $MAX_RETRIES); do
+            if curl -sf http://localhost:3000/api/events > /dev/null 2>&1; then
+              echo "Server is ready!"
+              exit 0
+            fi
+            echo "Attempt $i/$MAX_RETRIES: server not ready, waiting 2s..."
+            sleep 2
+          done
+          echo "Server failed to start within 60 seconds"
+          exit 1
+
       - name: Run unit & API tests
         run: bun run test --run
