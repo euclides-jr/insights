@@ -41,8 +41,8 @@ export default async function SegmentDetailPage({ params }: Props) {
   const logic = criteria.logic ?? 'AND';
 
   // Convert stored criteria filters to the EventFilter shape used by SegmentForm
-  const defaultFilters = filters.map((f) => ({
-    id: Math.random().toString(36).slice(2, 9),
+  const defaultFilters = filters.map((f, idx) => ({
+    id: String(idx),
     eventName: f.eventName ?? '',
     countMin: f.count?.min !== undefined ? String(f.count.min) : '',
     countMax: f.count?.max !== undefined ? String(f.count.max) : '',

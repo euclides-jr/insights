@@ -5,7 +5,7 @@
  * Run with: bun test tests/api/events.test.ts
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3000';
 const TEST_API_KEY = process.env.TEST_API_KEY || 'demo_app_key_123'; // From seed file
