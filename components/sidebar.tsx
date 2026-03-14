@@ -11,6 +11,7 @@ const navigation = [
   { name: 'Applications', href: '/applications' },
   { name: 'Schemas', href: '/schemas' },
   { name: 'Segments', href: '/segments' },
+  { name: 'Data Quality', href: '/quality' },
 ];
 
 export function Sidebar() {

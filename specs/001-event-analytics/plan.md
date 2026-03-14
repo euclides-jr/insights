@@ -488,13 +488,14 @@ Response: 200 OK (JSON)
 - [x] E2E test: send valid/invalid event against active schema (covered in tests/api/events.test.ts Schema Enforcement block)
 - [x] API integration tests: tests/api/schemas.test.ts — 23 test cases covering all CRUD, versioning, and error paths
 
-### Phase 5: Data Quality (Week 5) 🔶 Partial
+### Phase 5: Data Quality (Week 5) ✅ Complete
 
 - [x] Implement DataQualityMetric model (applicationId + date unique key; eventsReceived, eventsRejected, validationFailureRate, completenessRate)
 - [x] Track validation failures and completeness (upserted in POST /api/events on schema violations)
-- [ ] Data quality dashboard page (/quality route not yet created)
-- [ ] Alert logic for quality thresholds
-- [ ] E2E test: trigger quality issues → verify metrics
+- [x] Data quality API endpoint (GET /api/quality — daily metrics with alert levels, summary aggregation, pagination, applicationId + days filters)
+- [x] Alert logic for quality thresholds (failureRateAlert, completenessAlert, duplicateRateAlert — warning/error levels exported from route)
+- [x] Data quality dashboard page (/quality — summary cards, daily breakdown table, 7/14/30d filter, per-field colour coding)
+- [x] API integration tests: tests/api/quality.test.ts — 12 test cases (response shape, filters, alert levels, metric written on violation)
 
 ### Phase 6: Segmentation (Week 6) 🔶 Partial
 
