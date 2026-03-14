@@ -21,7 +21,7 @@ test.describe('Events Page', () => {
     await expect(page.getByText('Event Name', { exact: true })).toBeVisible();
     await expect(page.getByText('Schema', { exact: true })).toBeVisible();
     await expect(page.getByText('Timestamp', { exact: true })).toBeVisible();
-    await expect(page.getByText('Status', { exact: true })).toBeVisible();
+    await expect(page.locator('div').filter({ hasText: /^Status$/ })).toBeVisible();
   });
 
   test('should display events data in table rows', async ({ page }) => {
