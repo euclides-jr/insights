@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { refreshSegmentCount } from '../lib/services/segment-engine';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -502,11 +503,11 @@ async function main() {
   ];
 
   for (const def of segmentDefs) {
-    const existing = await prisma.segment.findFirst({
+    let seg = await prisma.segment.findFirst({
       where: { applicationId: def.applicationId, name: def.name },
     });
-    if (!existing) {
-      await prisma.segment.create({
+    if (!seg) {
+      seg = await prisma.segment.create({
         data: {
           ...def,
           criteria: def.criteria as object,
@@ -515,6 +516,8 @@ async function main() {
         },
       });
     }
+    // Evaluate criteria against real event data so memberCount is accurate
+    await refreshSegmentCount(seg.id);
   }
   console.log('✅ Segments created');
 
