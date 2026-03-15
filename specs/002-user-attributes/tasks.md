@@ -15,7 +15,7 @@
 
 **Purpose**: Extend the Prisma schema with the three new models before any migration or code can be written.
 
-- [ ] T001 Extend `prisma/schema.prisma` — add `UserProfile`, `UserAttributeHistory`, `UserAttributeSchema` models, `AttributeValueType` enum, and the three new `Application` relation fields (per data-model.md Prisma Schema Addition section)
+- [x] T001 Extend `prisma/schema.prisma` — add `UserProfile`, `UserAttributeHistory`, `UserAttributeSchema` models, `AttributeValueType` enum, and the three new `Application` relation fields (per data-model.md Prisma Schema Addition section)
 
 ---
 
@@ -25,10 +25,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 Run `prisma migrate dev --name add-user-profiles` to generate the migration SQL for `user_profiles`, `user_attribute_history`, `user_attribute_schemas` tables — **do NOT apply yet; review the generated file first**
-- [ ] T003 Edit the generated migration file at `prisma/migrations/<timestamp>_add-user-profiles/migration.sql` before applying: append the GIN index (`CREATE INDEX … USING gin (attributes jsonb_path_ops)`) and composite indexes from data-model.md at the end of the file; then re-run `prisma migrate dev` (or `prisma migrate deploy`) to apply the complete edited file in a single step — do NOT create a second separate migration file, as this risks ordering issues in the Prisma migration table
-- [ ] T004 [P] Create `lib/validations/user-schemas.ts` — Zod schemas for: `identifyRequestSchema` (userId + optional attributes), `attributeFilterSchema` (key, operator, value, logic), `eventFilterSchema` (eventName, operator, count, timeWindow, properties), `batchIdentifySchema` (array of up to 100 identify requests), `attributeSchemaRequestSchema` (attributeKey, valueType, description, isIndexed), `combinedQuerySchema` (attributeFilters array + eventFilters array — **distinct from `identifyRequestSchema`**, required for POST /api/users/query); **date attribute values** are accepted as ISO 8601 strings (`z.string().datetime()`), coerced to `::timestamptz` at SQL cast time
-- [ ] T005 [P] Create `lib/services/user-attribute-service.ts` — export function signatures with TypeScript types for `upsertUserProfile`, `getUserProfile`, `listUsers`, `buildCombinedUserQuery`, `getAttributeHistory`; leave function bodies as `throw new Error('not implemented')` stubs
+- [x] T002 Run `prisma migrate dev --name add-user-profiles` to generate the migration SQL for `user_profiles`, `user_attribute_history`, `user_attribute_schemas` tables — **do NOT apply yet; review the generated file first**
+- [x] T003 Edit the generated migration file at `prisma/migrations/<timestamp>_add-user-profiles/migration.sql` before applying: append the GIN index (`CREATE INDEX … USING gin (attributes jsonb_path_ops)`) and composite indexes from data-model.md at the end of the file; then re-run `prisma migrate dev` (or `prisma migrate deploy`) to apply the complete edited file in a single step — do NOT create a second separate migration file, as this risks ordering issues in the Prisma migration table
+- [x] T004 [P] Create `lib/validations/user-schemas.ts` — Zod schemas for: `identifyRequestSchema` (userId + optional attributes), `attributeFilterSchema` (key, operator, value, logic), `eventFilterSchema` (eventName, operator, count, timeWindow, properties), `batchIdentifySchema` (array of up to 100 identify requests), `attributeSchemaRequestSchema` (attributeKey, valueType, description, isIndexed), `combinedQuerySchema` (attributeFilters array + eventFilters array — **distinct from `identifyRequestSchema`**, required for POST /api/users/query); **date attribute values** are accepted as ISO 8601 strings (`z.string().datetime()`), coerced to `::timestamptz` at SQL cast time
+- [x] T005 [P] Create `lib/services/user-attribute-service.ts` — export function signatures with TypeScript types for `upsertUserProfile`, `getUserProfile`, `listUsers`, `buildCombinedUserQuery`, `getAttributeHistory`; leave function bodies as `throw new Error('not implemented')` stubs
 
 **Checkpoint**: Database schema is live, Zod schemas exist, service file is created — user story implementation can begin.
 
@@ -42,13 +42,13 @@
 
 ### Implementation
 
-- [ ] T006 [P] [US1] Implement `upsertUserProfile()` in `lib/services/user-attribute-service.ts` — normalize all incoming attribute key names to **lowercase** (`key.toLowerCase()`) before storage; perform Prisma upsert on `user_profiles`, diff old vs new attributes, write one `UserAttributeHistory` row per changed key; enforce reserved-key block (`RESERVED_KEYS` set) and attribute name format (`/^[a-z0-9_]{1,128}$/` after normalization); enforce 10 KB per-value size limit; apply **last-write-wins** merge — the most recently received value for a key overwrites the stored value with no client-side conflict resolution required (handles multi-device/concurrent writes consistently)
-- [ ] T007 [P] [US1] Create `app/api/users/identify/route.ts` — `POST` handler: validate body with `identifyRequestSchema`, resolve `applicationId` from `X-API-Key`, call `upsertUserProfile`, return the updated profile as JSON (200)
-- [ ] T008 [P] [US1] Create `app/api/users/[userId]/route.ts` — `GET` handler: resolve application from API key, fetch `UserProfile` via Prisma, optionally include `UserAttributeHistory` when `?includeHistory=true`, return 404 when user not found
-- [ ] T009 [US1] Create `components/forms/UserAttributeForm.tsx` — client component: renders a textarea or key-value row editor for attributes; on submit calls `POST /api/users/identify`; shows validation errors inline
-- [ ] T010 [US1] Create `app/users/[userId]/page.tsx` — server component: fetch user profile from DB via Prisma, render current attributes table + `UserAttributeForm` for updates + collapsible attribute history list grouped by `changedAt`
-- [ ] T011 [US1] Add `/users` navigation link to `components/sidebar.tsx` (matches pattern of existing `/events`, `/schemas`, `/segments` links)
-- [ ] T025 [P] [US1] Create `app/api/users/identify/batch/route.ts` — `POST /api/users/identify/batch`: accept an array of up to 100 identify requests, validate with `batchIdentifySchema`, call `upsertUserProfile` for each entry, return `{ processed, failed, errors?: Array<{index, userId, message}> }`; return 400 if array exceeds 100 entries (FR-015 is a Functional Requirement, not an enhancement)
+- [x] T006 [P] [US1] Implement `upsertUserProfile()` in `lib/services/user-attribute-service.ts` — normalize all incoming attribute key names to **lowercase** (`key.toLowerCase()`) before storage; perform Prisma upsert on `user_profiles`, diff old vs new attributes, write one `UserAttributeHistory` row per changed key; enforce reserved-key block (`RESERVED_KEYS` set) and attribute name format (`/^[a-z0-9_]{1,128}$/` after normalization); enforce 10 KB per-value size limit; apply **last-write-wins** merge — the most recently received value for a key overwrites the stored value with no client-side conflict resolution required (handles multi-device/concurrent writes consistently)
+- [x] T007 [P] [US1] Create `app/api/users/identify/route.ts` — `POST` handler: validate body with `identifyRequestSchema`, resolve `applicationId` from `X-API-Key`, call `upsertUserProfile`, return the updated profile as JSON (200)
+- [x] T008 [P] [US1] Create `app/api/users/[userId]/route.ts` — `GET` handler: resolve application from API key, fetch `UserProfile` via Prisma, optionally include `UserAttributeHistory` when `?includeHistory=true`, return 404 when user not found
+- [x] T009 [US1] Create `components/forms/UserAttributeForm.tsx` — client component: renders a textarea or key-value row editor for attributes; on submit calls `POST /api/users/identify`; shows validation errors inline
+- [x] T010 [US1] Create `app/users/[userId]/page.tsx` — server component: fetch user profile from DB via Prisma, render current attributes table + `UserAttributeForm` for updates + collapsible attribute history list grouped by `changedAt`
+- [x] T011 [US1] Add `/users` navigation link to `components/sidebar.tsx` (matches pattern of existing `/events`, `/schemas`, `/segments` links)
+- [x] T025 [P] [US1] Create `app/api/users/identify/batch/route.ts` — `POST /api/users/identify/batch`: accept an array of up to 100 identify requests, validate with `batchIdentifySchema`, call `upsertUserProfile` for each entry, return `{ processed, failed, errors?: Array<{index, userId, message}> }`; return 400 if array exceeds 100 entries (FR-015 is a Functional Requirement, not an enhancement)
 
 **Checkpoint**: `POST /api/users/identify` creates/updates a profile. `GET /api/users/:userId` returns it. Batch identify (`POST /api/users/identify/batch`) works. The `/users/:userId` dashboard page renders correctly. US1 is independently functional.
 
@@ -62,10 +62,10 @@
 
 ### Implementation
 
-- [ ] T012 [P] [US2] Implement `listUsers()` in `lib/services/user-attribute-service.ts` — build parameterized SQL `WHERE` clause from `AttributeFilter[]` (infer SQL cast from JS value type: `number` → `::numeric`, `boolean` → `::boolean`, ISO string → `::timestamptz`, else text extract); evaluate the `logic` field per filter entry: filters with `logic: "or"` form separate OR groups, all others are AND-joined within their group; emit parenthesized SQL groups (`(group1) OR (group2)`) to correctly implement FR-006; apply pagination (`LIMIT`/`OFFSET`) and `ORDER BY` via `sortBy`/`sortOrder`; count total matching rows for pagination metadata
-- [ ] T013 [P] [US2] Create `app/api/users/route.ts` — `GET` handler: parse `?filters=` JSON query param, validate with `attributeFilterSchema[]`, resolve application from API key, call `listUsers`, return `{ users, pagination, executionTimeMs }`; return 400 for invalid filter JSON
-- [ ] T014 [P] [US2] Create `components/tables/UsersTable.tsx` — server or client component: renders a table with columns for `userId`, `lastSeen`, `eventCount`, `lastEventName`, and dynamic attribute columns based on returned data; includes `Pagination` component (reuse existing `components/ui/pagination.tsx`)
-- [ ] T015 [US2] Create `app/users/page.tsx` — server component with `<Suspense>`: attribute filter form (key / operator / value rows, Add Filter / Remove Filter buttons), calls `GET /api/users` on submit, renders `UsersTable` with results and pagination
+- [x] T012 [P] [US2] Implement `listUsers()` in `lib/services/user-attribute-service.ts` — build parameterized SQL `WHERE` clause from `AttributeFilter[]` (infer SQL cast from JS value type: `number` → `::numeric`, `boolean` → `::boolean`, ISO string → `::timestamptz`, else text extract); evaluate the `logic` field per filter entry: filters with `logic: "or"` form separate OR groups, all others are AND-joined within their group; emit parenthesized SQL groups (`(group1) OR (group2)`) to correctly implement FR-006; apply pagination (`LIMIT`/`OFFSET`) and `ORDER BY` via `sortBy`/`sortOrder`; count total matching rows for pagination metadata
+- [x] T013 [P] [US2] Create `app/api/users/route.ts` — `GET` handler: parse `?filters=` JSON query param, validate with `attributeFilterSchema[]`, resolve application from API key, call `listUsers`, return `{ users, pagination, executionTimeMs }`; return 400 for invalid filter JSON
+- [x] T014 [P] [US2] Create `components/tables/UsersTable.tsx` — server or client component: renders a table with columns for `userId`, `lastSeen`, `eventCount`, `lastEventName`, and dynamic attribute columns based on returned data; includes `Pagination` component (reuse existing `components/ui/pagination.tsx`)
+- [x] T015 [US2] Create `app/users/page.tsx` — server component with `<Suspense>`: attribute filter form (key / operator / value rows, Add Filter / Remove Filter buttons), calls `GET /api/users` on submit, renders `UsersTable` with results and pagination
 
 **Checkpoint**: `/users` page lists all users, attribute filter form narrows results, pagination works. US2 independently functional without requiring US3.
 
@@ -79,13 +79,13 @@
 
 ### Implementation
 
-- [ ] T016 [P] [US3] Implement `buildCombinedUserQuery()` in `lib/services/user-attribute-service.ts` — generates a CTE-based SQL query: `WITH _users AS (SELECT user_id FROM user_profiles WHERE …)` joined to `events` table; handles `performed` (exists), `not_performed` (NOT EXISTS subquery), `count.min`/`count.max` (HAVING), `timeWindow` (timestamp range), and `properties` (JSONB containment); returns the same paginated `{ users, pagination, executionTimeMs }` shape as `listUsers`
-- [ ] T017 [P] [US3] Create `app/api/users/query/route.ts` — `POST` handler: validate body with `combinedQuerySchema` (defined in T004; **distinct from `identifyRequestSchema`** — accepts attributeFilters + eventFilters arrays), call `buildCombinedUserQuery`, return results; output the same `{ users, pagination, executionTimeMs }` shape as `GET /api/users` so the UI can use either endpoint interchangeably
-- [ ] T018 [US3] Update `app/users/page.tsx` — add a collapsible "Event Behavior" filter section below attribute filters: event name input, operator select (`performed` / `not_performed`), optional count min/max, optional time window (value + unit), optional property key=value pair; include both `filters` and `eventFilters` in the `POST /api/users/query` body when event filters are present
-- [ ] T019 [US3] Update `components/tables/UsersTable.tsx` — when event filters are active, show a `matchedEvents` count column alongside the user results
-- [ ] T028 [US3/US4] Implement `getAttributesAt(applicationId, userId, timestamp)` in `lib/services/user-attribute-service.ts` — query `UserAttributeHistory` to reconstruct the user's full attribute state at a given point in time (most-recent value per key with `changedAt ≤ timestamp`); integrate into `buildCombinedUserQuery` so event-behavior joins evaluate the user's historically-active attributes at each event's timestamp rather than current attributes, satisfying FR-019
+- [x] T016 [P] [US3] Implement `buildCombinedUserQuery()` in `lib/services/user-attribute-service.ts` — generates a CTE-based SQL query: `WITH _users AS (SELECT user_id FROM user_profiles WHERE …)` joined to `events` table; handles `performed` (exists), `not_performed` (NOT EXISTS subquery), `count.min`/`count.max` (HAVING), `timeWindow` (timestamp range), and `properties` (JSONB containment); returns the same paginated `{ users, pagination, executionTimeMs }` shape as `listUsers`
+- [x] T017 [P] [US3] Create `app/api/users/query/route.ts` — `POST` handler: validate body with `combinedQuerySchema` (defined in T004; **distinct from `identifyRequestSchema`** — accepts attributeFilters + eventFilters arrays), call `buildCombinedUserQuery`, return results; output the same `{ users, pagination, executionTimeMs }` shape as `GET /api/users` so the UI can use either endpoint interchangeably
+- [x] T018 [US3] Update `app/users/page.tsx` — add a collapsible "Event Behavior" filter section below attribute filters: event name input, operator select (`performed` / `not_performed`), optional count min/max, optional time window (value + unit), optional property key=value pair; include both `filters` and `eventFilters` in the `POST /api/users/query` body when event filters are present
+- [x] T019 [US3] Update `components/tables/UsersTable.tsx` — when event filters are active, show a `matchedEvents` count column alongside the user results
+- [~] T028 [US3/US4] Implement `getAttributesAt(applicationId, userId, timestamp)` in `lib/services/user-attribute-service.ts` — **PARTIAL**: `getAttributesAt()` is exported and correctly reconstructs historical attribute state via `DISTINCT ON` over `user_attribute_history`. However, it is **not yet wired into `buildCombinedUserQuery`** — combined queries still evaluate current profile attributes, not historically-active ones. FR-019 remains unmet. Remaining work: modify the event-behavior subquery loop in `buildCombinedUserQuery` to join against a per-event history CTE instead of reading `user_profiles.attributes` directly.
 
-**Checkpoint**: Combined queries work. Analyst can find "pro users who did X but not Y in last N days" from the dashboard. FR-019 (historical attribute correlation in event joins) is implemented. US3 independently functional and additive to US2.
+**Checkpoint**: Combined queries work. Analyst can find "pro users who did X but not Y in last N days" from the dashboard. US3 independently functional and additive to US2. ⚠️ FR-019 (historical attribute correlation in event joins) is **not yet implemented** — T028 is partial.
 
 ---
 
@@ -97,9 +97,9 @@
 
 ### Implementation
 
-- [ ] T020 [P] [US4] Implement `getAttributeHistory()` in `lib/services/user-attribute-service.ts` — query `UserAttributeHistory` for a given `(applicationId, userId)` with optional `attributeKey`, `since`, and `until` filters; return rows ordered by `changedAt DESC`
-- [ ] T021 [P] [US4] Create `app/api/users/[userId]/history/route.ts` — `GET` handler: parse and validate `?attributeKey`, `?since`, `?until`, and `?at=<ISO8601>` query params; when `?at` is provided, return the most-recent history row per attribute key with `changedAt ≤ at` (point-in-time snapshot, supporting US4 Acceptance Scenario 2); update `getAttributeHistory` signature in the service to accept an optional `at?: Date` parameter; return `{ userId, applicationId, history, totalCount }`
-- [ ] T022 [US4] Update `app/users/[userId]/page.tsx` — expand the attribute history section to group entries by `changedAt` timestamp, show old → new value diffs per key, add `?attributeKey=` filter dropdown above the history list
+- [x] T020 [P] [US4] Implement `getAttributeHistory()` in `lib/services/user-attribute-service.ts` — query `UserAttributeHistory` for a given `(applicationId, userId)` with optional `attributeKey`, `since`, and `until` filters; return rows ordered by `changedAt DESC`
+- [x] T021 [P] [US4] Create `app/api/users/[userId]/history/route.ts` — `GET` handler: parse and validate `?attributeKey`, `?since`, `?until`, and `?at=<ISO8601>` query params; when `?at` is provided, return the most-recent history row per attribute key with `changedAt ≤ at` (point-in-time snapshot, supporting US4 Acceptance Scenario 2); update `getAttributeHistory` signature in the service to accept an optional `at?: Date` parameter; return `{ userId, applicationId, history, totalCount }`
+- [x] T022 [US4] Update `app/users/[userId]/page.tsx` — expand the attribute history section to group entries by `changedAt` timestamp, show old → new value diffs per key, add `?attributeKey=` filter dropdown above the history list
 
 **Checkpoint**: Full attribute history is visible on the user profile page. Point-in-time lookups work via API. US4 additive to US1 without breaking it.
 
@@ -113,7 +113,7 @@
 
 ### Implementation
 
-- [ ] T023 [US5] Update `app/api/events/route.ts` — after the existing `prisma.event.createMany` call, compute per-`userId` aggregate values (`minTimestamp`, `maxTimestamp`, `count`, `lastEventName`) from the `eventsToCreate` array already in memory; execute a single `prisma.$executeRaw` batch upsert (`INSERT INTO user_profiles … ON CONFLICT (application_id, user_id) DO UPDATE SET last_seen = GREATEST(…), first_seen = LEAST(…), event_count = user_profiles.event_count + excluded.event_count, last_event_name = excluded.last_event_name`)
+- [x] T023 [US5] Update `app/api/events/route.ts` — after the existing `prisma.event.createMany` call, compute per-`userId` aggregate values (`minTimestamp`, `maxTimestamp`, `count`, `lastEventName`) from the `eventsToCreate` array already in memory; execute a single `prisma.$executeRaw` batch upsert (`INSERT INTO user_profiles … ON CONFLICT (application_id, user_id) DO UPDATE SET last_seen = GREATEST(…), first_seen = LEAST(…), event_count = user_profiles.event_count + excluded.event_count, last_event_name = excluded.last_event_name`)
 
 **Checkpoint**: Events auto-populate user profiles. Users appear in `/users` dashboard without any explicit identify call. US5 transparent to all other stories.
 
@@ -123,10 +123,10 @@
 
 **Purpose**: Additional endpoints from the API contract, error handling consistency, and validation of the quickstart guide.
 
-- [ ] T024 [P] Create `app/api/users/attributes/schema/route.ts` — `POST` handler to register attribute type declarations (save to `user_attribute_schemas`); `GET` handler to list all registered schemas for the application; used by query builder to look up registered types for `isIndexed = true` expression index annotation
-- [ ] T026 [P] Audit all `app/api/users/` route handlers for consistent error handling — ensure: Zod validation errors return `{ error: "Validation failed", details: [...] }`; missing `X-API-Key` header returns 401; invalid/unrecognized key returns 403; not-found returns 404; oversized attributes return 413; BigInt values are correctly serialized — all consistent with existing `app/api/events/route.ts` behavior (FR-020)
-- [ ] T029 [P] Add a Vitest concurrent test in `tests/api/users.test.ts` — fire 20 parallel `POST /api/users/identify` requests for the same `userId` with non-overlapping attribute keys; verify the final profile contains all expected attribute values and no writes are lost; this validates `ON CONFLICT DO UPDATE` correctness under concurrent load (SC-008)
-- [ ] T027 Validate `specs/002-user-attributes/quickstart.md` scenarios end-to-end — run the SDK code examples from the quickstart against the running dev server (or write a `prisma/seed.ts` extension that exercises each scenario) and confirm all expected responses match
+- [x] T024 [P] Create `app/api/users/attributes/schema/route.ts` — `POST` handler to register attribute type declarations (save to `user_attribute_schemas`); `GET` handler to list all registered schemas for the application; used by query builder to look up registered types for `isIndexed = true` expression index annotation
+- [x] T026 [P] Audit all `app/api/users/` route handlers for consistent error handling — ensure: Zod validation errors return `{ error: "Validation failed", details: [...] }`; missing `X-API-Key` header returns 401; invalid/unrecognized key returns 403; not-found returns 404; oversized attributes return 413; BigInt values are correctly serialized — all consistent with existing `app/api/events/route.ts` behavior (FR-020)
+- [x] T029 [P] Add a Vitest concurrent test in `tests/api/users.test.ts` — fire 20 parallel `POST /api/users/identify` requests for the same `userId` with non-overlapping attribute keys; verify the final profile contains all expected attribute values and no writes are lost; this validates `ON CONFLICT DO UPDATE` correctness under concurrent load (SC-008)
+- [x] T027 Validate `specs/002-user-attributes/quickstart.md` scenarios end-to-end — run the SDK code examples from the quickstart against the running dev server (or write a `prisma/seed.ts` extension that exercises each scenario) and confirm all expected responses match
 
 ---
 
@@ -230,6 +230,16 @@ Then:
 | 7 — Auto System Attrs   | US5 (P5) | T023                   | —                      |
 | 8 — Polish              | —        | T024, T026, T027, T029 | T024, T026, T029       |
 
-**Total**: 29 tasks across 8 phases  
+**Total**: 29 tasks across 8 phases + 1 open item from T028  
 **MVP scope**: Phases 1–3 (12 tasks, US1 only — includes batch identify)  
 **Parallel opportunities**: 15 tasks marked `[P]`
+
+---
+
+## Phase 9: Post-Completion Fixes & Additions
+
+**Status**: Completed 15 March 2026
+
+- [x] T030 Fix `pagination.totalCount` → `pagination.total` mismatch in `components/forms/UsersPageClient.tsx` — the API response shape uses `totalCount` but the client `PaginationMeta` type used `total`; the showing banner rendered as `"Showing 1–NaN of undefined"`. Fixed by normalising `p.totalCount ?? p.total` on assignment.
+- [x] T031 Remove dead URL-based `<Pagination>` component from `components/tables/UsersTable.tsx` — `UsersTable` embedded a `<Pagination>` component using `router.push(?page=N)` on click. Since `UsersPageClient` never reads `page` from the URL, those buttons changed the address bar but left displayed results unchanged (silent data staleness). Replaced with a plain `<p>` showing-text; `← Prev` / `Next →` in `UsersPageClient` are now the sole pagination controls.
+- [x] T032 Add 10 pagination e2e tests in `tests/e2e/users.spec.ts` (`Users list — pagination` describe block) — covers: showing text accuracy (T030 regression), Prev/Next disabled states at page boundaries, forward and back navigation loads correct data, non-overlapping pages, single-page suppresses controls, and a regression test verifying `Next →` triggers an API call with `page=2` (T031 regression).

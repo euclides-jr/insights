@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 
 // --- Schema enforcement ---
 
@@ -280,6 +280,68 @@ export async function POST(request: NextRequest) {
           rejectedEvents.length,
         );
       }
+
+      // ── T023: Auto-update system user attributes from event data ──────────
+      // Compute per-userId aggregates from the events we just stored
+      const userAggregates = new Map<
+        string,
+        { minTs: Date; maxTs: Date; count: number; lastEventName: string }
+      >();
+      for (const ev of eventsToCreate) {
+        const ts = ev.timestamp;
+        const existing = userAggregates.get(ev.userId);
+        if (!existing) {
+          userAggregates.set(ev.userId, {
+            minTs: ts,
+            maxTs: ts,
+            count: 1,
+            lastEventName: ev.eventName,
+          });
+        } else {
+          userAggregates.set(ev.userId, {
+            minTs: ts < existing.minTs ? ts : existing.minTs,
+            maxTs: ts > existing.maxTs ? ts : existing.maxTs,
+            count: existing.count + 1,
+            lastEventName:
+              ts > existing.maxTs ? ev.eventName : existing.lastEventName,
+          });
+        }
+      }
+
+      if (userAggregates.size > 0) {
+        const valueRows: string[] = [];
+        const upsertParams: unknown[] = [];
+        let pi = 1;
+
+        for (const [userId, agg] of userAggregates) {
+          valueRows.push(
+            `($${pi++}::text, $${pi++}::text, $${pi++}::text, $${pi++}::timestamptz, $${pi++}::timestamptz, $${pi++}::int, $${pi++}::text, '{}'::jsonb, now(), now())`,
+          );
+          upsertParams.push(
+            randomUUID(), // id
+            application.id, // application_id
+            userId, // user_id
+            agg.minTs, // first_seen
+            agg.maxTs, // last_seen
+            agg.count, // event_count
+            agg.lastEventName, // last_event_name
+          );
+        }
+
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO user_profiles
+            (id, application_id, user_id, first_seen, last_seen, event_count, last_event_name, attributes, created_at, updated_at)
+           VALUES ${valueRows.join(', ')}
+           ON CONFLICT (application_id, user_id) DO UPDATE SET
+             last_seen     = GREATEST(user_profiles.last_seen, excluded.last_seen),
+             first_seen    = LEAST(user_profiles.first_seen, excluded.first_seen),
+             event_count   = user_profiles.event_count + excluded.event_count,
+             last_event_name = excluded.last_event_name,
+             updated_at    = now()`,
+          ...upsertParams,
+        );
+      }
+      // ── End T023 ──────────────────────────────────────────────────────────
 
       const response: Record<string, unknown> = {
         success: true,

@@ -6,7 +6,13 @@
 // Add any global test setup here
 // Example: Mock environment variables, set up test database, etc.
 
-import { beforeAll, afterAll, afterEach } from 'vitest';
+import { vi, beforeAll, afterAll, afterEach } from 'vitest';
+
+// jest-mock-extended uses `jest` as a global for creating/resetting mocks.
+// In Vitest, `vi` is the equivalent. This shim lets jest-mock-extended's
+// internal helpers (CalledWithFn, mockReset, etc.) find what they need.
+// See: https://www.prisma.io/docs/orm/prisma-client/testing/unit-testing
+Object.assign(globalThis, { jest: vi });
 
 // Example: Clean up after each test
 afterEach(() => {

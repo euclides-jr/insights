@@ -18,10 +18,13 @@ model Application {
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
 
-  events             Event[]
-  eventSchemas       EventSchema[]
-  segments           Segment[]
-  dataQualityMetrics DataQualityMetric[]
+  events               Event[]
+  eventSchemas         EventSchema[]
+  segments             Segment[]
+  dataQualityMetrics   DataQualityMetric[]
+  userProfiles         UserProfile[]
+  userAttributeHistory UserAttributeHistory[]
+  userAttributeSchemas UserAttributeSchema[]
 
   @@map("applications")
 }
@@ -107,4 +110,73 @@ model DataQualityMetric {
   @@unique([applicationId, date])
   @@index([applicationId, date])
   @@map("data_quality_metrics")
+}
+
+// ─── Feature 002: User Attributes ────────────────────────────────────────────
+
+// UserProfile holds one row per unique user per application.
+// attributes (JSONB) stores user-defined key-value pairs.
+// System columns (firstSeen, lastSeen, eventCount, lastEventName) are updated
+// automatically on every event ingestion via batch upsert in /api/events.
+model UserProfile {
+  id            String   @id @default(uuid())
+  applicationId String
+  userId        String
+  firstSeen     DateTime @default(now())
+  lastSeen      DateTime @default(now())
+  eventCount    Int      @default(0)
+  lastEventName String?
+  attributes    Json     @default("{}")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, userId])
+  @@index([applicationId])
+  @@index([applicationId, lastSeen])
+  @@map("user_profiles")
+}
+
+// Append-only log of every user attribute change.
+// Never updated or deleted — supports point-in-time lookups.
+model UserAttributeHistory {
+  id            String   @id @default(uuid())
+  applicationId String
+  userId        String
+  attributeKey  String
+  oldValue      Json?
+  newValue      Json?
+  changedAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, userId])
+  @@index([applicationId, userId, attributeKey, changedAt])
+  @@map("user_attribute_history")
+}
+
+// Optional type registry enabling the query builder to emit correct SQL casts
+// and create expression indexes for range queries per attribute key.
+model UserAttributeSchema {
+  id            String             @id @default(uuid())
+  applicationId String
+  attributeKey  String
+  valueType     AttributeValueType
+  description   String?
+  isIndexed     Boolean            @default(false)
+  createdAt     DateTime           @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, attributeKey])
+  @@index([applicationId])
+  @@map("user_attribute_schemas")
+}
+
+enum AttributeValueType {
+  STRING
+  NUMBER
+  BOOLEAN
+  DATE
 }

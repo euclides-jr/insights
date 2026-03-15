@@ -31,21 +31,22 @@
     "tailwind-merge": "^2.3.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.44.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.18.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.3.0",
+    "@vitest/ui": "^1.6.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "jest-mock-extended": "^3.0.0",
     "prisma": "^7.5.0",
     "tailwindcss": "^4",
+    "tsx": "^4.7.0",
     "typescript": "^5",
-    "@playwright/test": "^1.44.0",
-    "@vitejs/plugin-react": "^4.3.0",
-    "vitest": "^1.6.0",
-    "@vitest/ui": "^1.6.0",
-    "tsx": "^4.7.0"
+    "vitest": "^1.6.0"
   },
   "ignoreScripts": [
     "sharp",

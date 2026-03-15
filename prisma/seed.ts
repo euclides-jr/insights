@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
 
@@ -517,6 +517,385 @@ async function main() {
     }
   }
   console.log('✅ Segments created');
+
+  // ── 6. User Profiles (User Attributes) ────────────────────────────────────
+  // Seed representative user attribute profiles for the web app so the
+  // /users dashboard and API tests have meaningful data to query against.
+
+  const countries = [
+    'US',
+    'GB',
+    'DE',
+    'FR',
+    'CA',
+    'AU',
+    'JP',
+    'BR',
+    'IN',
+    'MX',
+  ];
+  const companies = [
+    'Acme Corp',
+    'Globex',
+    'Initech',
+    'Umbrella',
+    'Hooli',
+    'Pied Piper',
+    'Dunder Mifflin',
+    'Vandelay Industries',
+    'Sterling Cooper',
+    'Bluth Company',
+  ];
+  const roles = ['admin', 'editor', 'viewer', 'developer', 'analyst'];
+
+  // ── Type-schema registry entries ──────────────────────────────────────────
+  const schemaEntries = [
+    {
+      attributeKey: 'plan',
+      valueType: 'STRING' as const,
+      description: 'Subscription plan tier',
+      isIndexed: true,
+    },
+    {
+      attributeKey: 'country',
+      valueType: 'STRING' as const,
+      description: 'ISO 3166-1 alpha-2 country code',
+      isIndexed: true,
+    },
+    {
+      attributeKey: 'company',
+      valueType: 'STRING' as const,
+      description: 'Organisation name',
+      isIndexed: false,
+    },
+    {
+      attributeKey: 'role',
+      valueType: 'STRING' as const,
+      description: 'User role within org',
+      isIndexed: false,
+    },
+    {
+      attributeKey: 'account_age_days',
+      valueType: 'NUMBER' as const,
+      description: 'Days since account creation',
+      isIndexed: false,
+    },
+    {
+      attributeKey: 'is_trial',
+      valueType: 'BOOLEAN' as const,
+      description: 'Whether user is on trial',
+      isIndexed: false,
+    },
+    {
+      attributeKey: 'signed_up_at',
+      valueType: 'DATE' as const,
+      description: 'ISO 8601 signup timestamp',
+      isIndexed: false,
+    },
+  ];
+
+  for (const entry of schemaEntries) {
+    await prisma.userAttributeSchema.upsert({
+      where: {
+        applicationId_attributeKey: {
+          applicationId: webApp.id,
+          attributeKey: entry.attributeKey,
+        },
+      },
+      update: {
+        valueType: entry.valueType,
+        description: entry.description,
+        isIndexed: entry.isIndexed,
+      },
+      create: { applicationId: webApp.id, ...entry },
+    });
+  }
+  console.log('✅ Attribute schemas registered');
+
+  // ── Representative profiles — one per plan with enough variety for filtering tests ──
+  type ProfileDef = {
+    userId: string;
+    attributes: Record<string, unknown>;
+  };
+
+  const profileDefs: ProfileDef[] = [
+    // ── Enterprise users ──
+    {
+      userId: 'web_user_1',
+      attributes: {
+        plan: 'enterprise',
+        country: 'US',
+        company: 'Acme Corp',
+        role: 'admin',
+        account_age_days: 720,
+        is_trial: false,
+        signed_up_at: daysAgo(720).toISOString(),
+      },
+    },
+    {
+      userId: 'web_user_2',
+      attributes: {
+        plan: 'enterprise',
+        country: 'GB',
+        company: 'Sterling Cooper',
+        role: 'editor',
+        account_age_days: 540,
+        is_trial: false,
+        signed_up_at: daysAgo(540).toISOString(),
+      },
+    },
+    {
+      userId: 'web_user_3',
+      attributes: {
+        plan: 'enterprise',
+        country: 'DE',
+        company: 'Globex',
+        role: 'developer',
+        account_age_days: 365,
+        is_trial: false,
+        signed_up_at: daysAgo(365).toISOString(),
+      },
+    },
+    // ── Pro users ──
+    {
+      userId: 'web_user_4',
+      attributes: {
+        plan: 'pro',
+        country: 'US',
+        company: 'Hooli',
+        role: 'admin',
+        account_age_days: 180,
+        is_trial: false,
+        signed_up_at: daysAgo(180).toISOString(),
+      },
+    },
+    {
+      userId: 'web_user_5',
+      attributes: {
+        plan: 'pro',
+        country: 'CA',
+        company: 'Pied Piper',
+        role: 'developer',
+        account_age_days: 120,
+        is_trial: false,
+        signed_up_at: daysAgo(120).toISOString(),
+      },
+    },
+    {
+      userId: 'web_user_6',
+      attributes: {
+        plan: 'pro',
+        country: 'AU',
+        company: 'Bluth Company',
+        role: 'analyst',
+        account_age_days: 90,
+        is_trial: false,
+        signed_up_at: daysAgo(90).toISOString(),
+      },
+    },
+    // ── Starter users ──
+    {
+      userId: 'web_user_7',
+      attributes: {
+        plan: 'starter',
+        country: 'FR',
+        company: 'Initech',
+        role: 'editor',
+        account_age_days: 60,
+        is_trial: false,
+        signed_up_at: daysAgo(60).toISOString(),
+      },
+    },
+    {
+      userId: 'web_user_8',
+      attributes: {
+        plan: 'starter',
+        country: 'JP',
+        company: 'Umbrella',
+        role: 'viewer',
+        account_age_days: 45,
+        is_trial: true,
+        signed_up_at: daysAgo(45).toISOString(),
+      },
+    },
+    {
+      userId: 'web_user_9',
+      attributes: {
+        plan: 'starter',
+        country: 'IN',
+        company: 'Dunder Mifflin',
+        role: 'analyst',
+        account_age_days: 30,
+        is_trial: true,
+        signed_up_at: daysAgo(30).toISOString(),
+      },
+    },
+    // ── Free users ──
+    {
+      userId: 'web_user_10',
+      attributes: {
+        plan: 'free',
+        country: 'BR',
+        company: 'Vandelay Industries',
+        role: 'viewer',
+        account_age_days: 14,
+        is_trial: false,
+        signed_up_at: daysAgo(14).toISOString(),
+      },
+    },
+    {
+      userId: 'web_user_11',
+      attributes: {
+        plan: 'free',
+        country: 'MX',
+        company: 'Acme Corp',
+        role: 'viewer',
+        account_age_days: 7,
+        is_trial: false,
+        signed_up_at: daysAgo(7).toISOString(),
+      },
+    },
+    {
+      userId: 'web_user_12',
+      attributes: {
+        plan: 'free',
+        country: 'US',
+        company: 'Initech',
+        role: 'viewer',
+        account_age_days: 3,
+        is_trial: true,
+        signed_up_at: daysAgo(3).toISOString(),
+      },
+    },
+  ];
+
+  // Remaining users get randomised attributes to bulk-populate the list
+  for (let i = 13; i <= 30; i++) {
+    const plan = randItem([...plans]);
+    profileDefs.push({
+      userId: `web_user_${i}`,
+      attributes: {
+        plan,
+        country: randItem(countries),
+        company: randItem(companies),
+        role: randItem(roles),
+        account_age_days: randInt(1, 730),
+        is_trial: Math.random() > 0.7,
+        signed_up_at: daysAgo(randInt(1, 730)).toISOString(),
+      },
+    });
+  }
+
+  // Upsert each profile — write full attributes + derive system fields from existing events
+  for (const { userId, attributes } of profileDefs) {
+    const existingProfile = await prisma.userProfile.findUnique({
+      where: { applicationId_userId: { applicationId: webApp.id, userId } },
+    });
+
+    // Derive firstSeen / lastSeen / eventCount from actual events in DB
+    const eventAgg = await prisma.event.aggregate({
+      where: { applicationId: webApp.id, userId },
+      _min: { timestamp: true },
+      _max: { timestamp: true },
+      _count: { id: true },
+    });
+    const lastEvent = await prisma.event.findFirst({
+      where: { applicationId: webApp.id, userId },
+      orderBy: { timestamp: 'desc' },
+      select: { eventName: true },
+    });
+
+    const firstSeen = eventAgg._min.timestamp ?? new Date();
+    const lastSeen = eventAgg._max.timestamp ?? new Date();
+    const eventCount = eventAgg._count.id;
+    const lastEventName = lastEvent?.eventName ?? null;
+
+    if (existingProfile) {
+      await prisma.userProfile.update({
+        where: { applicationId_userId: { applicationId: webApp.id, userId } },
+        data: {
+          attributes: attributes as object,
+          firstSeen:
+            existingProfile.firstSeen < firstSeen
+              ? existingProfile.firstSeen
+              : firstSeen,
+          lastSeen:
+            existingProfile.lastSeen > lastSeen
+              ? existingProfile.lastSeen
+              : lastSeen,
+          eventCount: eventCount,
+          lastEventName: lastEventName,
+        },
+      });
+    } else {
+      await prisma.userProfile.create({
+        data: {
+          applicationId: webApp.id,
+          userId,
+          attributes: attributes as object,
+          firstSeen,
+          lastSeen,
+          eventCount,
+          lastEventName,
+        },
+      });
+    }
+
+    // Write initial history entries for each attribute (old = null → new = value)
+    for (const [key, value] of Object.entries(attributes)) {
+      const alreadyRecorded = await prisma.userAttributeHistory.findFirst({
+        where: { applicationId: webApp.id, userId, attributeKey: key },
+      });
+      if (!alreadyRecorded) {
+        await prisma.userAttributeHistory.create({
+          data: {
+            applicationId: webApp.id,
+            userId,
+            attributeKey: key,
+            oldValue: Prisma.DbNull,
+            newValue: value as object,
+          },
+        });
+      }
+    }
+  }
+  console.log(`✅ User profiles seeded (${profileDefs.length} users)`);
+
+  // ── Mobile user profiles (lighter — just plan + country) ─────────────────
+  for (let i = 1; i <= 20; i++) {
+    const userId = `mob_user_${i}`;
+    const existingMob = await prisma.userProfile.findUnique({
+      where: { applicationId_userId: { applicationId: mobileApp.id, userId } },
+    });
+    if (!existingMob) {
+      const mobEventAgg = await prisma.event.aggregate({
+        where: { applicationId: mobileApp.id, userId },
+        _min: { timestamp: true },
+        _max: { timestamp: true },
+        _count: { id: true },
+      });
+      const mobLast = await prisma.event.findFirst({
+        where: { applicationId: mobileApp.id, userId },
+        orderBy: { timestamp: 'desc' },
+        select: { eventName: true },
+      });
+      await prisma.userProfile.create({
+        data: {
+          applicationId: mobileApp.id,
+          userId,
+          attributes: {
+            plan: randItem([...plans]),
+            country: randItem(countries),
+          } as object,
+          firstSeen: mobEventAgg._min.timestamp ?? new Date(),
+          lastSeen: mobEventAgg._max.timestamp ?? new Date(),
+          eventCount: mobEventAgg._count.id,
+          lastEventName: mobLast?.eventName ?? null,
+        },
+      });
+    }
+  }
+  console.log('✅ Mobile user profiles seeded');
 
   console.log('\n🎉 Seeding complete!');
 }
