@@ -1,9 +1,11 @@
 import Link from 'next/link';
+import { Prisma } from '@prisma/client';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableRow, TableCell } from '@/components/ui/table';
 import { Pagination } from '@/components/ui/pagination';
 import { QualityAppFilter } from '@/components/quality-app-filter';
+import { QualityTrendsChart } from '@/components/charts/QualityTrendsChart';
 import { prisma } from '@/lib/db/prisma';
 import { format } from 'date-fns';
 import {
@@ -14,6 +16,7 @@ import {
   THRESHOLDS,
   type AlertLevel,
 } from '@/app/api/quality/route';
+import type { QualityTrendPoint } from '@/lib/charts/types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -61,29 +64,86 @@ export default async function QualityPage({
     ...(applicationId ? { applicationId } : {}),
   };
 
-  const [metrics, totalCount, applications, summary] = await Promise.all([
-    prisma.dataQualityMetric.findMany({
-      where,
-      take: pageSize,
-      skip,
-      orderBy: [{ date: 'desc' }, { applicationId: 'asc' }],
-      include: { application: { select: { id: true, name: true } } },
+  const [metrics, totalCount, applications, summary, qualityTrendsRows] =
+    await Promise.all([
+      prisma.dataQualityMetric.findMany({
+        where,
+        take: pageSize,
+        skip,
+        orderBy: [{ date: 'desc' }, { applicationId: 'asc' }],
+        include: { application: { select: { id: true, name: true } } },
+      }),
+      prisma.dataQualityMetric.count({ where }),
+      prisma.application.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      }),
+      prisma.dataQualityMetric.aggregate({
+        where,
+        _sum: { eventsReceived: true, eventsRejected: true },
+        _avg: {
+          validationFailureRate: true,
+          completenessRate: true,
+          duplicateRate: true,
+        },
+      }),
+      // T011: initial quality trends series for chart (null gap days — FR-010)
+      applicationId
+        ? prisma.$queryRaw<
+            {
+              date: string;
+              validationFailureRate: number | null;
+              completenessRate: number | null;
+              duplicateRate: number | null;
+            }[]
+          >(Prisma.sql`
+          SELECT
+            gs.day::text                    AS date,
+            dqm."validationFailureRate"     AS "validationFailureRate",
+            dqm."completenessRate"              AS "completenessRate",
+            dqm."duplicateRate"              AS "duplicateRate"
+          FROM (
+            SELECT generate_series(${since}::date, CURRENT_DATE::date, '1 day')::date AS day
+          ) gs
+          LEFT JOIN data_quality_metrics dqm
+            ON dqm.date::date = gs.day
+            AND dqm."applicationId" = ${applicationId}
+          ORDER BY gs.day ASC
+        `)
+        : prisma.$queryRaw<
+            {
+              date: string;
+              validationFailureRate: number | null;
+              completenessRate: number | null;
+              duplicateRate: number | null;
+            }[]
+          >(Prisma.sql`
+          SELECT
+            gs.day::text                      AS date,
+            AVG(dqm."validationFailureRate")  AS "validationFailureRate",
+            AVG(dqm."completenessRate")        AS "completenessRate",
+            AVG(dqm."duplicateRate")           AS "duplicateRate"
+          FROM (
+            SELECT generate_series(${since}::date, CURRENT_DATE::date, '1 day')::date AS day
+          ) gs
+          LEFT JOIN data_quality_metrics dqm ON dqm.date::date = gs.day
+          GROUP BY gs.day
+          ORDER BY gs.day ASC
+        `),
+    ]);
+
+  const initialTrendsSeries: QualityTrendPoint[] = qualityTrendsRows.map(
+    (r) => ({
+      date: r.date,
+      validationFailureRate:
+        r.validationFailureRate !== null
+          ? Number(r.validationFailureRate)
+          : null,
+      completenessRate:
+        r.completenessRate !== null ? Number(r.completenessRate) : null,
+      duplicateRate: r.duplicateRate !== null ? Number(r.duplicateRate) : null,
     }),
-    prisma.dataQualityMetric.count({ where }),
-    prisma.application.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' },
-    }),
-    prisma.dataQualityMetric.aggregate({
-      where,
-      _sum: { eventsReceived: true, eventsRejected: true },
-      _avg: {
-        validationFailureRate: true,
-        completenessRate: true,
-        duplicateRate: true,
-      },
-    }),
-  ]);
+  );
 
   const totalPages = Math.ceil(totalCount / pageSize);
   const showingStart = totalCount === 0 ? 0 : skip + 1;
@@ -228,6 +288,13 @@ export default async function QualityPage({
             ≥{pct(THRESHOLDS.duplicateRate.error)}
           </span>
         </div>
+
+        {/* Quality Trends Chart — US2 */}
+        <QualityTrendsChart
+          initialData={initialTrendsSeries}
+          applicationId={applicationId || undefined}
+          days={days}
+        />
 
         {/* Metrics table */}
         <div className="space-y-4">

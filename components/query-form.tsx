@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { QueryResultChart } from '@/components/charts/QueryResultChart';
+import type { ChartViewMode, ChartEligibility } from '@/lib/charts/types';
 
 interface Application {
   id: string;
@@ -34,8 +36,44 @@ export function QueryForm({ applications }: { applications: Application[] }) {
   const [result, setResult] = useState<QueryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [chartView, setChartView] = useState<ChartViewMode>('table');
+  const [chartEligibility, setChartEligibility] = useState<ChartEligibility>({
+    eligible: false,
+    reason: 'Run a query first',
+  });
 
   const needsField = aggregation === 'avg' || aggregation === 'sum';
+
+  // Computes whether the current result set is eligible for chart visualization.
+  // Eligible = has ≥1 numeric column (Y-axis) and ≥1 non-numeric column (X-axis).
+  function computeEligibility(
+    results: Record<string, unknown>[],
+  ): ChartEligibility {
+    if (!results || results.length === 0) {
+      return { eligible: false, reason: 'No results to chart' };
+    }
+    const firstRow = results[0];
+    const cols = Object.keys(firstRow);
+    const hasNumeric = cols.some((k) => typeof firstRow[k] === 'number');
+    const hasLabel = cols.some((k) => typeof firstRow[k] !== 'number');
+    if (!hasNumeric)
+      return { eligible: false, reason: 'No numeric column found for Y-axis' };
+    if (!hasLabel)
+      return { eligible: false, reason: 'No label column found for X-axis' };
+    return { eligible: true };
+  }
+
+  // Auto-detect labelKey (first non-numeric column) and valueKey (first numeric column)
+  const { labelKey, valueKey } = useMemo(() => {
+    if (!result || result.results.length === 0)
+      return { labelKey: '', valueKey: '' };
+    const firstRow = result.results[0];
+    const cols = Object.keys(firstRow);
+    return {
+      labelKey: cols.find((k) => typeof firstRow[k] !== 'number') ?? '',
+      valueKey: cols.find((k) => typeof firstRow[k] === 'number') ?? '',
+    };
+  }, [result]);
 
   // Resolves the API key associated with the selected application.
   // We pass the app's API key via the hidden input below.
@@ -74,6 +112,9 @@ export function QueryForm({ applications }: { applications: Application[] }) {
         setError(data.error ?? 'Query failed');
       } else {
         setResult(data);
+        // Always reset to table view and recompute eligibility on new results
+        setChartView('table');
+        setChartEligibility(computeEligibility(data.results ?? []));
       }
     } catch {
       setError('Network error');
@@ -247,57 +288,106 @@ export function QueryForm({ applications }: { applications: Application[] }) {
               Results ({result.totalCount} row
               {result.totalCount !== 1 ? 's' : ''})
             </h2>
-            <span className="text-xs text-[#7A7A7A]">
-              {result.executionTimeMs} ms
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-[#7A7A7A]">
+                {result.executionTimeMs} ms
+              </span>
+              {/* Chart / Table toggle — FR-005 */}
+              <div className="flex items-center rounded-md border border-[#E8E8E8] overflow-hidden text-sm">
+                <button
+                  type="button"
+                  onClick={() => setChartView('table')}
+                  className={`px-3 h-8 transition-colors ${
+                    chartView === 'table'
+                      ? 'bg-[#0D0D0D] text-white'
+                      : 'text-[#7A7A7A] hover:bg-[#FAFAFA]'
+                  }`}
+                  aria-pressed={chartView === 'table'}
+                >
+                  Table
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    chartEligibility.eligible && setChartView('chart')
+                  }
+                  disabled={!chartEligibility.eligible}
+                  title={
+                    chartEligibility.eligible
+                      ? 'View as chart'
+                      : chartEligibility.reason
+                  }
+                  className={`px-3 h-8 transition-colors ${
+                    chartView === 'chart'
+                      ? 'bg-[#0D0D0D] text-white'
+                      : !chartEligibility.eligible
+                        ? 'text-[#B0B0B0] cursor-not-allowed'
+                        : 'text-[#7A7A7A] hover:bg-[#FAFAFA]'
+                  }`}
+                  aria-pressed={chartView === 'chart'}
+                >
+                  Chart
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="bg-white border border-[#E8E8E8] overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#E8E8E8] bg-[#FAFAFA]">
-                  {result.results.length > 0 &&
-                    Object.keys(result.results[0]).map((col) => (
-                      <th
-                        key={col}
-                        className="px-4 py-3 text-left text-xs font-medium text-[#7A7A7A] whitespace-nowrap"
-                      >
-                        {col}
-                      </th>
-                    ))}
-                </tr>
-              </thead>
-              <tbody>
-                {result.results.length === 0 ||
-                (result.results.length === 1 &&
-                  Object.keys(result.results[0]).length === 1 &&
-                  result.results[0].value === 0) ? (
-                  <tr>
-                    <td
-                      colSpan={1}
-                      className="px-4 py-8 text-center text-[#7A7A7A]"
-                    >
-                      No results for this query
-                    </td>
-                  </tr>
-                ) : (
-                  result.results.map((row, i) => (
-                    <tr key={i} className="border-b border-[#E8E8E8]">
-                      {Object.values(row).map((val, j) => (
-                        <td key={j} className="px-4 py-3 text-[#0D0D0D]">
-                          {val === null || val === undefined
-                            ? '—'
-                            : typeof val === 'number'
-                              ? val.toLocaleString()
-                              : String(val)}
-                        </td>
+          {chartView === 'chart' && chartEligibility.eligible ? (
+            <div className="bg-white border border-[#E8E8E8] p-6">
+              <QueryResultChart
+                results={result.results}
+                labelKey={labelKey}
+                valueKey={valueKey}
+              />
+            </div>
+          ) : (
+            <div className="bg-white border border-[#E8E8E8] overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[#E8E8E8] bg-[#FAFAFA]">
+                    {result.results.length > 0 &&
+                      Object.keys(result.results[0]).map((col) => (
+                        <th
+                          key={col}
+                          className="px-4 py-3 text-left text-xs font-medium text-[#7A7A7A] whitespace-nowrap"
+                        >
+                          {col}
+                        </th>
                       ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.results.length === 0 ||
+                  (result.results.length === 1 &&
+                    Object.keys(result.results[0]).length === 1 &&
+                    result.results[0].value === 0) ? (
+                    <tr>
+                      <td
+                        colSpan={1}
+                        className="px-4 py-8 text-center text-[#7A7A7A]"
+                      >
+                        No results for this query
+                      </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    result.results.map((row, i) => (
+                      <tr key={i} className="border-b border-[#E8E8E8]">
+                        {Object.values(row).map((val, j) => (
+                          <td key={j} className="px-4 py-3 text-[#0D0D0D]">
+                            {val === null || val === undefined
+                              ? '—'
+                              : typeof val === 'number'
+                                ? val.toLocaleString()
+                                : String(val)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,22 +1,84 @@
+import { Prisma } from '@prisma/client';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { Table, TableHeader, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { prisma } from '@/lib/db/prisma';
 import { formatRelativeTime, formatNumber } from '@/lib/format';
+import { EventVolumeChart } from '@/components/charts/EventVolumeChart';
+import { EventsByApplicationChart } from '@/components/charts/EventsByApplicationChart';
+import type {
+  TimeSeriesPoint,
+  ApplicationEventCount,
+} from '@/lib/charts/types';
 
 export default async function DashboardPage() {
-  // Fetch metrics
-  const [totalEvents, activeApplications, eventSchemas, recentEvents] =
-    await Promise.all([
-      prisma.event.count(),
-      prisma.application.count(),
-      prisma.eventSchema.count({ where: { isActive: true } }),
-      prisma.event.findMany({
-        take: 5,
-        orderBy: { timestamp: 'desc' },
-        include: { application: true },
-      }),
-    ]);
+  // Shared start date for 7-day charts
+  const chartStartDate = new Date();
+  chartStartDate.setDate(chartStartDate.getDate() - 6);
+  chartStartDate.setHours(0, 0, 0, 0);
+
+  // Fetch metrics + chart data in parallel
+  const [
+    totalEvents,
+    activeApplications,
+    eventSchemas,
+    recentEvents,
+    eventSeriesRows,
+    appCountRows,
+  ] = await Promise.all([
+    prisma.event.count(),
+    prisma.application.count(),
+    prisma.eventSchema.count({ where: { isActive: true } }),
+    prisma.event.findMany({
+      take: 5,
+      orderBy: { timestamp: 'desc' },
+      include: { application: true },
+    }),
+    // T008: initial 7-day event volume series
+    prisma.$queryRaw<{ date: string; count: number }[]>(Prisma.sql`
+        SELECT
+          gs.day::text   AS date,
+          COALESCE(e.cnt, 0)::int AS count
+        FROM (
+          SELECT generate_series(
+            ${chartStartDate}::date,
+            CURRENT_DATE::date,
+            '1 day'::interval
+          )::date AS day
+        ) gs
+        LEFT JOIN (
+          SELECT timestamp::date AS day, COUNT(*)::int AS cnt
+          FROM events
+          WHERE timestamp >= ${chartStartDate}
+          GROUP BY timestamp::date
+        ) e ON gs.day = e.day
+        ORDER BY gs.day ASC
+      `),
+    // T016: initial events-by-application data
+    prisma.$queryRaw<
+      { applicationId: string; applicationName: string; count: number }[]
+    >(Prisma.sql`
+        SELECT
+          a.id   AS "applicationId",
+          a.name AS "applicationName",
+          COUNT(e.id)::int AS count
+        FROM applications a
+        LEFT JOIN events e ON e."applicationId" = a.id AND e.timestamp >= ${chartStartDate}
+        GROUP BY a.id, a.name
+        ORDER BY count DESC
+      `),
+  ]);
+
+  const initialEventSeries: TimeSeriesPoint[] = eventSeriesRows.map((r) => ({
+    date: r.date,
+    count: Number(r.count),
+  }));
+
+  const initialAppCounts: ApplicationEventCount[] = appCountRows.map((r) => ({
+    applicationId: r.applicationId,
+    applicationName: r.applicationName,
+    count: Number(r.count),
+  }));
 
   const metrics = [
     {
@@ -149,15 +211,11 @@ export default async function DashboardPage() {
           </Table>
         </div>
 
-        {/* Event Trends Chart Placeholder */}
-        <div className="space-y-6">
-          <h2 className="text-2xl font-semibold font-[family-name:var(--font-space-grotesk)]">
-            Event Trends
-          </h2>
-          <div className="bg-white border border-[#E8E8E8] p-8 h-64 flex items-center justify-center">
-            <p className="text-[#B0B0B0]">Chart visualization placeholder</p>
-          </div>
-        </div>
+        {/* Event Volume Chart — US1 */}
+        <EventVolumeChart initialData={initialEventSeries} />
+
+        {/* Events by Application Chart — US4 */}
+        <EventsByApplicationChart data={initialAppCounts} />
       </div>
     </DashboardLayout>
   );

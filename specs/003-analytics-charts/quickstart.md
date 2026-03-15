@@ -46,7 +46,7 @@ bun run dev
 
 ---
 
-## 4. Verify connectivity for new chart routes (once implemented)
+## 4. Verify connectivity for chart routes
 
 Use curl to spot-check each new API route:
 
@@ -69,7 +69,7 @@ Expected: `200 OK` with `series` array. Each point should have a `date` field an
 
 1. Open `http://localhost:3000`
 2. Verify a line chart appears below the metric tiles
-3. Change the time range dropdown (7 → 30 days) — chart should update without page reload
+3. Click the **30d** pill button in the chart header — chart should update without page reload
 
 ---
 
@@ -98,7 +98,7 @@ bun run test --run
 
 ---
 
-## 9. Run E2E tests for charts (once added)
+## 9. Run E2E tests for charts
 
 ```bash
 bun run test:e2e tests/e2e/charts.spec.ts

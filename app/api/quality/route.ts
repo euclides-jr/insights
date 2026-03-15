@@ -1,40 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-
-// ─── Alert thresholds ────────────────────────────────────────────────────────
-
-export const THRESHOLDS = {
-  validationFailureRate: { warning: 0.05, error: 0.15 },
-  completenessRate: { warning: 0.9, error: 0.75 }, // below = bad
-  duplicateRate: { warning: 0.05, error: 0.15 },
-} as const;
-
-export type AlertLevel = 'ok' | 'warning' | 'error';
-
-export function failureRateAlert(rate: number): AlertLevel {
-  if (rate >= THRESHOLDS.validationFailureRate.error) return 'error';
-  if (rate >= THRESHOLDS.validationFailureRate.warning) return 'warning';
-  return 'ok';
-}
-
-export function completenessAlert(rate: number): AlertLevel {
-  if (rate <= THRESHOLDS.completenessRate.error) return 'error';
-  if (rate <= THRESHOLDS.completenessRate.warning) return 'warning';
-  return 'ok';
-}
-
-export function duplicateRateAlert(rate: number): AlertLevel {
-  if (rate >= THRESHOLDS.duplicateRate.error) return 'error';
-  if (rate >= THRESHOLDS.duplicateRate.warning) return 'warning';
-  return 'ok';
-}
-
-/** Highest severity among a set of levels. */
-export function overallAlert(...levels: AlertLevel[]): AlertLevel {
-  if (levels.includes('error')) return 'error';
-  if (levels.includes('warning')) return 'warning';
-  return 'ok';
-}
+export {
+  THRESHOLDS,
+  failureRateAlert,
+  completenessAlert,
+  duplicateRateAlert,
+  overallAlert,
+} from '@/lib/charts/quality-thresholds';
+export type { AlertLevel } from '@/lib/charts/quality-thresholds';
+import {
+  THRESHOLDS,
+  failureRateAlert,
+  completenessAlert,
+  duplicateRateAlert,
+  overallAlert,
+} from '@/lib/charts/quality-thresholds';
 
 // ─── GET /api/quality ─────────────────────────────────────────────────────────
 // Returns daily data quality metrics with alert levels attached.

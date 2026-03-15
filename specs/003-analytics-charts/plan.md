@@ -1,7 +1,8 @@
 # Implementation Plan: Analytics Chart Visualizations
 
 **Branch**: `003-analytics-charts` | **Date**: 2026-03-15 | **Spec**: [spec.md](spec.md)  
-**Input**: Feature specification from `/specs/003-analytics-charts/spec.md`
+**Input**: Feature specification from `/specs/003-analytics-charts/spec.md`  
+**Status**: ✅ COMPLETE — all 21 tasks delivered, 24/24 unit tests passing, 0 TypeScript errors in new files
 
 ## Summary
 
@@ -75,9 +76,36 @@ tests/
 │   └── charts.test.ts          ← pure logic: gap-fill, eligibility detection, axis formatting
 └── e2e/
     └── charts.spec.ts          ← Playwright: chart renders on each page
+
+lib/
+└── charts/
+    ├── types.ts                    ← shared TS interfaces + WCAG colour constants
+    └── quality-thresholds.ts       ← alert thresholds + helpers (safe for client bundles)
 ```
 
 **Structure Decision**: Single Next.js project (existing layout). New code is additive — new `app/api/charts/` routes and new `components/charts/` components. Existing pages (`app/page.tsx`, `app/quality/page.tsx`, `components/query-form.tsx`) receive minimal modifications to mount the new chart components.
+
+## Implementation Notes
+
+Two runtime issues were found and fixed during development:
+
+### 1. PostgreSQL camelCase column names
+
+Prisma generated the migration with camelCase column names (`"applicationId"`, `"validationFailureRate"`, `"completenessRate"`, `"duplicateRate"`) rather than snake_case. All `$queryRaw` SQL in the following files must double-quote these identifiers:
+
+- `app/page.tsx`
+- `app/api/charts/events-over-time/route.ts`
+- `app/api/charts/events-by-application/route.ts`
+- `app/api/charts/quality-trends/route.ts`
+- `app/quality/page.tsx`
+
+**Rule for future raw SQL in this codebase**: every column name is camelCase — always wrap in double quotes: `"applicationId"`, `"validationFailureRate"`, `"completenessRate"`, `"duplicateRate"`, `"eventsReceived"`, `"eventsRejected"`, `"eventName"`, `"userId"`, `"createdAt"`, `"updatedAt"`.
+
+### 2. Node.js `dns` module leak into browser bundle
+
+`QualityTrendsChart.tsx` (`"use client"`) imported threshold helpers directly from `app/api/quality/route.ts`. That route imports Prisma → `pg` → `dns` (a Node.js built-in), which the browser bundler can't resolve.
+
+**Fix**: Extracted `THRESHOLDS`, `AlertLevel`, and all alert helper functions into `lib/charts/quality-thresholds.ts` (no Node.js imports). The route re-exports from that file; the chart component imports from it directly.
 
 ## Complexity Tracking
 
