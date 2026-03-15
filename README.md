@@ -8,21 +8,23 @@ A self-hosted event analytics platform for tracking user interactions, monitorin
 - **Application Management** — Register multiple applications, each with its own API key
 - **Event Schemas** — Define and version expected event structures for validation
 - **User Segments** — Build dynamic user groups using event-based AND/OR criteria
-- **Analytics Queries** — Filter, aggregate, and group events with a flexible query builder
-- **Data Quality Monitoring** — Track validation failures, duplicates, and completeness metrics
-- **Dashboard** — View event trends, quality metrics, and application overviews at a glance
+- **User Profiles & Attributes** — Store typed key-value attributes against user profiles, query users by attribute values and event behaviour
+- **Analytics Queries** — Filter, aggregate, and group events with a flexible query builder; toggle results between a table and an interactive chart
+- **Data Quality Monitoring** — Track validation failures, duplicates, and completeness metrics with threshold-based alerting
+- **Dashboard** — View daily event volume trends, per-application event breakdowns, quality metric charts, and summary tiles at a glance
 
 ## Tech Stack
 
-- **[Next.js](https://nextjs.org/)** (App Router) + **[React](https://react.dev/)** + **[TypeScript](https://www.typescriptlang.org/)**
-- **[Prisma](https://www.prisma.io/)** ORM with **[PostgreSQL](https://www.postgresql.org/)**
-- **[Tailwind CSS](https://tailwindcss.com/)** for styling
-- **[Zod](https://zod.dev/)** for schema validation
+- **[Next.js](https://nextjs.org/) 16** (App Router) + **[React](https://react.dev/) 19** + **[TypeScript](https://www.typescriptlang.org/) 5**
+- **[Prisma](https://www.prisma.io/) 7** ORM with **[PostgreSQL](https://www.postgresql.org/)**
+- **[recharts](https://recharts.org/) v3** for interactive SVG charts
+- **[Tailwind CSS](https://tailwindcss.com/) 4** for styling
+- **[Zod](https://zod.dev/) 3** for schema validation
 - **[Vitest](https://vitest.dev/)** for unit tests and **[Playwright](https://playwright.dev/)** for end-to-end tests
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) 18+ (or [Bun](https://bun.sh/))
+- [Bun](https://bun.sh/) 1.x (recommended) or [Node.js](https://nodejs.org/) 20+
 - A running [PostgreSQL](https://www.postgresql.org/) instance
 
 ## Getting Started
@@ -30,8 +32,6 @@ A self-hosted event analytics platform for tracking user interactions, monitorin
 ### 1. Install dependencies
 
 ```bash
-npm install
-# or
 bun install
 ```
 
@@ -48,41 +48,41 @@ DATABASE_URL="postgresql://user:password@localhost:5432/insights"
 Generate the Prisma client and apply migrations:
 
 ```bash
-npm run db:generate
-npm run db:migrate
+bun run db:generate
+bun run db:migrate
 ```
 
 Optionally seed the database with sample data:
 
 ```bash
-npm run db:seed
+bun run db:seed
 ```
 
 ### 4. Start the development server
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to access the dashboard.
 
 ## Available Scripts
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start the development server |
-| `npm run build` | Build for production |
-| `npm start` | Start the production server |
-| `npm run lint` | Lint the codebase with ESLint |
-| `npm run db:generate` | Generate the Prisma client |
-| `npm run db:migrate` | Run database migrations (dev) |
-| `npm run db:push` | Push schema changes without migrations |
-| `npm run db:studio` | Open Prisma Studio |
-| `npm run db:seed` | Seed the database with sample data |
-| `npm run test` | Run unit tests with Vitest |
-| `npm run test:ui` | Run unit tests with the Vitest UI |
-| `npm run test:e2e` | Run end-to-end tests with Playwright |
-| `npm run test:e2e:ui` | Run end-to-end tests with the Playwright UI |
+| Command               | Description                                 |
+| --------------------- | ------------------------------------------- |
+| `bun run dev`         | Start the development server (Turbopack)    |
+| `bun run build`       | Build for production                        |
+| `bun start`           | Start the production server                 |
+| `bun run lint`        | Lint the codebase with ESLint               |
+| `bun run db:generate` | Generate the Prisma client                  |
+| `bun run db:migrate`  | Run database migrations (dev)               |
+| `bun run db:push`     | Push schema changes without migrations      |
+| `bun run db:studio`   | Open Prisma Studio                          |
+| `bun run db:seed`     | Seed the database with sample data          |
+| `bun run test`        | Run unit tests with Vitest                  |
+| `bun run test:ui`     | Run unit tests with the Vitest UI           |
+| `bun run test:e2e`    | Run end-to-end tests with Playwright        |
+| `bun run test:e2e:ui` | Run end-to-end tests with the Playwright UI |
 
 ## Sending Events
 
@@ -138,19 +138,40 @@ See [docs/API.md](docs/API.md) for the full API reference.
 
 ```
 app/
-  api/          # REST API route handlers (events, applications, schemas, segments, query, quality)
-  applications/ # Application management pages
-  events/       # Event browser pages
-  schemas/      # Schema management pages
-  segments/     # Segment builder pages
-  query/        # Analytics query builder pages
-  quality/      # Data quality dashboard pages
-  page.tsx      # Main dashboard
-components/     # Shared React components
+  api/
+    events/         # Event ingestion endpoint
+    applications/   # Application CRUD
+    schemas/        # Event schema management
+    segments/       # Segment builder
+    query/          # Analytics query engine
+    quality/        # Data quality metrics
+    users/          # User profile & attribute endpoints
+    charts/         # Chart data API routes (events-over-time, quality-trends, events-by-application)
+  applications/     # Application management pages
+  events/           # Event browser pages
+  schemas/          # Schema management pages
+  segments/         # Segment builder pages
+  query/            # Analytics query explorer pages
+  quality/          # Data quality dashboard pages
+  users/            # User profile pages
+  page.tsx          # Main dashboard
+components/
+  charts/           # Recharts-based chart components (EventVolumeChart, QualityTrendsChart, etc.)
+  forms/            # User attribute and profile forms
+  tables/           # Data table components
+  ui/               # Shared primitives (Button, Badge, Input, TimeRangeSelector, …)
 lib/
-  services/     # Business logic (query builder, segment engine)
-  db/           # Database client configuration
-prisma/         # Prisma schema, migrations, and seed script
-docs/           # API documentation
-tests/          # Unit and end-to-end tests
+  charts/           # Shared chart types, colour constants, and alert thresholds
+  services/         # Business logic (query builder, segment engine, user attribute service)
+  utils/            # Formatting helpers
+  db/               # Prisma client configuration
+prisma/
+  schema.prisma     # Database schema
+  migrations/       # Applied migrations
+  seed.ts           # Sample data seeder
+docs/               # API documentation
+tests/
+  unit/             # Vitest unit tests
+  e2e/              # Playwright end-to-end tests
+specs/              # Feature design documents (spec, plan, tasks, contracts)
 ```
