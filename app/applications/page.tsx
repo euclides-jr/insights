@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { ApplicationsHeader } from '@/components/applications-header';
 import { Table, TableHeader, TableRow, TableCell } from '@/components/ui/table';
@@ -108,7 +109,12 @@ export default async function ApplicationsPage({
               <TableRow key={app.id}>
                 <TableCell width="120px">{app.id.slice(0, 12)}</TableCell>
                 <TableCell width="280px" className="font-medium">
-                  {app.name}
+                  <Link
+                    href={`/applications/${app.id}`}
+                    className="hover:underline"
+                  >
+                    {app.name}
+                  </Link>
                 </TableCell>
                 <TableCell width="150px">
                   {formatNumber(app._count.events)}

@@ -39,7 +39,11 @@ export function Sidebar() {
       <nav className="flex-1 px-3 py-6">
         <ul className="space-y-1">
           {navigation.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive =
+              item.href === '/'
+                ? pathname === '/'
+                : pathname === item.href ||
+                  pathname.startsWith(item.href + '/');
             return (
               <li key={item.name}>
                 <Link
