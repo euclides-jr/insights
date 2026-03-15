@@ -25,6 +25,7 @@ model Application {
   userProfiles         UserProfile[]
   userAttributeHistory UserAttributeHistory[]
   userAttributeSchemas UserAttributeSchema[]
+  webhookAlerts        WebhookAlert[]
 
   @@map("applications")
 }
@@ -112,7 +113,27 @@ model DataQualityMetric {
   @@map("data_quality_metrics")
 }
 
-// ─── Feature 002: User Attributes ────────────────────────────────────────────
+// WebhookAlert stores an outbound HTTP webhook that fires when data quality
+// thresholds are breached for the associated application.
+model WebhookAlert {
+  id              String    @id @default(uuid())
+  applicationId   String
+  name            String
+  url             String
+  secret          String? // Optional HMAC-SHA256 signing secret
+  // Minimum alert level that triggers this webhook: "warning" or "error"
+  minLevel        String    @default("error")
+  isActive        Boolean   @default(true)
+  lastTriggeredAt DateTime?
+  lastStatus      Int? // HTTP response code from last delivery
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("webhook_alerts")
+}
 
 // UserProfile holds one row per unique user per application.
 // attributes (JSONB) stores user-defined key-value pairs.

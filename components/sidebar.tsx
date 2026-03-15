@@ -13,6 +13,7 @@ const navigation = [
   { name: 'Segments', href: '/segments' },
   { name: 'Users', href: '/users' },
   { name: 'Data Quality', href: '/quality' },
+  { name: 'Webhooks', href: '/webhooks' },
 ];
 
 export function Sidebar() {

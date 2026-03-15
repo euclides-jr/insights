@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
 import { randomBytes, randomUUID } from 'crypto';
+import { fireQualityWebhooksIfNeeded } from '@/lib/services/webhook-service';
 
 // --- Schema enforcement ---
 
@@ -240,6 +241,7 @@ export async function POST(request: NextRequest) {
         validatedEvents.length,
         rejectedEvents.length,
       );
+      void fireQualityWebhooksIfNeeded(application.id, application.name);
       return NextResponse.json(
         {
           error: 'Schema validation failed',
@@ -279,6 +281,8 @@ export async function POST(request: NextRequest) {
           validatedEvents.length,
           rejectedEvents.length,
         );
+        // Fire quality webhooks for breached thresholds (non-blocking)
+        void fireQualityWebhooksIfNeeded(application.id, application.name);
       }
 
       // ── T023: Auto-update system user attributes from event data ──────────
@@ -330,14 +334,14 @@ export async function POST(request: NextRequest) {
 
         await prisma.$executeRawUnsafe(
           `INSERT INTO user_profiles
-            (id, application_id, user_id, first_seen, last_seen, event_count, last_event_name, attributes, created_at, updated_at)
+            (id, "applicationId", "userId", "firstSeen", "lastSeen", "eventCount", "lastEventName", attributes, "createdAt", "updatedAt")
            VALUES ${valueRows.join(', ')}
-           ON CONFLICT (application_id, user_id) DO UPDATE SET
-             last_seen     = GREATEST(user_profiles.last_seen, excluded.last_seen),
-             first_seen    = LEAST(user_profiles.first_seen, excluded.first_seen),
-             event_count   = user_profiles.event_count + excluded.event_count,
-             last_event_name = excluded.last_event_name,
-             updated_at    = now()`,
+           ON CONFLICT ("applicationId", "userId") DO UPDATE SET
+             "lastSeen"      = GREATEST(user_profiles."lastSeen", excluded."lastSeen"),
+             "firstSeen"     = LEAST(user_profiles."firstSeen", excluded."firstSeen"),
+             "eventCount"    = user_profiles."eventCount" + excluded."eventCount",
+             "lastEventName" = excluded."lastEventName",
+             "updatedAt"     = now()`,
           ...upsertParams,
         );
       }
