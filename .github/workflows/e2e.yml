@@ -1,14 +1,11 @@
-name: CI
+name: E2E Tests
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  test:
-    name: Lint & Test
+  e2e:
+    name: E2E Tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -46,9 +43,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Lint
-        run: bun run lint
-
       - name: Generate Prisma client
         run: bunx prisma generate
 
@@ -79,5 +73,8 @@ jobs:
           echo "Server failed to start within 60 seconds"
           exit 1
 
-      - name: Run unit & API tests
-        run: bun run test --run
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium firefox webkit
+
+      - name: Run E2E tests
+        run: bun run test:e2e
