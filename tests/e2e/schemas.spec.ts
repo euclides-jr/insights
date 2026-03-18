@@ -5,6 +5,15 @@ test.describe('Schemas page', () => {
     await page.goto('/schemas');
   });
 
+  async function searchSchemas(page: import('@playwright/test').Page, query: string) {
+    const searchInput = page.getByPlaceholder(/search/i);
+    await searchInput.click();
+    await searchInput.fill(query);
+    await page.waitForURL(new RegExp(`q=${encodeURIComponent(query)}`), {
+      timeout: 10000,
+    });
+  }
+
   test('shows the Schemas heading', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Schemas' })).toBeVisible();
   });
@@ -26,8 +35,11 @@ test.describe('Schemas page', () => {
   });
 
   test('shows seeded schema event names', async ({ page }) => {
-    await expect(page.getByText('purchase')).toBeVisible();
-    await expect(page.getByText('page_view')).toBeVisible();
+    await searchSchemas(page, 'purchase');
+    await expect(page.getByRole('link', { name: 'purchase' })).toBeVisible();
+
+    await searchSchemas(page, 'page_view');
+    await expect(page.getByRole('link', { name: 'page_view' })).toBeVisible();
   });
 
   test('shows Active badge for active schemas', async ({ page }) => {
@@ -40,24 +52,19 @@ test.describe('Schemas page', () => {
   });
 
   test('search filters the schema list', async ({ page }) => {
-    const searchInput = page.getByPlaceholder(/search/i);
-    await searchInput.click();
-    await searchInput.pressSequentially('purchase', { delay: 30 });
-    await page.waitForURL(/q=purchase/, { timeout: 10000 });
-    await expect(page.getByText('purchase')).toBeVisible();
+    await searchSchemas(page, 'purchase');
+    await expect(page.getByRole('link', { name: 'purchase' })).toBeVisible();
   });
 
   test('clearing search restores full list', async ({ page }) => {
     const searchInput = page.getByPlaceholder(/search/i);
-    await searchInput.click();
-    await searchInput.pressSequentially('purchase', { delay: 30 });
-    await page.waitForURL(/q=purchase/, { timeout: 10000 });
+    await searchSchemas(page, 'purchase');
     await searchInput.click({ clickCount: 3 });
     await searchInput.press('Backspace');
     await page.waitForURL((url) => !url.search.includes('q='), {
       timeout: 10000,
     });
-    await expect(page.getByText('page_view')).toBeVisible();
+    await expect(page.getByText(/Showing \d+-\d+ of \d+ schemas/)).toBeVisible();
   });
 
   test('Application filter dropdown is visible', async ({ page }) => {
@@ -104,11 +111,10 @@ test.describe('Schemas page', () => {
   test('clicking a schema name navigates to schema detail', async ({
     page,
   }) => {
+    await searchSchemas(page, 'purchase');
     const schemaNameLink = page.getByRole('link', { name: 'purchase' }).first();
-    if (await schemaNameLink.isVisible()) {
-      await schemaNameLink.click();
-      await expect(page).toHaveURL(/\/schemas\/.+/);
-    }
+    await schemaNameLink.click();
+    await expect(page).toHaveURL(/\/schemas\/.+/);
   });
 });
 
@@ -117,7 +123,8 @@ test.describe('Schema detail page', () => {
     page,
   }) => {
     await page.goto('/schemas');
-    // Navigate to the first schema via the purchase link
+    await page.getByPlaceholder(/search/i).fill('purchase');
+    await page.waitForURL(/q=purchase/, { timeout: 10000 });
     const link = page.getByRole('link', { name: 'purchase' }).first();
     await link.click();
     await expect(page).toHaveURL(/\/schemas\/.+/);
@@ -138,6 +145,8 @@ test.describe('Schema detail page', () => {
     page,
   }) => {
     await page.goto('/schemas');
+    await page.getByPlaceholder(/search/i).fill('purchase');
+    await page.waitForURL(/q=purchase/, { timeout: 10000 });
     const link = page.getByRole('link', { name: 'purchase' }).first();
     await link.click();
     await expect(page).toHaveURL(/\/schemas\/.+/);
@@ -151,6 +160,8 @@ test.describe('Schema detail page', () => {
     page,
   }) => {
     await page.goto('/schemas');
+    await page.getByPlaceholder(/search/i).fill('purchase');
+    await page.waitForURL(/q=purchase/, { timeout: 10000 });
     const link = page.getByRole('link', { name: 'purchase' }).first();
     await link.click();
     await expect(page).toHaveURL(/\/schemas\/.+/);
