@@ -15,7 +15,7 @@
 
 **Purpose**: Extend Prisma schema before any implementation work begins.
 
-- [ ] T001 Extend `prisma/schema.prisma` — add `Funnel`, `FunnelStep`, `SavedReport`, `WorkspaceMember`, `Invitation`, `AuditLogEntry`, plus `WorkspaceRole` and `SavedReportType` enums and required `User` / `Application` relation fields from `data-model.md`
+- [x] T001 Extend `prisma/schema.prisma` — add `Funnel`, `FunnelStep`, `SavedReport`, `WorkspaceMember`, `Invitation`, `AuditLogEntry`, plus `WorkspaceRole` and `SavedReportType` enums and required `User` / `Application` relation fields from `data-model.md`
 
 ---
 
@@ -25,11 +25,11 @@
 
 **⚠️ CRITICAL**: No user story work should begin until this phase is complete.
 
-- [ ] T002 Run `prisma migrate dev --name add-platform-expansion` and review the generated migration for all new tables and indexes before applying it
-- [ ] T003 [P] Create `lib/auth/roles.ts` — shared helpers for `requireRole`, `getCurrentWorkspaceMember`, and role predicates (`isViewer`, `isEditor`, `isAdmin`)
-- [ ] T004 [P] Create `lib/validations/funnel-schemas.ts`, `lib/validations/retention-schemas.ts`, `lib/validations/report-schemas.ts`, and `lib/validations/admin-schemas.ts` — Zod schemas matching the new contracts
-- [ ] T005 [P] Create `lib/services/funnel-service.ts`, `lib/services/retention-service.ts`, `lib/services/report-service.ts`, `lib/services/membership-service.ts`, and `lib/services/audit-service.ts` with typed function signatures and `not implemented` stubs
-- [ ] T006 [P] Extend `prisma/seed.ts` — add at least one viewer user, one editor user, one sample funnel, and one saved report fixture for local/manual testing
+- [x] T002 Run `prisma migrate dev --name add-platform-expansion` and review the generated migration for all new tables and indexes before applying it
+- [x] T003 [P] Create `lib/auth/roles.ts` — shared helpers for `requireRole`, `getCurrentWorkspaceMember`, and role predicates (`isViewer`, `isEditor`, `isAdmin`)
+- [x] T004 [P] Create `lib/validations/funnel-schemas.ts`, `lib/validations/retention-schemas.ts`, `lib/validations/report-schemas.ts`, and `lib/validations/admin-schemas.ts` — Zod schemas matching the new contracts
+- [x] T005 [P] Create `lib/services/funnel-service.ts`, `lib/services/retention-service.ts`, `lib/services/report-service.ts`, `lib/services/membership-service.ts`, and `lib/services/audit-service.ts` with typed function signatures and `not implemented` stubs
+- [x] T006 [P] Extend `prisma/seed.ts` — add at least one viewer user, one editor user, one sample funnel, and one saved report fixture for local/manual testing
 
 **Checkpoint**: DB schema, role helpers, validators, and service files all exist.
 
@@ -41,14 +41,14 @@
 
 **Independent Test**: Seed a three-step funnel dataset and verify the dashboard shows correct step counts, conversion, and drop-off.
 
-- [ ] T007 [P] [US1] Implement funnel creation/list/update logic in `lib/services/funnel-service.ts`
-- [ ] T008 [P] [US1] Implement funnel execution SQL in `lib/services/funnel-service.ts` using ordered CTE step joins
-- [ ] T009 [P] [US1] Create `app/api/funnels/route.ts` — `GET` list and `POST` create handlers with session + role checks
-- [ ] T010 [P] [US1] Create `app/api/funnels/[id]/route.ts` and `app/api/funnels/[id]/run/route.ts` — fetch/update/delete/run handlers
-- [ ] T011 [US1] Create `components/funnels/FunnelBuilder.tsx` — application selector, step editor, create/update form
-- [ ] T012 [US1] Create `components/funnels/FunnelResults.tsx` — step table/cards with conversion and drop-off metrics
-- [ ] T013 [US1] Create `app/funnels/page.tsx` — funnel listing, builder, and result runner UI
-- [ ] T014 [P] [US1] Add `tests/unit/funnel-service.test.ts`, `tests/api/funnels.test.ts`, and `tests/e2e/funnels.spec.ts`
+- [x] T007 [P] [US1] Implement funnel creation/list/update logic in `lib/services/funnel-service.ts`
+- [x] T008 [P] [US1] Implement funnel execution SQL in `lib/services/funnel-service.ts` using ordered CTE step joins
+- [x] T009 [P] [US1] Create `app/api/funnels/route.ts` — `GET` list and `POST` create handlers with session + role checks
+- [x] T010 [P] [US1] Create `app/api/funnels/[id]/route.ts` and `app/api/funnels/[id]/run/route.ts` — fetch/update/delete/run handlers
+- [x] T011 [US1] Create `components/funnels/FunnelBuilder.tsx` — application selector, step editor, create/update form
+- [x] T012 [US1] Create `components/funnels/FunnelResults.tsx` — step table/cards with conversion and drop-off metrics
+- [x] T013 [US1] Create `app/funnels/page.tsx` — funnel listing, builder, and result runner UI
+- [x] T014 [P] [US1] Add `tests/unit/funnel-service.test.ts`, `tests/api/funnels.test.ts`, and `tests/e2e/funnels.spec.ts`
 
 **Checkpoint**: Funnels are usable end-to-end and provide the first missing high-value analytics feature.
 
@@ -60,11 +60,11 @@
 
 **Independent Test**: Seed cohort and return data, run retention, and verify the grid values.
 
-- [ ] T015 [P] [US2] Implement cohort generation and retention matrix logic in `lib/services/retention-service.ts`
-- [ ] T016 [P] [US2] Create `app/api/retention/run/route.ts` — retention execution endpoint with session auth and read-only role access
-- [ ] T017 [US2] Create `components/retention/RetentionGrid.tsx` — cohort matrix UI with empty/loading states
-- [ ] T018 [US2] Create `app/retention/page.tsx` — filter form + retention grid page
-- [ ] T019 [P] [US2] Add `tests/unit/retention-service.test.ts`, `tests/api/retention.test.ts`, and `tests/e2e/retention.spec.ts`
+- [x] T015 [P] [US2] Implement cohort generation and retention matrix logic in `lib/services/retention-service.ts`
+- [x] T016 [P] [US2] Create `app/api/retention/run/route.ts` — retention execution endpoint with session auth and read-only role access
+- [x] T017 [US2] Create `components/retention/RetentionGrid.tsx` — cohort matrix UI with empty/loading states
+- [x] T018 [US2] Create `app/retention/page.tsx` — filter form + retention grid page
+- [x] T019 [P] [US2] Add `tests/unit/retention-service.test.ts`, `tests/api/retention.test.ts`, and `tests/e2e/retention.spec.ts`
 
 **Checkpoint**: Retention analysis is independently functional.
 
@@ -76,12 +76,12 @@
 
 **Independent Test**: Save a report, reload the app, reopen it, and verify config fidelity.
 
-- [ ] T020 [P] [US3] Implement create/read/update/delete report logic in `lib/services/report-service.ts`
-- [ ] T021 [P] [US3] Create `app/api/reports/route.ts` and `app/api/reports/[id]/route.ts`
-- [ ] T022 [US3] Create `components/reports/SaveReportDialog.tsx` and `components/reports/SavedReportsList.tsx`
-- [ ] T023 [US3] Create `app/reports/page.tsx` and `app/reports/[id]/page.tsx`
-- [ ] T024 [US3] Add “Save report” entry points to existing query/funnel/retention pages
-- [ ] T025 [P] [US3] Add `tests/unit/report-service.test.ts`, `tests/api/reports.test.ts`, and `tests/e2e/reports.spec.ts`
+- [x] T020 [P] [US3] Implement create/read/update/delete report logic in `lib/services/report-service.ts`
+- [x] T021 [P] [US3] Create `app/api/reports/route.ts` and `app/api/reports/[id]/route.ts`
+- [x] T022 [US3] Create `components/reports/SaveReportDialog.tsx` and `components/reports/SavedReportsList.tsx`
+- [x] T023 [US3] Create `app/reports/page.tsx` and `app/reports/[id]/page.tsx`
+- [x] T024 [US3] Add “Save report” entry points to existing query/funnel/retention pages
+- [x] T025 [P] [US3] Add `tests/unit/report-service.test.ts`, `tests/api/reports.test.ts`, and `tests/e2e/reports.spec.ts`
 
 **Checkpoint**: Reusable analytics views are now first-class.
 
@@ -172,5 +172,5 @@
 | 8 — Polish | — | T039–T042 | T039, T040 |
 
 **Total**: 42 tasks across 8 phases  
-**MVP scope**: Phases 1–3 (funnels)  
-**Highest-value incremental scope**: Phases 1–5 (analytics surfaces complete)
+**Completed**: T001–T025  
+**Next active scope**: Phase 6 — RBAC & invitations

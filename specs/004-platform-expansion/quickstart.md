@@ -25,9 +25,9 @@ await fetch('/api/funnels', {
     applicationId: 'demo-app-id',
     name: 'Signup Activation',
     steps: [
-      { eventName: 'signup_started' },
-      { eventName: 'email_verified' },
-      { eventName: 'workspace_created' },
+      { eventName: 'signup' },
+      { eventName: 'button_click' },
+      { eventName: 'purchase' },
     ],
   }),
 });
@@ -51,6 +51,7 @@ Expected result:
 - each step shows user count
 - conversion percentages decrease or stay equal across steps
 - drop-off is visible between steps
+- the same configuration can be saved from `/funnels` with `Save Current View`
 
 ---
 
@@ -72,8 +73,9 @@ await fetch('/api/retention/run', {
 Expected result:
 
 - one cohort row per day
-- `D0` equals cohort size
+- `D0` reflects return activity in the cohort bucket for the selected return rule
 - later buckets show retained user counts/rates
+- the same configuration can be saved from `/retention` with `Save Current View`
 
 ---
 
@@ -101,7 +103,8 @@ await fetch('/api/reports', {
 Expected result:
 
 - the report appears in `/reports`
-- reopening it restores the same configuration
+- reopening `/reports/:id` shows the saved config and a latest preview when supported
+- query, funnel, and retention pages all expose a `Save Current View` entry point
 
 ---
 

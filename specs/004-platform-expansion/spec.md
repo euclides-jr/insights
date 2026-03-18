@@ -2,7 +2,7 @@
 
 **Feature Branch**: `004-platform-expansion`  
 **Created**: 2026-03-18  
-**Status**: Draft  
+**Status**: In Progress  
 **Input**: User description: "Plan the common features missing from the current analytics platform"
 
 ## Summary
@@ -16,6 +16,19 @@ The current platform covers event ingestion, attribute-backed user querying, seg
 5. Audit logging for administrative changes
 
 This package intentionally does **not** include session replay, heatmaps, billing, warehouse sync, or SDK expansion. Those are important, but they are less foundational than the analysis and collaboration gaps above.
+
+## Implementation Snapshot
+
+Implemented in the current codebase:
+
+1. Funnel CRUD, execution APIs, dashboard UI, and regression coverage
+2. Retention execution API, dashboard page, and regression coverage
+3. Saved report CRUD APIs, reports list/detail pages, and save-entry integration from query, funnel, and retention views
+
+Still pending from this umbrella feature:
+
+1. Team invitations and multi-user RBAC management UI/API
+2. Audit log writes and admin audit surfaces
 
 ## User Story 1 - Funnel Analysis (Priority: P1)
 
@@ -94,7 +107,7 @@ An admin needs visibility into who changed application settings, API keys, schem
 - **FR-001**: The system MUST allow dashboard users to define a funnel as an ordered list of 2-10 event steps plus an application and time window.
 - **FR-002**: Funnel analysis MUST count unique users per step and show step-to-step conversion and drop-off percentages.
 - **FR-003**: Funnel analysis MUST enforce event order by timestamp for each user.
-- **FR-004**: The system MUST provide a retention analysis view based on user `firstSeen` cohorts and subsequent return activity.
+- **FR-004**: The system MUST provide a retention analysis view based on first observed event cohorts inside the selected lookback window and subsequent return activity.
 - **FR-005**: Retention analysis MUST support daily and weekly intervals.
 - **FR-006**: The system MUST allow authenticated dashboard users to save query, funnel, and retention configurations as named reports.
 - **FR-007**: Saved reports MUST preserve sufficient configuration to reproduce the same analysis view later.
@@ -128,6 +141,11 @@ An admin needs visibility into who changed application settings, API keys, schem
 - **SC-003**: 100% of tracked administrative mutations create an audit log entry in automated tests.
 - **SC-004**: Viewer-role users are prevented from performing protected mutations in 100% of covered API and E2E authorization tests.
 - **SC-005**: At least 90% of saved reports reopen with no configuration drift in automated regression tests.
+
+## Current Deviations
+
+- Saved reports reopen through `/reports/[id]` and source-page links. Query reports currently preserve configuration for reopening, but the query explorer does not yet auto-hydrate its form directly from report config via URL params.
+- The role model exists in schema/helpers, but invitation, member-management, and audit-log user stories remain unimplemented.
 
 ## Out of Scope
 

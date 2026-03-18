@@ -260,6 +260,57 @@ Fetch one saved report.
   reportType: 'QUERY' | 'FUNNEL' | 'RETENTION';
   applicationId: string | null;
   config: Record<string, unknown>;
+  createdBy: { id: string; name: string | null; email: string };
+  updatedBy: { id: string; name: string | null; email: string };
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+---
+
+### PATCH /api/reports/[id]
+
+Update a saved report.
+
+**Request**
+
+```ts
+{
+  name?: string;
+  applicationId?: string | null;
+  config?: Record<string, unknown>;
+}
+```
+
+**Authorization**
+
+- `viewer` → 403
+- `editor`, `admin` → allowed
+
+---
+
+### DELETE /api/reports/[id]
+
+Delete a saved report.
+
+**Response**
+
+```ts
+204 No Content
+```
+
+---
+
+## UI Notes
+
+Current dashboard implementation also includes:
+
+- `/reports` list page with create/edit/delete actions
+- `/reports/[id]` detail page with preview for funnel and retention reports
+- `Save Current View` actions on `/query`, `/funnels`, and `/retention`
+  applicationId: string | null;
+  config: Record<string, unknown>;
   createdByUserId: string;
   updatedByUserId: string;
   createdAt: string;

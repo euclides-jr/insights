@@ -65,6 +65,21 @@ Deliver the operational/team capabilities after analysis artifacts exist:
 
 This stage depends on Better Auth integration already being live and should reuse the current dashboard session plumbing rather than layering a second auth system on top.
 
+## Current Status
+
+Completed:
+
+1. Foundation schema, migration, role helpers, validation schemas, and seeded platform-expansion fixtures
+2. Funnels end-to-end: APIs, service layer, dashboard CRUD/runner UI, and tests
+3. Retention end-to-end: service, API, dashboard page, and tests
+4. Saved reports end-to-end: CRUD service/routes, list/detail pages, and save entry points from query/funnel/retention
+
+Remaining:
+
+1. Roles/invitations delivery
+2. Audit logging delivery
+3. Cross-cutting polish tasks
+
 ## Project Structure
 
 ### Documentation (this feature)
@@ -230,32 +245,33 @@ Shared prerequisites before user stories:
 
 Deliver funnel definition, execution service, result visualization, and tests.
 
-### Expected Technical Approach
+### Implemented Technical Approach
 
-- Start with read-only transient funnel execution before saved funnels
-- Query events by application and ordered step definitions
-- Count distinct users reaching each step
-- Render step table first; add chart/visual polish second
+- Saved funnel definitions backed by `Funnel` and `FunnelStep`
+- Ordered CTE SQL over `events` with timestamp joins
+- Distinct-user step counts plus conversion/drop-off metrics
+- Dashboard list/create/edit/delete plus runner and preview surfaces
 
 ## Phase 4 — User Story 2: Retention (P2)
 
 Deliver cohort generation and retention matrix rendering.
 
-### Expected Technical Approach
+### Implemented Technical Approach
 
-- Use `user_profiles.firstSeen` as cohort basis for v1
-- Support daily and weekly interval grouping
-- Return a matrix response shape optimized for table/grid rendering
+- Cohorts are based on each user’s first event observed inside the selected lookback window
+- Supports both daily and weekly interval grouping
+- Returns a bucketed matrix response shape optimized for grid rendering
 
 ## Phase 5 — User Story 3: Saved Reports (P3)
 
 Persist reusable analysis definitions.
 
-### Expected Technical Approach
+### Implemented Technical Approach
 
-- Store report type plus JSON config
-- Reuse existing query/funnel/retention pages as renderers
-- Add lightweight landing page listing saved reports by type and recency
+- Stores report type plus JSON config in `saved_reports`
+- Supports create/read/update/delete via dashboard session routes
+- Includes `/reports` list and `/reports/[id]` detail page with source-page links
+- Save-entry dialogs are integrated into query, funnel, and retention views
 
 ## Phase 6 — User Story 4: Roles and Invitations (P4)
 
