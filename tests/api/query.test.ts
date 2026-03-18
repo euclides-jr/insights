@@ -24,7 +24,9 @@ let applicationId: string;
 // Setup: resolve applicationId for the demo app
 // ---------------------------------------------------------------------------
 beforeAll(async () => {
-  const res = await fetch(`${API_BASE_URL}/api/applications`);
+  const res = await fetch(`${API_BASE_URL}/api/applications`, {
+    headers: { 'X-API-Key': TEST_API_KEY },
+  });
   expect(res.status).toBe(200);
   const body: { applications: { id: string; name: string; apiKey: string }[] } =
     await res.json();
