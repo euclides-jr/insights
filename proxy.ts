@@ -4,7 +4,7 @@ import { getSessionCookie } from 'better-auth/cookies';
 import { getSafeRedirectPath } from '@/lib/auth/redirect';
 
 const PUBLIC_PATHS = new Set(['/sign-in']);
-const PUBLIC_PREFIXES = ['/api/auth'];
+const PUBLIC_PREFIXES = ['/api/'];
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -15,10 +15,8 @@ export function proxy(request: NextRequest) {
 
   if (!sessionCookie && !isPublicPath) {
     const signInUrl = new URL('/sign-in', request.url);
-    if (!pathname.startsWith('/api/')) {
-      const redirectTo = getSafeRedirectPath(`${pathname}${search}`);
-      signInUrl.searchParams.set('redirectTo', redirectTo);
-    }
+    const redirectTo = getSafeRedirectPath(`${pathname}${search}`);
+    signInUrl.searchParams.set('redirectTo', redirectTo);
     return NextResponse.redirect(signInUrl);
   }
 
