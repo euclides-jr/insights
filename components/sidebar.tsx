@@ -13,6 +13,7 @@ const navigation = [
   { name: 'Schemas', href: '/schemas' },
   { name: 'Segments', href: '/segments' },
   { name: 'Funnels', href: '/funnels' },
+  { name: 'Retention', href: '/retention' },
   { name: 'Users', href: '/users' },
   { name: 'Data Quality', href: '/quality' },
   { name: 'Webhooks', href: '/webhooks' },
