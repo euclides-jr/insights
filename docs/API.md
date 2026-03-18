@@ -31,6 +31,8 @@ To get your API key:
 
 The internal dashboard is authenticated separately with Better Auth email/password sessions. `/sign-in` is the only public dashboard route.
 
+API routes are not redirected through the dashboard sign-in flow. Page access is enforced by `proxy.ts`, while programmatic APIs continue to return JSON and apply their own authentication rules.
+
 ---
 
 ## Endpoints

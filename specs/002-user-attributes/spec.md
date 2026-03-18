@@ -2,7 +2,7 @@
 
 **Feature Branch**: `002-user-attributes`  
 **Created**: March 14, 2026  
-**Status**: Draft  
+**Status**: Implemented with one documented gap  
 **Input**: User description: "I would like to be able to set attributes to unique users then I can find users by combine user attributes and tracking events"
 
 ## User Scenarios & Testing _(mandatory)_
@@ -208,3 +208,9 @@ The system automatically tracks and updates specific system-managed attributes w
 - Query performance must scale reasonably to 1M user profiles (acceptable to degrade gracefully beyond this)
 - UI for attribute management and querying should be simple and reuse existing dashboard components
 - Development should prioritize getting combined queries working over advanced features like computed attributes
+
+## Current Implementation Notes
+
+- User attribute APIs are programmatic endpoints authenticated with `X-API-Key`, separate from the Better Auth session used by the internal dashboard.
+- The current repository test layout is `tests/unit`, `tests/api`, and `tests/e2e`.
+- One behavior from FR-019 remains partially implemented: combined queries currently use current profile attributes rather than fully correlating attributes at each event timestamp. The point-in-time helper exists, but it is not yet wired into combined query evaluation.

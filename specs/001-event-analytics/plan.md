@@ -12,7 +12,7 @@ Build an event tracking and product analytics service for web and mobile applica
 **Language/Version**: TypeScript 5.x with Next.js 16.x (App Router)  
 **Primary Dependencies**: Next.js, Prisma 7.x, React 19, PostgreSQL 15+  
 **Storage**: PostgreSQL with optimized indexing for time-series event data  
-**Testing**: Playwright for E2E tests, Vitest for unit/integration tests  
+**Testing**: Playwright for E2E tests, Vitest for unit and API/integration tests  
 **Target Platform**: Web application deployed on Vercel/cloud platform  
 **Project Type**: Full-stack web service with API and dashboard  
 **Performance Goals**: 10,000 events/min ingestion, <3s query response for 10M events, <200ms API response  
@@ -123,21 +123,24 @@ tests/
 │   ├── query-interface.spec.ts
 │   ├── schema-management.spec.ts
 │   └── segment-export.spec.ts
-├── integration/                  # Vitest integration tests
-│   ├── api/
-│   │   ├── events.test.ts
-│   │   ├── query.test.ts
-│   │   └── segments.test.ts
-│   └── services/
-│       ├── event-validator.test.ts
-│       └── segment-engine.test.ts
+├── api/                          # Vitest API/integration tests
+│   ├── events.test.ts
+│   ├── query.test.ts
+│   └── segments.test.ts
 └── unit/                         # Vitest unit tests
     ├── validations.test.ts
     ├── query-builder.test.ts
     └── deduplication.test.ts
 ```
 
-**Structure Decision**: Using Next.js App Router with server-side components for the dashboard. API routes handle event ingestion and queries. Prisma is accessed directly from server components and API routes. No separate backend/frontend split needed—Next.js unifies both concerns. Testing uses Playwright for E2E flows and Vitest for unit/integration tests.
+**Structure Decision**: Using Next.js App Router with server-side components for the dashboard. API routes handle event ingestion and queries. Prisma is accessed directly from server components and API routes. No separate backend/frontend split needed—Next.js unifies both concerns. Testing uses Playwright for E2E flows and Vitest for unit plus API/integration tests.
+
+## Current Status
+
+This feature is implemented in the repository. Two details supersede parts of the original plan:
+
+- Dashboard page access is protected centrally in `proxy.ts` using Better Auth session cookies.
+- Programmatic APIs under `/api/**` are intentionally not redirected through dashboard auth; they remain JSON APIs and apply endpoint-specific authentication such as `X-API-Key`.
 
 ## Data Model
 

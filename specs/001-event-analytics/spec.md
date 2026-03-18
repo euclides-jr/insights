@@ -2,7 +2,7 @@
 
 **Feature Branch**: `001-event-analytics`  
 **Created**: March 13, 2026  
-**Status**: Draft  
+**Status**: Implemented  
 **Input**: User description: "create an event tracking / product analytics service for web and mobile applications, it will be developed and maintained by a solo developer, so keep the scope small with only the essentials like data collection, data quality, analysis, governance, and activation."
 
 ## User Scenarios & Testing _(mandatory)_
@@ -192,3 +192,9 @@ A marketing manager creates user segments based on event behavior (e.g., "users 
 - Initial deployment should minimize ongoing operational overhead (managed services preferred over custom infrastructure)
 - Development timeline should prioritize getting to a functional MVP quickly over perfecting features
 - Cost structure should scale with usage (minimal fixed costs for low-volume periods)
+
+## Current Implementation Notes
+
+- Dashboard access is now enforced centrally through Next.js `proxy.ts`, with `/sign-in` as the only public UI route.
+- Better Auth is used for dashboard sessions; programmatic ingestion and write APIs continue to use application API keys.
+- The current repository test layout is `tests/unit`, `tests/api`, and `tests/e2e`. Older references to `tests/integration` are historical and should be ignored.

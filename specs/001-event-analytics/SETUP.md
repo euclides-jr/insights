@@ -30,13 +30,13 @@
 - ✅ Created organized folder structure:
   - `lib/` (db, validations, services, utils)
   - `components/` (ui, charts, forms, tables)
-  - `tests/` (e2e, integration, unit)
+  - `tests/` (e2e, api, unit)
 - ✅ Created Prisma client singleton with adapter pattern
 - ✅ Created utility functions (cn for Tailwind classes)
 
 ### 4. Testing Infrastructure
 
-- ✅ Configured Vitest for unit/integration tests
+- ✅ Configured Vitest for unit and API/integration tests
 - ✅ Configured Playwright for E2E tests
 - ✅ Installed Playwright browsers (Chromium, Firefox, WebKit)
 - ✅ Created test setup files
@@ -108,7 +108,7 @@ bun run lint               # Run ESLint
 
 - **Prisma 7.x requires adapter pattern**: All PrismaClient instances must use `PrismaPg` adapter
 - **Database URL**: Currently using Prisma's hosted PostgreSQL (in .env)
-- **Test separation**: Use `bun test` for Vitest, `bun run test:e2e` for Playwright
+- **Test separation**: Use `bun vitest run tests/unit tests/api` for the Vitest suite, `bun run test:e2e` for Playwright
 - **Environment variables**: Loaded via dotenv in prisma.config.ts
 - **Dashboard auth**: `/sign-in` is the only public UI route; protected routes are enforced centrally in `proxy.ts`
 

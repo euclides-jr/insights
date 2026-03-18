@@ -2,7 +2,7 @@
 
 **Branch**: `003-analytics-charts` | **Date**: 2026-03-15 | **Spec**: [spec.md](spec.md)  
 **Input**: Feature specification from `/specs/003-analytics-charts/spec.md`  
-**Status**: ✅ COMPLETE — all 21 tasks delivered, 24/24 unit tests passing, 0 TypeScript errors in new files
+**Status**: ✅ COMPLETE — all 21 tasks delivered
 
 ## Summary
 
@@ -11,6 +11,10 @@ Add interactive charts across the platform to turn static numeric tiles and tabl
 **Technical approach**: Install `recharts` (React 19–compatible SVG chart library). Add three dedicated `GET /api/charts/*` routes backed by PostgreSQL `generate_series` queries (gap-fill at SQL level). Render initial data server-side; update on client-side filter changes via `fetch` + `AbortController`.
 
 No database schema changes are required.
+
+## Authentication Clarification
+
+These chart endpoints are internal dashboard routes. They are reachable only behind the dashboard session gate enforced by `proxy.ts`, not by `X-API-Key` authentication. This differs intentionally from public ingestion and data-mutation APIs.
 
 ## Technical Context
 

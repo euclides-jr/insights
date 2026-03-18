@@ -16,7 +16,7 @@ Extend the existing analytics service with persistent user profiles and attribut
 **Target Platform**: Web application (same deployment as feature 001)  
 **Project Type**: Full-stack web service — extends existing Next.js App Router application  
 **Performance Goals**: Attribute write <200ms p95; user attribute queries <2s for 1M profiles; combined queries <5s for 3 criteria  
-**Constraints**: Solo developer maintainable; no new infrastructure beyond existing PostgreSQL; reuse existing auth/API-key pattern  
+**Constraints**: Solo developer maintainable; no new infrastructure beyond existing PostgreSQL; programmatic APIs use `X-API-Key`, while the dashboard uses Better Auth session auth  
 **Scale/Scope**: 1M user profiles, up to 100 attributes per user, dataset shared with 001 event store
 
 ## Constitution Check

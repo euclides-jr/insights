@@ -2,7 +2,7 @@
 
 **Feature Branch**: `003-analytics-charts`  
 **Created**: 2026-03-15  
-**Status**: Draft  
+**Status**: Implemented  
 **Input**: User description: "Add visualization with charts to improve analytics"
 
 ## Overview
@@ -134,3 +134,9 @@ A platform engineer wants to compare event volumes across all registered applica
 - Chart export (PNG, CSV download) — a future enhancement.
 - Custom chart configuration by end users (e.g., choosing chart type, custom colors).
 - Embedded charts in external dashboards or iframes.
+
+## Current Implementation Notes
+
+- Chart endpoints are internal dashboard APIs and require an authenticated dashboard session.
+- Dashboard access is protected centrally by `proxy.ts`; chart routes are not public ingestion APIs.
+- E2E coverage should avoid relying on page-1 ordering of seeded schemas or records, because API tests may add more fixtures during the same test run.

@@ -93,6 +93,16 @@ Open [http://localhost:3000](http://localhost:3000) to access the dashboard.
 | `bun run test:e2e`    | Run end-to-end tests with Playwright        |
 | `bun run test:e2e:ui` | Run end-to-end tests with the Playwright UI |
 
+## Authentication Model
+
+The project uses three distinct authentication paths:
+
+- **Dashboard UI**: Better Auth email/password sessions. The Next.js `proxy.ts` gate protects all dashboard pages and only `/sign-in` is public.
+- **Better Auth routes**: `/api/auth/**` is reserved for Better Auth session and credential flows.
+- **Programmatic APIs**: ingestion and data APIs such as `/api/events`, `/api/users`, `/api/query`, `/api/schemas`, `/api/segments`, and `/api/webhooks` remain reachable as JSON APIs and enforce their own `X-API-Key` authentication where applicable.
+
+This separation is intentional: page access is centralized in the proxy, while programmatic APIs are not redirected through the dashboard sign-in flow.
+
 ## Sending Events
 
 Authenticate requests using the `X-API-Key` header. Retrieve your API key from the **Applications** section of the dashboard.
@@ -181,6 +191,7 @@ prisma/
 docs/               # API documentation
 tests/
   unit/             # Vitest unit tests
+  api/              # Vitest API/integration tests
   e2e/              # Playwright end-to-end tests
 specs/              # Feature design documents (spec, plan, tasks, contracts)
 ```
