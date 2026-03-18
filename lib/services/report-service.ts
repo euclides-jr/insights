@@ -1,9 +1,9 @@
 import type {
   Prisma,
-  SavedReport,
   SavedReportType,
   WorkspaceMember,
 } from '@prisma/client';
+import { prisma } from '@/lib/db/prisma';
 
 export type SavedReportConfig = Prisma.JsonObject;
 
@@ -15,44 +15,125 @@ export type CreateSavedReportInput = {
 };
 
 export async function listSavedReports(
-  _reportType?: SavedReportType,
-  _applicationId?: string,
+  reportType?: SavedReportType,
+  applicationId?: string,
 ) {
-  void _reportType;
-  void _applicationId;
-  throw new Error('not implemented');
+  return prisma.savedReport.findMany({
+    where: {
+      ...(reportType ? { reportType } : {}),
+      ...(applicationId ? { applicationId } : {}),
+    },
+    include: {
+      application: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      createdBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      updatedBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { updatedAt: 'desc' },
+  });
 }
 
 export async function createSavedReport(
-  _membership: WorkspaceMember,
-  _input: CreateSavedReportInput,
-): Promise<SavedReport> {
-  void _membership;
-  void _input;
-  throw new Error('not implemented');
+  membership: WorkspaceMember,
+  input: CreateSavedReportInput,
+) {
+  return prisma.savedReport.create({
+    data: {
+      name: input.name,
+      reportType: input.reportType,
+      applicationId: input.applicationId ?? null,
+      config: input.config,
+      createdByUserId: membership.userId,
+      updatedByUserId: membership.userId,
+    },
+    include: {
+      application: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
 }
 
-export async function getSavedReport(_id: string): Promise<SavedReport | null> {
-  void _id;
-  throw new Error('not implemented');
+export async function getSavedReport(id: string) {
+  return prisma.savedReport.findUnique({
+    where: { id },
+    include: {
+      application: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      createdBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      updatedBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
 }
 
 export async function updateSavedReport(
-  _id: string,
-  _membership: WorkspaceMember,
-  _input: Partial<CreateSavedReportInput>,
+  id: string,
+  membership: WorkspaceMember,
+  input: Partial<CreateSavedReportInput>,
 ) {
-  void _id;
-  void _membership;
-  void _input;
-  throw new Error('not implemented');
+  return prisma.savedReport.update({
+    where: { id },
+    data: {
+      ...(input.name !== undefined ? { name: input.name } : {}),
+      ...(input.reportType !== undefined ? { reportType: input.reportType } : {}),
+      ...(input.applicationId !== undefined
+        ? { applicationId: input.applicationId }
+        : {}),
+      ...(input.config !== undefined ? { config: input.config } : {}),
+      updatedByUserId: membership.userId,
+    },
+    include: {
+      application: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
 }
 
 export async function deleteSavedReport(
-  _id: string,
-  _membership: WorkspaceMember,
+  id: string,
+  membership: WorkspaceMember,
 ) {
-  void _id;
-  void _membership;
-  throw new Error('not implemented');
+  void membership;
+  return prisma.savedReport.delete({
+    where: { id },
+  });
 }
