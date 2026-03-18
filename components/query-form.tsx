@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { QueryResultChart } from '@/components/charts/QueryResultChart';
+import { SaveReportDialog } from '@/components/reports/save-report-dialog';
 import type { ChartViewMode, ChartEligibility } from '@/lib/charts/types';
 
 interface Application {
@@ -270,6 +271,29 @@ export function QueryForm({ applications }: { applications: Application[] }) {
           >
             Clear
           </Button>
+          <SaveReportDialog
+            applications={applications.map((application) => ({
+              id: application.id,
+              name: application.name,
+            }))}
+            draftReport={{
+              name: eventName
+                ? `${eventName} ${aggregation}`
+                : `Query ${aggregation}`,
+              reportType: 'QUERY',
+              applicationId,
+              config: {
+                applicationId,
+                eventName: eventName || undefined,
+                startDate: new Date(startDate).toISOString(),
+                endDate: new Date(endDate).toISOString(),
+                aggregation,
+                aggregationField: aggregationField || undefined,
+                groupBy: groupBy || undefined,
+              },
+            }}
+            buttonLabel="Save Current View"
+          />
         </div>
       </form>
 

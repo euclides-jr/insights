@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FunnelResults, type FunnelResultStep } from '@/components/funnels/funnel-results';
+import { SaveReportDialog } from '@/components/reports/save-report-dialog';
 
 type FunnelOption = {
   id: string;
@@ -22,10 +23,12 @@ export function FunnelRunner({
   funnels,
   initialFunnelId,
   initialResults,
+  applications,
 }: {
   funnels: FunnelOption[];
   initialFunnelId?: string;
   initialResults: FunnelResultStep[];
+  applications: Array<{ id: string; name: string }>;
 }) {
   const [selectedFunnelId, setSelectedFunnelId] = useState(
     initialFunnelId ?? funnels[0]?.id ?? '',
@@ -123,6 +126,26 @@ export function FunnelRunner({
           >
             {isRunning ? 'Running…' : 'Run Funnel'}
           </Button>
+          <SaveReportDialog
+            applications={applications}
+            draftReport={{
+              name: selectedFunnel
+                ? `${selectedFunnel.name} (${timeWindowValue}d)`
+                : 'Funnel Report',
+              reportType: 'FUNNEL',
+              applicationId: selectedFunnel?.applicationId,
+              config: selectedFunnel
+                ? {
+                    funnelId: selectedFunnel.id,
+                    timeWindow: {
+                      value: timeWindowValue,
+                      unit: 'days',
+                    },
+                  }
+                : {},
+            }}
+            buttonLabel="Save Current View"
+          />
         </div>
 
         {error ? <p className="mt-3 text-sm text-red-500">{error}</p> : null}

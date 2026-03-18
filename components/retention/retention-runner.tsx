@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SaveReportDialog } from '@/components/reports/save-report-dialog';
 import {
   RetentionGrid,
 } from '@/components/retention/retention-grid';
@@ -168,6 +169,25 @@ export function RetentionRunner({
           >
             {isRunning ? 'Running…' : 'Run Retention'}
           </Button>
+          <SaveReportDialog
+            applications={applications}
+            draftReport={{
+              name: `Retention ${interval} ${windowValue}${windowUnit === 'weeks' ? 'w' : 'd'}`,
+              reportType: 'RETENTION',
+              applicationId,
+              config: {
+                interval,
+                cohortWindow: {
+                  value: windowValue,
+                  unit: windowUnit,
+                },
+                ...(returnEventName.trim()
+                  ? { returnEventName: returnEventName.trim() }
+                  : {}),
+              },
+            }}
+            buttonLabel="Save Current View"
+          />
         </div>
 
         {error ? <p className="mt-3 text-sm text-red-500">{error}</p> : null}

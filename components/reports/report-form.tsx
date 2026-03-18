@@ -19,26 +19,39 @@ type InitialReport = {
   config: Record<string, unknown>;
 };
 
+type DraftReport = {
+  name?: string;
+  reportType?: 'QUERY' | 'FUNNEL' | 'RETENTION';
+  applicationId?: string | null;
+  config?: Record<string, unknown>;
+};
+
 export function ReportForm({
   applications,
   onSuccess,
   initialReport,
+  draftReport,
 }: {
   applications: ApplicationOption[];
   onSuccess: () => void;
   initialReport?: InitialReport;
+  draftReport?: DraftReport;
 }) {
   const router = useRouter();
-  const [name, setName] = useState(initialReport?.name ?? '');
+  const [name, setName] = useState(initialReport?.name ?? draftReport?.name ?? '');
   const [reportType, setReportType] = useState<
     'QUERY' | 'FUNNEL' | 'RETENTION'
-  >(initialReport?.reportType ?? 'FUNNEL');
+  >(initialReport?.reportType ?? draftReport?.reportType ?? 'FUNNEL');
   const [applicationId, setApplicationId] = useState(
-    initialReport?.applicationId ?? applications[0]?.id ?? '',
+    initialReport?.applicationId ??
+      draftReport?.applicationId ??
+      applications[0]?.id ??
+      '',
   );
   const [configJson, setConfigJson] = useState(
     JSON.stringify(
-      initialReport?.config ?? {
+      initialReport?.config ??
+        draftReport?.config ?? {
         timeWindow: { value: 30, unit: 'days' },
       },
       null,

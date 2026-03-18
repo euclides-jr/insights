@@ -190,6 +190,7 @@ export default async function FunnelsPage({
               }))}
               initialFunnelId={previewFunnel?.id}
               initialResults={previewResults}
+              applications={applications}
             />
 
             <FunnelResults

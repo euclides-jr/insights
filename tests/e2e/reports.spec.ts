@@ -23,6 +23,15 @@ test.describe('Reports page', () => {
     await expect(seededRow.getByText('FUNNEL', { exact: true })).toBeVisible();
   });
 
+  test('opens the seeded report detail page', async ({ page }) => {
+    await page.getByRole('link', { name: 'Signup Funnel (30d)' }).click();
+    await expect(page).toHaveURL(/\/reports\/seed_signup_funnel_report$/);
+    await expect(
+      page.getByRole('heading', { name: 'Signup Funnel (30d)' }),
+    ).toBeVisible();
+    await expect(page.getByText('Saved report configuration and latest preview')).toBeVisible();
+  });
+
   test('Reports nav link is highlighted as active', async ({ page }) => {
     const navLink = page.getByRole('link', { name: 'Reports' }).first();
     await expect(navLink).toHaveCSS('background-color', 'rgb(228, 35, 19)');
@@ -68,5 +77,27 @@ test.describe('Reports page', () => {
     await expect(page.getByText(updatedName, { exact: true })).toHaveCount(0, {
       timeout: 10000,
     });
+  });
+
+  test('saves the current funnel view into reports', async ({ page }) => {
+    const reportName = `Saved From Funnel ${Date.now()}`;
+
+    await page.goto('/funnels');
+    await page.getByRole('button', { name: 'Save Current View' }).click();
+
+    const responsePromise = page.waitForResponse((response) =>
+      response.url().endsWith('/api/reports') &&
+      response.request().method() === 'POST' &&
+      response.status() === 201,
+    );
+
+    await page.getByPlaceholder('Signup Funnel (30d)').fill(reportName);
+    await page.getByRole('button', { name: 'Create Report' }).click();
+    await responsePromise;
+
+    await page.goto('/reports');
+    await expect(
+      page.locator('div.border-t').filter({ hasText: reportName }).first(),
+    ).toBeVisible({ timeout: 10000 });
   });
 });

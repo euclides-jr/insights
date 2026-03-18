@@ -91,7 +91,9 @@ export default async function ReportsPage({
             reports.map((report) => (
               <TableRow key={report.id}>
                 <TableCell width="240px" className="font-medium">
-                  {report.name}
+                  <Link href={`/reports/${report.id}`} className="hover:underline">
+                    {report.name}
+                  </Link>
                 </TableCell>
                 <TableCell width="140px">
                   <Badge variant="neutral">{report.reportType}</Badge>
@@ -130,3 +132,4 @@ export default async function ReportsPage({
     </DashboardLayout>
   );
 }
+import Link from 'next/link';

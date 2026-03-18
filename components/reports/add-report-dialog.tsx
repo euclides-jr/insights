@@ -1,15 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { ReportForm } from '@/components/reports/report-form';
+import { SaveReportDialog } from '@/components/reports/save-report-dialog';
 
 type ApplicationOption = {
   id: string;
@@ -21,24 +12,19 @@ export function AddReportDialog({
 }: {
   applications: ApplicationOption[];
 }) {
-  const [open, setOpen] = useState(false);
-
   return (
-    <>
-      <Button onClick={() => setOpen(true)}>+ Save Report</Button>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="w-[720px] max-w-[95vw]">
-          <DialogHeader>
-            <DialogTitle>Create Saved Report</DialogTitle>
-            <DialogDescription>
-              Save a query, funnel, or retention configuration for reuse.
-            </DialogDescription>
-          </DialogHeader>
-
-          <ReportForm applications={applications} onSuccess={() => setOpen(false)} />
-        </DialogContent>
-      </Dialog>
-    </>
+    <SaveReportDialog
+      applications={applications}
+      draftReport={{
+        reportType: 'FUNNEL',
+        applicationId: applications[0]?.id,
+        config: {
+          timeWindow: { value: 30, unit: 'days' },
+        },
+      }}
+      buttonLabel="+ Save Report"
+      title="Create Saved Report"
+      description="Save a query, funnel, or retention configuration for reuse."
+    />
   );
 }
