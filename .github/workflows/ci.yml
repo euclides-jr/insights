@@ -30,6 +30,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://insights:insights@localhost:5432/insights
+      BETTER_AUTH_SECRET: ci-better-auth-secret-please-change
 
     steps:
       - name: Checkout repository
