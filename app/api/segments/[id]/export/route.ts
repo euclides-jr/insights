@@ -20,7 +20,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const authResult = await requireAuth(request);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   try {
     const { id } = await params;
     const { searchParams } = new URL(request.url);

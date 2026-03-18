@@ -42,7 +42,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const authResult = await requireAuth(request);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   try {
     const { id } = await params;
     const segment = await prisma.segment.findUnique({
@@ -71,7 +71,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const authResult = await requireAuth(request);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   try {
     const { id } = await params;
 
@@ -143,7 +143,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const authResult = await requireAuth(request);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   try {
     const { id } = await params;
 

@@ -21,7 +21,7 @@ function safe(wh: { secret: string | null; [key: string]: unknown }) {
 
 export async function GET(req: NextRequest, { params }: Params) {
   const authResult = await requireAuth(req);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   const { id } = await params;
   const wh = await prisma.webhookAlert.findUnique({
     where: { id },
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   const authResult = await requireAuth(request);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   const { id } = await params;
   try {
     const body = await request.json();
@@ -74,7 +74,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
 export async function DELETE(req: NextRequest, { params }: Params) {
   const authResult = await requireAuth(req);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   const { id } = await params;
   try {
     await prisma.webhookAlert.delete({ where: { id } });

@@ -30,7 +30,7 @@ const createApplicationSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   try {
     // Parse and validate request body
     const body = await request.json();
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   try {
     const applications = await prisma.application.findMany({
       select: {

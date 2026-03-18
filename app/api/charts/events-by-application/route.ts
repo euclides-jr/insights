@@ -28,7 +28,7 @@ interface RawRow {
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const authResult = await requireAuth(request);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   const { searchParams } = new URL(request.url);
   const raw = { days: searchParams.get('days') ?? undefined };
 

@@ -9,13 +9,13 @@ const PUBLIC_PREFIXES = ['/api/auth/'];
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const sessionCookie = getSessionCookie(request);
-  // API requests that carry their own X-API-Key credential bypass session auth.
-  // The route handler is responsible for validating the key.
+  // API requests that carry their own X-API-Key credential bypass session auth,
+  // but only for /api/ paths. The route handler is responsible for validating the key.
   const hasApiKey = Boolean(request.headers.get('x-api-key'));
   const isPublicPath =
     PUBLIC_PATHS.has(pathname) ||
     PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
-    hasApiKey;
+    (hasApiKey && pathname.startsWith('/api/'));
 
   if (!sessionCookie && !isPublicPath) {
     const signInUrl = new URL('/sign-in', request.url);

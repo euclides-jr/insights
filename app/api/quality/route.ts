@@ -28,7 +28,7 @@ import {
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   try {
     const { searchParams } = new URL(request.url);
     const applicationId = searchParams.get('applicationId');

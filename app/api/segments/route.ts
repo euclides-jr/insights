@@ -46,7 +46,7 @@ const createSegmentSchema = z.object({
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   try {
     const { searchParams } = new URL(request.url);
     const applicationId = searchParams.get('applicationId');
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   try {
     const body = await request.json();
     const result = createSegmentSchema.safeParse(body);

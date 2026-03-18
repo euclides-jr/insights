@@ -38,7 +38,7 @@ type Params = Promise<{ id: string }>;
 
 export async function GET(req: NextRequest, { params }: { params: Params }) {
   const authResult = await requireAuth(req);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   try {
     const { id } = await params;
 
@@ -80,7 +80,7 @@ export async function PUT(
   { params }: { params: Params },
 ) {
   const authResult = await requireAuth(request);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   try {
     const { id } = await params;
 
@@ -184,7 +184,7 @@ export async function DELETE(
   { params }: { params: Params },
 ) {
   const authResult = await requireAuth(req);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   try {
     const { id } = await params;
 

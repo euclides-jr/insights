@@ -11,7 +11,7 @@ type Params = { params: Promise<{ id: string }> };
 
 export async function POST(req: NextRequest, { params }: Params) {
   const authResult = await requireAuth(req);
-  if (!auth.ok) return authResult.response;
+  if (!authResult.ok) return authResult.response;
   const { id } = await params;
 
   const wh = await prisma.webhookAlert.findUnique({
