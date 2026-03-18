@@ -5,6 +5,7 @@ import {
   evaluateSegment,
   SegmentCriteria,
 } from '@/lib/services/segment-engine';
+import { requireAuth } from '@/lib/auth/api-auth';
 
 // ─── Validation schemas ───────────────────────────────────────────────────────
 
@@ -44,6 +45,8 @@ const createSegmentSchema = z.object({
 // Query params: applicationId, page, pageSize
 
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   try {
     const { searchParams } = new URL(request.url);
     const applicationId = searchParams.get('applicationId');
@@ -80,6 +83,8 @@ export async function GET(request: NextRequest) {
 // Creates a new segment, evaluates criteria immediately, stores memberCount.
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   try {
     const body = await request.json();
     const result = createSegmentSchema.safeParse(body);

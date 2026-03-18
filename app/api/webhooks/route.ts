@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db/prisma';
+import { requireAuth } from '@/lib/auth/api-auth';
 
 const createSchema = z.object({
   applicationId: z.string().uuid(),
@@ -15,6 +16,8 @@ const createSchema = z.object({
 // Query params: applicationId, page, pageSize
 
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   try {
     const { searchParams } = new URL(request.url);
     const applicationId = searchParams.get('applicationId');
@@ -61,6 +64,8 @@ export async function GET(request: NextRequest) {
 // ─── POST /api/webhooks ───────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   try {
     const body = await request.json();
     const parsed = createSchema.safeParse(body);

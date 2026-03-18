@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getSegmentMembers, SegmentCriteria } from '@/lib/services/segment-engine';
+import { requireAuth } from '@/lib/auth/api-auth';
 
 // ─── GET /api/segments/:id/export ────────────────────────────────────────────
 //
@@ -18,6 +19,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   try {
     const { id } = await params;
     const { searchParams } = new URL(request.url);

@@ -40,7 +40,7 @@ function testUserId(label: string) {
 
 beforeAll(async () => {
   // Verify the server is reachable and the API key is valid
-  const res = await fetch(`${API_BASE_URL}/api/applications`);
+  const res = await fetch(`${API_BASE_URL}/api/applications`, { headers: HEADERS });
   expect(res.status).toBe(200);
 });
 

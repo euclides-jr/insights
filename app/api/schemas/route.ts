@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
+import { requireAuth } from '@/lib/auth/api-auth';
 
 // ─── Shared types ────────────────────────────────────────────────────────────
 
@@ -52,6 +53,8 @@ const createSchemaSchema = z.object({
 // Returns all schemas, sorted newest first. Optional ?applicationId= filter.
 
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   try {
     const { searchParams } = new URL(request.url);
     const applicationId = searchParams.get('applicationId');
@@ -98,6 +101,8 @@ export async function GET(request: NextRequest) {
 // Returns 409 if an active schema already exists for that event name.
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   try {
     const body = await request.json();
     const result = createSchemaSchema.safeParse(body);

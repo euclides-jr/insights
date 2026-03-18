@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db/prisma';
+import { requireAuth } from '@/lib/auth/api-auth';
 
 const updateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -18,7 +19,9 @@ function safe(wh: { secret: string | null; [key: string]: unknown }) {
 
 // ─── GET /api/webhooks/[id] ───────────────────────────────────────────────────
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const authResult = await requireAuth(req);
+  if (!auth.ok) return authResult.response;
   const { id } = await params;
   const wh = await prisma.webhookAlert.findUnique({
     where: { id },
@@ -31,6 +34,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
 // ─── PATCH /api/webhooks/[id] ─────────────────────────────────────────────────
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   const { id } = await params;
   try {
     const body = await request.json();
@@ -67,7 +72,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
 // ─── DELETE /api/webhooks/[id] ────────────────────────────────────────────────
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const authResult = await requireAuth(req);
+  if (!auth.ok) return authResult.response;
   const { id } = await params;
   try {
     await prisma.webhookAlert.delete({ where: { id } });

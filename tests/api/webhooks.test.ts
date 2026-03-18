@@ -13,6 +13,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3000';
 const TEST_API_KEY = process.env.TEST_API_KEY || 'demo_app_key_123';
+const HEADERS = { 'Content-Type': 'application/json', 'X-API-Key': TEST_API_KEY };
 
 let applicationId: string;
 const createdWebhookIds: string[] = [];
@@ -21,7 +22,9 @@ const createdWebhookIds: string[] = [];
 // Setup
 // ---------------------------------------------------------------------------
 beforeAll(async () => {
-  const res = await fetch(`${API_BASE_URL}/api/applications`);
+  const res = await fetch(`${API_BASE_URL}/api/applications`, {
+    headers: HEADERS,
+  });
   expect(res.status).toBe(200);
   const body: { applications: { id: string; apiKey: string }[] } =
     await res.json();
@@ -33,7 +36,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await Promise.all(
     createdWebhookIds.map((id) =>
-      fetch(`${API_BASE_URL}/api/webhooks/${id}`, { method: 'DELETE' }),
+      fetch(`${API_BASE_URL}/api/webhooks/${id}`, { method: 'DELETE', headers: HEADERS }),
     ),
   );
 });
@@ -48,7 +51,7 @@ function uniqueName() {
 async function createWebhook(overrides: Record<string, unknown> = {}) {
   const res = await fetch(`${API_BASE_URL}/api/webhooks`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: HEADERS,
     body: JSON.stringify({
       applicationId,
       name: uniqueName(),
@@ -68,7 +71,7 @@ async function createWebhook(overrides: Record<string, unknown> = {}) {
 // ---------------------------------------------------------------------------
 describe('GET /api/webhooks', () => {
   it('returns 200 with webhooks array and pagination metadata', async () => {
-    const res = await fetch(`${API_BASE_URL}/api/webhooks`);
+    const res = await fetch(`${API_BASE_URL}/api/webhooks`, { headers: HEADERS });
     expect(res.status).toBe(200);
     const data = await res.json();
 
@@ -83,6 +86,7 @@ describe('GET /api/webhooks', () => {
 
     const res = await fetch(
       `${API_BASE_URL}/api/webhooks?applicationId=${applicationId}`,
+      { headers: HEADERS },
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -95,7 +99,7 @@ describe('GET /api/webhooks', () => {
   });
 
   it('supports pagination params', async () => {
-    const res = await fetch(`${API_BASE_URL}/api/webhooks?page=1&pageSize=2`);
+    const res = await fetch(`${API_BASE_URL}/api/webhooks?page=1&pageSize=2`, { headers: HEADERS });
     expect(res.status).toBe(200);
     const data = await res.json();
 
@@ -109,6 +113,7 @@ describe('GET /api/webhooks', () => {
 
     const res = await fetch(
       `${API_BASE_URL}/api/webhooks?applicationId=${applicationId}`,
+      { headers: HEADERS },
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -125,6 +130,7 @@ describe('GET /api/webhooks', () => {
 
     const res = await fetch(
       `${API_BASE_URL}/api/webhooks?applicationId=${applicationId}`,
+      { headers: HEADERS },
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -176,7 +182,7 @@ describe('POST /api/webhooks', () => {
   it('returns 400 when required fields are missing', async () => {
     const res = await fetch(`${API_BASE_URL}/api/webhooks`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({ applicationId }),
     });
     expect(res.status).toBe(400);
@@ -188,7 +194,7 @@ describe('POST /api/webhooks', () => {
   it('returns 400 for an invalid URL', async () => {
     const res = await fetch(`${API_BASE_URL}/api/webhooks`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         applicationId,
         name: uniqueName(),
@@ -203,7 +209,7 @@ describe('POST /api/webhooks', () => {
   it('returns 400 for an invalid minLevel value', async () => {
     const res = await fetch(`${API_BASE_URL}/api/webhooks`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         applicationId,
         name: uniqueName(),
@@ -217,7 +223,7 @@ describe('POST /api/webhooks', () => {
   it('returns 404 when applicationId does not exist', async () => {
     const res = await fetch(`${API_BASE_URL}/api/webhooks`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         applicationId: '00000000-0000-0000-0000-000000000000',
         name: uniqueName(),
@@ -236,7 +242,7 @@ describe('POST /api/webhooks', () => {
 describe('GET /api/webhooks/:id', () => {
   it('returns a single webhook by id', async () => {
     const { data: created } = await createWebhook();
-    const res = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`);
+    const res = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`, { headers: HEADERS });
     expect(res.status).toBe(200);
 
     const data = await res.json();
@@ -247,7 +253,7 @@ describe('GET /api/webhooks/:id', () => {
 
   it('redacts the secret on single fetch', async () => {
     const { data: created } = await createWebhook({ secret: 'topsecret' });
-    const res = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`);
+    const res = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`, { headers: HEADERS });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.secret).toBe('••••••••');
@@ -256,6 +262,7 @@ describe('GET /api/webhooks/:id', () => {
   it('returns 404 for a non-existent id', async () => {
     const res = await fetch(
       `${API_BASE_URL}/api/webhooks/00000000-0000-0000-0000-000000000000`,
+      { headers: HEADERS },
     );
     expect(res.status).toBe(404);
     const data = await res.json();
@@ -273,7 +280,7 @@ describe('PATCH /api/webhooks/:id', () => {
 
     const res = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         name: newName,
         url: 'https://update.example.com/hook',
@@ -289,7 +296,7 @@ describe('PATCH /api/webhooks/:id', () => {
     const { data: created } = await createWebhook();
     const res = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({ isActive: false }),
     });
     expect(res.status).toBe(200);
@@ -301,7 +308,7 @@ describe('PATCH /api/webhooks/:id', () => {
     const { data: created } = await createWebhook({ minLevel: 'error' });
     const res = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({ minLevel: 'warning' }),
     });
     expect(res.status).toBe(200);
@@ -313,7 +320,7 @@ describe('PATCH /api/webhooks/:id', () => {
     const { data: created } = await createWebhook({ secret: 'remove-me' });
     const res = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({ secret: null }),
     });
     expect(res.status).toBe(200);
@@ -325,7 +332,7 @@ describe('PATCH /api/webhooks/:id', () => {
     const { data: created } = await createWebhook();
     const res = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({ url: 'bad-url' }),
     });
     expect(res.status).toBe(400);
@@ -336,7 +343,7 @@ describe('PATCH /api/webhooks/:id', () => {
       `${API_BASE_URL}/api/webhooks/00000000-0000-0000-0000-000000000000`,
       {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: HEADERS,
         body: JSON.stringify({ name: 'Ghost' }),
       },
     );
@@ -356,6 +363,7 @@ describe('DELETE /api/webhooks/:id', () => {
 
     const res = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`, {
       method: 'DELETE',
+      headers: HEADERS,
     });
     expect(res.status).toBe(204);
   });
@@ -367,16 +375,17 @@ describe('DELETE /api/webhooks/:id', () => {
 
     await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`, {
       method: 'DELETE',
+      headers: HEADERS,
     });
 
-    const res = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`);
+    const res = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`, { headers: HEADERS });
     expect(res.status).toBe(404);
   });
 
   it('returns 404 for a non-existent id', async () => {
     const res = await fetch(
       `${API_BASE_URL}/api/webhooks/00000000-0000-0000-0000-000000000000`,
-      { method: 'DELETE' },
+      { method: 'DELETE', headers: HEADERS },
     );
     expect(res.status).toBe(404);
   });
@@ -389,7 +398,7 @@ describe('POST /api/webhooks/:id/test', () => {
   it('returns 404 for a non-existent webhook id', async () => {
     const res = await fetch(
       `${API_BASE_URL}/api/webhooks/00000000-0000-0000-0000-000000000000/test`,
-      { method: 'POST' },
+      { method: 'POST', headers: HEADERS },
     );
     expect(res.status).toBe(404);
     const data = await res.json();
@@ -403,6 +412,7 @@ describe('POST /api/webhooks/:id/test', () => {
 
     const res = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}/test`, {
       method: 'POST',
+      headers: HEADERS,
     });
     // Should still return 200 from our API (result object, not webhook delivery status)
     expect(res.status).toBe(200);
@@ -420,17 +430,18 @@ describe('POST /api/webhooks/:id/test', () => {
     });
 
     // Before test — lastTriggeredAt should be null
-    const beforeRes = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`);
+    const beforeRes = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`, { headers: HEADERS });
     const before = await beforeRes.json();
     expect(before.lastTriggeredAt).toBeNull();
 
     // Trigger test
     await fetch(`${API_BASE_URL}/api/webhooks/${created.id}/test`, {
       method: 'POST',
+      headers: HEADERS,
     });
 
     // After test — lastTriggeredAt should be set
-    const afterRes = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`);
+    const afterRes = await fetch(`${API_BASE_URL}/api/webhooks/${created.id}`, { headers: HEADERS });
     const after = await afterRes.json();
     expect(after.lastTriggeredAt).not.toBeNull();
   });

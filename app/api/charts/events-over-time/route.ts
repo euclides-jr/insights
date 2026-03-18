@@ -6,6 +6,7 @@ import type {
   EventsOverTimeResponse,
   TimeSeriesPoint,
 } from '@/lib/charts/types';
+import { requireAuth } from '@/lib/auth/api-auth';
 
 // ─── Param validation ─────────────────────────────────────────────────────────
 
@@ -26,6 +27,8 @@ interface RawRow {
 // with count = 0 (FR-010).
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   const { searchParams } = new URL(request.url);
   const raw = {
     days: searchParams.get('days') ?? undefined,

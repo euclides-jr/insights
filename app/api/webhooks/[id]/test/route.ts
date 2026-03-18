@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { buildTestPayload } from '@/lib/services/webhook-service';
 import { createHmac } from 'crypto';
+import { requireAuth } from '@/lib/auth/api-auth';
 
 type Params = { params: Promise<{ id: string }> };
 
 // ─── POST /api/webhooks/[id]/test ─────────────────────────────────────────────
 // Sends a synthetic test payload to the configured URL and returns the result.
 
-export async function POST(_req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, { params }: Params) {
+  const authResult = await requireAuth(req);
+  if (!auth.ok) return authResult.response;
   const { id } = await params;
 
   const wh = await prisma.webhookAlert.findUnique({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
 import type { SchemaDefinition } from '../route';
+import { requireAuth } from '@/lib/auth/api-auth';
 
 // ─── Validation ──────────────────────────────────────────────────────────────
 
@@ -35,7 +36,9 @@ type Params = Promise<{ id: string }>;
 
 // ─── GET /api/schemas/:id ─────────────────────────────────────────────────────
 
-export async function GET(_req: NextRequest, { params }: { params: Params }) {
+export async function GET(req: NextRequest, { params }: { params: Params }) {
+  const authResult = await requireAuth(req);
+  if (!auth.ok) return authResult.response;
   try {
     const { id } = await params;
 
@@ -76,6 +79,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Params },
 ) {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   try {
     const { id } = await params;
 
@@ -175,9 +180,11 @@ export async function PUT(
 // events reference the schema's eventName.
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Params },
 ) {
+  const authResult = await requireAuth(req);
+  if (!auth.ok) return authResult.response;
   try {
     const { id } = await params;
 

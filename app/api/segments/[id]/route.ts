@@ -5,6 +5,7 @@ import {
   SegmentCriteria,
   evaluateSegment,
 } from '@/lib/services/segment-engine';
+import { requireAuth } from '@/lib/auth/api-auth';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -37,9 +38,11 @@ const updateSegmentSchema = z.object({
 // ─── GET /api/segments/:id ────────────────────────────────────────────────────
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   try {
     const { id } = await params;
     const segment = await prisma.segment.findUnique({
@@ -67,6 +70,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   try {
     const { id } = await params;
 
@@ -134,9 +139,11 @@ export async function PUT(
 // Hard delete (segments have no soft-delete requirement)
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   try {
     const { id } = await params;
 

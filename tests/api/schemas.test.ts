@@ -11,6 +11,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3000';
+const TEST_API_KEY = process.env.TEST_API_KEY || 'demo_app_key_123';
+const HEADERS = { 'Content-Type': 'application/json', 'X-API-Key': TEST_API_KEY };
 
 let applicationId: string;
 // Track schemas created by tests so we can clean up
@@ -20,7 +22,7 @@ const createdSchemaIds: string[] = [];
 // Setup
 // ---------------------------------------------------------------------------
 beforeAll(async () => {
-  const res = await fetch(`${API_BASE_URL}/api/applications`);
+  const res = await fetch(`${API_BASE_URL}/api/applications`, { headers: HEADERS });
   expect(res.status).toBe(200);
   const body: { applications: { id: string; name: string }[] } =
     await res.json();
@@ -34,7 +36,7 @@ afterAll(async () => {
     createdSchemaIds.map((id) =>
       fetch(`${API_BASE_URL}/api/schemas/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: HEADERS,
         body: JSON.stringify({ isActive: false }),
       }),
     ),
@@ -54,7 +56,7 @@ async function createSchema(
 ) {
   const res = await fetch(`${API_BASE_URL}/api/schemas`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: HEADERS,
     body: JSON.stringify({
       applicationId,
       eventName,
@@ -75,7 +77,7 @@ async function createSchema(
 // ---------------------------------------------------------------------------
 describe('GET /api/schemas', () => {
   it('should return schemas list with metadata', async () => {
-    const res = await fetch(`${API_BASE_URL}/api/schemas`);
+    const res = await fetch(`${API_BASE_URL}/api/schemas`, { headers: HEADERS });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(typeof data.totalCount).toBe('number');
@@ -87,6 +89,7 @@ describe('GET /api/schemas', () => {
   it('should filter by applicationId', async () => {
     const res = await fetch(
       `${API_BASE_URL}/api/schemas?applicationId=${applicationId}`,
+      { headers: HEADERS },
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -96,7 +99,7 @@ describe('GET /api/schemas', () => {
   });
 
   it('should filter activeOnly', async () => {
-    const res = await fetch(`${API_BASE_URL}/api/schemas?activeOnly=true`);
+    const res = await fetch(`${API_BASE_URL}/api/schemas?activeOnly=true`, { headers: HEADERS });
     expect(res.status).toBe(200);
     const data = await res.json();
     for (const schema of data.schemas) {
@@ -105,7 +108,7 @@ describe('GET /api/schemas', () => {
   });
 
   it('should support pagination', async () => {
-    const res = await fetch(`${API_BASE_URL}/api/schemas?page=1&pageSize=2`);
+    const res = await fetch(`${API_BASE_URL}/api/schemas?page=1&pageSize=2`, { headers: HEADERS });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.schemas.length).toBeLessThanOrEqual(2);
@@ -129,7 +132,7 @@ describe('POST /api/schemas', () => {
   it('should return 400 when applicationId is missing', async () => {
     const res = await fetch(`${API_BASE_URL}/api/schemas`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         eventName: 'test_event',
         properties: { amount: { type: 'number' } },
@@ -143,7 +146,7 @@ describe('POST /api/schemas', () => {
   it('should return 400 when eventName is missing', async () => {
     const res = await fetch(`${API_BASE_URL}/api/schemas`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         applicationId,
         properties: { amount: { type: 'number' } },
@@ -155,7 +158,7 @@ describe('POST /api/schemas', () => {
   it('should return 400 when eventName contains invalid characters', async () => {
     const res = await fetch(`${API_BASE_URL}/api/schemas`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         applicationId,
         eventName: 'invalid-event-name!',
@@ -168,7 +171,7 @@ describe('POST /api/schemas', () => {
   it('should return 400 when properties is empty', async () => {
     const res = await fetch(`${API_BASE_URL}/api/schemas`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         applicationId,
         eventName: uniqueEventName(),
@@ -181,7 +184,7 @@ describe('POST /api/schemas', () => {
   it('should return 400 when property type is invalid', async () => {
     const res = await fetch(`${API_BASE_URL}/api/schemas`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         applicationId,
         eventName: uniqueEventName(),
@@ -194,7 +197,7 @@ describe('POST /api/schemas', () => {
   it('should return 404 when applicationId does not exist', async () => {
     const res = await fetch(`${API_BASE_URL}/api/schemas`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         applicationId: '00000000-0000-0000-0000-000000000000',
         eventName: uniqueEventName(),
@@ -249,7 +252,7 @@ describe('POST /api/schemas', () => {
 describe('GET /api/schemas/:id', () => {
   it('should return schema with versions', async () => {
     const { data: created } = await createSchema();
-    const res = await fetch(`${API_BASE_URL}/api/schemas/${created.id}`);
+    const res = await fetch(`${API_BASE_URL}/api/schemas/${created.id}`, { headers: HEADERS });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.id).toBe(created.id);
@@ -260,6 +263,7 @@ describe('GET /api/schemas/:id', () => {
   it('should return 404 for non-existent schema', async () => {
     const res = await fetch(
       `${API_BASE_URL}/api/schemas/00000000-0000-0000-0000-000000000000`,
+      { headers: HEADERS },
     );
     expect(res.status).toBe(404);
   });
@@ -276,7 +280,7 @@ describe('PUT /api/schemas/:id', () => {
 
     const res = await fetch(`${API_BASE_URL}/api/schemas/${v1.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         properties: {
           amount: { type: 'number', required: true },
@@ -293,7 +297,7 @@ describe('PUT /api/schemas/:id', () => {
     createdSchemaIds.push(v2.id);
 
     // Old version should be deactivated
-    const oldRes = await fetch(`${API_BASE_URL}/api/schemas/${v1.id}`);
+    const oldRes = await fetch(`${API_BASE_URL}/api/schemas/${v1.id}`, { headers: HEADERS });
     const old = await oldRes.json();
     expect(old.isActive).toBe(false);
   });
@@ -302,7 +306,7 @@ describe('PUT /api/schemas/:id', () => {
     const { data: schema } = await createSchema();
     const res = await fetch(`${API_BASE_URL}/api/schemas/${schema.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({ isActive: false }),
     });
     expect(res.status).toBe(200);
@@ -316,13 +320,13 @@ describe('PUT /api/schemas/:id', () => {
     // Deactivate first
     await fetch(`${API_BASE_URL}/api/schemas/${schema.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({ isActive: false }),
     });
     // Re-activate
     const res = await fetch(`${API_BASE_URL}/api/schemas/${schema.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({ isActive: true }),
     });
     expect(res.status).toBe(200);
@@ -335,13 +339,13 @@ describe('PUT /api/schemas/:id', () => {
     // Deactivate
     await fetch(`${API_BASE_URL}/api/schemas/${schema.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({ isActive: false }),
     });
     // Now try to bump version
     const res = await fetch(`${API_BASE_URL}/api/schemas/${schema.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         properties: { amount: { type: 'number' } },
       }),
@@ -353,7 +357,7 @@ describe('PUT /api/schemas/:id', () => {
     const { data: schema } = await createSchema();
     const res = await fetch(`${API_BASE_URL}/api/schemas/${schema.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         properties: {}, // empty not allowed
       }),
@@ -366,7 +370,7 @@ describe('PUT /api/schemas/:id', () => {
       `${API_BASE_URL}/api/schemas/00000000-0000-0000-0000-000000000000`,
       {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: HEADERS,
         body: JSON.stringify({ isActive: false }),
       },
     );
@@ -382,11 +386,12 @@ describe('DELETE /api/schemas/:id', () => {
     const { data: schema } = await createSchema();
     const res = await fetch(`${API_BASE_URL}/api/schemas/${schema.id}`, {
       method: 'DELETE',
+      headers: HEADERS,
     });
     expect(res.status).toBe(204);
 
     // Verify deactivation
-    const check = await fetch(`${API_BASE_URL}/api/schemas/${schema.id}`);
+    const check = await fetch(`${API_BASE_URL}/api/schemas/${schema.id}`, { headers: HEADERS });
     const data = await check.json();
     expect(data.isActive).toBe(false);
   });
@@ -394,7 +399,7 @@ describe('DELETE /api/schemas/:id', () => {
   it('should return 404 for non-existent schema', async () => {
     const res = await fetch(
       `${API_BASE_URL}/api/schemas/00000000-0000-0000-0000-000000000000`,
-      { method: 'DELETE' },
+      { method: 'DELETE', headers: HEADERS },
     );
     expect(res.status).toBe(404);
   });

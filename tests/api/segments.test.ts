@@ -13,6 +13,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3000';
 const TEST_API_KEY = process.env.TEST_API_KEY || 'demo_app_key_123';
+const HEADERS = { 'Content-Type': 'application/json', 'X-API-Key': TEST_API_KEY };
 
 let applicationId: string;
 const createdSegmentIds: string[] = [];
@@ -21,7 +22,7 @@ const createdSegmentIds: string[] = [];
 // Setup
 // ---------------------------------------------------------------------------
 beforeAll(async () => {
-  const res = await fetch(`${API_BASE_URL}/api/applications`);
+  const res = await fetch(`${API_BASE_URL}/api/applications`, { headers: HEADERS });
   expect(res.status).toBe(200);
   const body: { applications: { id: string; apiKey: string }[] } =
     await res.json();
@@ -33,7 +34,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await Promise.all(
     createdSegmentIds.map((id) =>
-      fetch(`${API_BASE_URL}/api/segments/${id}`, { method: 'DELETE' }),
+      fetch(`${API_BASE_URL}/api/segments/${id}`, { method: 'DELETE', headers: HEADERS }),
     ),
   );
 });
@@ -48,7 +49,7 @@ function uniqueName() {
 async function createSegment(overrides: Record<string, unknown> = {}) {
   const res = await fetch(`${API_BASE_URL}/api/segments`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: HEADERS,
     body: JSON.stringify({
       applicationId,
       name: uniqueName(),
@@ -69,7 +70,7 @@ async function createSegment(overrides: Record<string, unknown> = {}) {
 // ---------------------------------------------------------------------------
 describe('GET /api/segments', () => {
   it('should return segments list with pagination metadata', async () => {
-    const res = await fetch(`${API_BASE_URL}/api/segments`);
+    const res = await fetch(`${API_BASE_URL}/api/segments`, { headers: HEADERS });
     expect(res.status).toBe(200);
     const data = await res.json();
 
@@ -82,6 +83,7 @@ describe('GET /api/segments', () => {
   it('should filter by applicationId', async () => {
     const res = await fetch(
       `${API_BASE_URL}/api/segments?applicationId=${applicationId}`,
+      { headers: HEADERS },
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -93,7 +95,7 @@ describe('GET /api/segments', () => {
   });
 
   it('should support pagination', async () => {
-    const res = await fetch(`${API_BASE_URL}/api/segments?page=1&pageSize=2`);
+    const res = await fetch(`${API_BASE_URL}/api/segments?page=1&pageSize=2`, { headers: HEADERS });
     expect(res.status).toBe(200);
     const data = await res.json();
 
@@ -108,6 +110,7 @@ describe('GET /api/segments', () => {
 
     const res = await fetch(
       `${API_BASE_URL}/api/segments?applicationId=${applicationId}`,
+      { headers: HEADERS },
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -135,7 +138,7 @@ describe('POST /api/segments', () => {
   it('should return 400 for missing required fields', async () => {
     const res = await fetch(`${API_BASE_URL}/api/segments`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({ applicationId }),
     });
     expect(res.status).toBe(400);
@@ -146,7 +149,7 @@ describe('POST /api/segments', () => {
   it('should return 400 if eventFilters is empty', async () => {
     const res = await fetch(`${API_BASE_URL}/api/segments`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         applicationId,
         name: uniqueName(),
@@ -159,7 +162,7 @@ describe('POST /api/segments', () => {
   it('should return 404 for unknown applicationId', async () => {
     const res = await fetch(`${API_BASE_URL}/api/segments`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         applicationId: '00000000-0000-0000-0000-000000000000',
         name: uniqueName(),
@@ -240,7 +243,7 @@ describe('POST /api/segments', () => {
 describe('GET /api/segments/:id', () => {
   it('should return a single segment with application', async () => {
     const { data: created } = await createSegment();
-    const res = await fetch(`${API_BASE_URL}/api/segments/${created.id}`);
+    const res = await fetch(`${API_BASE_URL}/api/segments/${created.id}`, { headers: HEADERS });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.id).toBe(created.id);
@@ -250,6 +253,7 @@ describe('GET /api/segments/:id', () => {
   it('should return 404 for unknown id', async () => {
     const res = await fetch(
       `${API_BASE_URL}/api/segments/00000000-0000-0000-0000-000000000000`,
+      { headers: HEADERS },
     );
     expect(res.status).toBe(404);
   });
@@ -264,7 +268,7 @@ describe('PUT /api/segments/:id', () => {
     const newName = 'Updated ' + uniqueName();
     const res = await fetch(`${API_BASE_URL}/api/segments/${created.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({ name: newName, description: 'Updated desc' }),
     });
     expect(res.status).toBe(200);
@@ -277,7 +281,7 @@ describe('PUT /api/segments/:id', () => {
     const { data: created } = await createSegment();
     const res = await fetch(`${API_BASE_URL}/api/segments/${created.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({ refresh: true }),
     });
     expect(res.status).toBe(200);
@@ -290,7 +294,7 @@ describe('PUT /api/segments/:id', () => {
     const { data: created } = await createSegment();
     const res = await fetch(`${API_BASE_URL}/api/segments/${created.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: HEADERS,
       body: JSON.stringify({
         criteria: {
           logic: 'OR',
@@ -309,7 +313,7 @@ describe('PUT /api/segments/:id', () => {
       `${API_BASE_URL}/api/segments/00000000-0000-0000-0000-000000000000`,
       {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: HEADERS,
         body: JSON.stringify({ name: 'ghost' }),
       },
     );
@@ -325,6 +329,7 @@ describe('DELETE /api/segments/:id', () => {
     const { data: created } = await createSegment();
     const res = await fetch(`${API_BASE_URL}/api/segments/${created.id}`, {
       method: 'DELETE',
+      headers: HEADERS,
     });
     expect(res.status).toBe(204);
 
@@ -333,14 +338,14 @@ describe('DELETE /api/segments/:id', () => {
     if (idx !== -1) createdSegmentIds.splice(idx, 1);
 
     // Verify gone
-    const getRes = await fetch(`${API_BASE_URL}/api/segments/${created.id}`);
+    const getRes = await fetch(`${API_BASE_URL}/api/segments/${created.id}`, { headers: HEADERS });
     expect(getRes.status).toBe(404);
   });
 
   it('should return 404 for unknown id', async () => {
     const res = await fetch(
       `${API_BASE_URL}/api/segments/00000000-0000-0000-0000-000000000000`,
-      { method: 'DELETE' },
+      { method: 'DELETE', headers: HEADERS },
     );
     expect(res.status).toBe(404);
   });
@@ -354,6 +359,7 @@ describe('GET /api/segments/:id/export', () => {
     const { data: created } = await createSegment();
     const res = await fetch(
       `${API_BASE_URL}/api/segments/${created.id}/export?format=json`,
+      { headers: HEADERS },
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -374,6 +380,7 @@ describe('GET /api/segments/:id/export', () => {
     });
     const res = await fetch(
       `${API_BASE_URL}/api/segments/${created.id}/export?format=json`,
+      { headers: HEADERS },
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -390,6 +397,7 @@ describe('GET /api/segments/:id/export', () => {
     const { data: created } = await createSegment();
     const res = await fetch(
       `${API_BASE_URL}/api/segments/${created.id}/export?format=csv`,
+      { headers: HEADERS },
     );
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toContain('text/csv');
@@ -401,6 +409,7 @@ describe('GET /api/segments/:id/export', () => {
     const { data: created } = await createSegment();
     const res = await fetch(
       `${API_BASE_URL}/api/segments/${created.id}/export?format=xml`,
+      { headers: HEADERS },
     );
     expect(res.status).toBe(400);
   });
@@ -408,6 +417,7 @@ describe('GET /api/segments/:id/export', () => {
   it('should return 404 for unknown segment id on export', async () => {
     const res = await fetch(
       `${API_BASE_URL}/api/segments/00000000-0000-0000-0000-000000000000/export`,
+      { headers: HEADERS },
     );
     expect(res.status).toBe(404);
   });

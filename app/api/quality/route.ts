@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
+import { requireAuth } from '@/lib/auth/api-auth';
 export {
   THRESHOLDS,
   failureRateAlert,
@@ -26,6 +27,8 @@ import {
 //   pageSize      – rows per page (default 50, max 200)
 
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   try {
     const { searchParams } = new URL(request.url);
     const applicationId = searchParams.get('applicationId');

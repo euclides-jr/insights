@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
+import { requireAuth } from '@/lib/auth/api-auth';
 
 // Validation schema for creating an application
 const createApplicationSchema = z.object({
@@ -28,6 +29,8 @@ const createApplicationSchema = z.object({
  * ```
  */
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   try {
     // Parse and validate request body
     const body = await request.json();
@@ -95,7 +98,9 @@ export async function POST(request: NextRequest) {
  *
  * Returns list of all applications
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!auth.ok) return authResult.response;
   try {
     const applications = await prisma.application.findMany({
       select: {
