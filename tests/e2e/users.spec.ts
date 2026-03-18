@@ -1,25 +1,90 @@
 import { test, expect } from '@playwright/test';
+import { prisma } from '@/lib/db/prisma';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const BASE_URL = 'http://localhost:3000';
 const TEST_API_KEY = process.env.TEST_API_KEY ?? 'demo_app_key_123';
-const HEADERS = {
-  'Content-Type': 'application/json',
-  'X-API-Key': TEST_API_KEY,
-};
+
+async function getDemoApplication() {
+  const application = await prisma.application.findUnique({
+    where: { apiKey: TEST_API_KEY },
+    select: { id: true },
+  });
+
+  if (!application) {
+    throw new Error(`Application not found for API key ${TEST_API_KEY}`);
+  }
+
+  return application;
+}
 
 async function identifyUser(
   userId: string,
   attributes: Record<string, unknown>,
 ) {
-  const res = await fetch(`${BASE_URL}/api/users/identify`, {
-    method: 'POST',
-    headers: HEADERS,
-    body: JSON.stringify({ userId, attributes }),
+  const application = await getDemoApplication();
+  const existing = await prisma.userProfile.findUnique({
+    where: {
+      applicationId_userId: {
+        applicationId: application.id,
+        userId,
+      },
+    },
+    select: {
+      attributes: true,
+      firstSeen: true,
+      eventCount: true,
+      lastEventName: true,
+      createdAt: true,
+    },
   });
-  if (!res.ok) throw new Error(`identify failed: ${res.status}`);
-  return res.json();
+
+  const currentAttributes = (existing?.attributes ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const nextAttributes = {
+    ...currentAttributes,
+    ...attributes,
+  };
+
+  await prisma.userProfile.upsert({
+    where: {
+      applicationId_userId: {
+        applicationId: application.id,
+        userId,
+      },
+    },
+    update: {
+      attributes: nextAttributes,
+      lastSeen: new Date(),
+    },
+    create: {
+      applicationId: application.id,
+      userId,
+      firstSeen: existing?.firstSeen ?? new Date(),
+      lastSeen: new Date(),
+      eventCount: existing?.eventCount ?? 0,
+      lastEventName: existing?.lastEventName ?? 'identify',
+      attributes: nextAttributes,
+      createdAt: existing?.createdAt ?? new Date(),
+    },
+  });
+
+  for (const [attributeKey, newValue] of Object.entries(attributes)) {
+    await prisma.userAttributeHistory.create({
+      data: {
+        applicationId: application.id,
+        userId,
+        attributeKey,
+        oldValue:
+          currentAttributes[attributeKey] === undefined
+            ? null
+            : currentAttributes[attributeKey],
+        newValue,
+      },
+    });
+  }
 }
 
 // ─── Users list page ─────────────────────────────────────────────────────────

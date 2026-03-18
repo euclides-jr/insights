@@ -11,7 +11,9 @@ test.describe('Applications Page', () => {
 
   test('should load with correct heading and description', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('Applications');
-    await expect(page.locator('p').first()).toContainText('application');
+    await expect(
+      page.getByText('Manage applications that send events to the platform'),
+    ).toBeVisible();
   });
 
   test('should display the applications table with correct columns', async ({
@@ -281,10 +283,22 @@ test.describe('Application detail page', () => {
   }) => {
     const body = await page.textContent('body');
     if ((body || '').includes('No events yet')) return;
-    await expect(page.getByText('Event Name', { exact: true })).toBeVisible();
-    await expect(page.getByText('User ID', { exact: true })).toBeVisible();
-    await expect(page.getByText('Timestamp', { exact: true })).toBeVisible();
-    await expect(page.getByText('Properties', { exact: true })).toBeVisible();
+    const recentEventsSection = page
+      .locator('section, div')
+      .filter({ has: page.getByRole('heading', { name: 'Recent Events' }) })
+      .first();
+    await expect(
+      recentEventsSection.getByText('Event Name', { exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      recentEventsSection.getByText('User ID', { exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      recentEventsSection.getByText('Timestamp', { exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      recentEventsSection.getByText('Properties', { exact: true }).first(),
+    ).toBeVisible();
   });
 
   // ── Event Schemas section ────────────────────────────────────────────────

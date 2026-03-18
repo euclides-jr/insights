@@ -19,7 +19,7 @@ test.describe('Segments page', () => {
     await expect(page.getByText('Segment ID')).toBeVisible();
     await expect(page.getByText('Name')).toBeVisible();
     await expect(page.getByText('Conditions')).toBeVisible();
-    await expect(page.getByText('Users', { exact: true })).toBeVisible();
+    await expect(page.getByText('Users', { exact: true }).last()).toBeVisible();
     await expect(page.getByText('Last Updated')).toBeVisible();
     const statusHeaders = page.getByText('Status');
     await expect(statusHeaders.first()).toBeVisible();

@@ -1,17 +1,21 @@
 import { test, expect, type Page } from '@playwright/test';
+import { prisma } from '@/lib/db/prisma';
 
-const API_BASE = 'http://localhost:3000';
 const TEST_API_KEY = 'demo_app_key_123';
 
 // Helpers ─────────────────────────────────────────────────────────────────────
 
 async function getApplicationId(): Promise<string> {
-  const res = await fetch(`${API_BASE}/api/applications`);
-  const body = await res.json();
-  const demo = body.applications.find(
-    (a: { apiKey: string }) => a.apiKey === TEST_API_KEY,
-  );
-  return demo!.id as string;
+  const application = await prisma.application.findUnique({
+    where: { apiKey: TEST_API_KEY },
+    select: { id: true },
+  });
+
+  if (!application) {
+    throw new Error(`Application not found for API key ${TEST_API_KEY}`);
+  }
+
+  return application.id;
 }
 
 async function createWebhookViaAPI(
@@ -19,17 +23,23 @@ async function createWebhookViaAPI(
   name: string,
   url = 'https://webhook.site/e2e-test',
 ) {
-  const res = await fetch(`${API_BASE}/api/webhooks`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ applicationId, name, url, minLevel: 'error' }),
+  const webhook = await prisma.webhookAlert.create({
+    data: {
+      applicationId,
+      name,
+      url,
+      minLevel: 'error',
+      isActive: true,
+    },
+    select: { id: true },
   });
-  const data = await res.json();
-  return data.id as string;
+  return webhook.id;
 }
 
 async function deleteWebhookViaAPI(id: string) {
-  await fetch(`${API_BASE}/api/webhooks/${id}`, { method: 'DELETE' });
+  await prisma.webhookAlert.delete({
+    where: { id },
+  });
 }
 
 /**

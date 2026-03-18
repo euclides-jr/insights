@@ -66,9 +66,28 @@ test.describe('Charts – US2: Quality Trends', () => {
   });
 
   test('renders the chart legend labels', async ({ page }) => {
-    await expect(page.getByText('Failure Rate')).toBeVisible();
-    await expect(page.getByText('Completeness')).toBeVisible();
-    await expect(page.getByText('Duplicate Rate')).toBeVisible();
+    const trendsCard = page
+      .locator('div')
+      .filter({ has: page.getByText('Quality Trends', { exact: true }) })
+      .first();
+    await expect(
+      trendsCard
+        .locator('span, div')
+        .filter({ hasText: /^Failure Rate$/ })
+        .first(),
+    ).toBeVisible();
+    await expect(
+      trendsCard
+        .locator('span, div')
+        .filter({ hasText: /^Completeness$/ })
+        .first(),
+    ).toBeVisible();
+    await expect(
+      trendsCard
+        .locator('span, div')
+        .filter({ hasText: /^Duplicate Rate$/ })
+        .first(),
+    ).toBeVisible();
   });
 
   test('shows time range selector on the quality trends card', async ({
@@ -103,8 +122,7 @@ test.describe('Charts – US3: Query Result Chart Toggle', () => {
   }) => {
     // Fill minimal form and submit
     await page
-      .getByRole('combobox')
-      .filter({ hasText: /application/i })
+      .locator('select')
       .first()
       .selectOption({ index: 0 });
 

@@ -11,9 +11,9 @@ test.describe('Dashboard Page', () => {
 
   test('should load with correct heading and description', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('Dashboard');
-    await expect(page.locator('p').first()).toContainText(
-      'Overview of your event analytics platform',
-    );
+    await expect(
+      page.getByText('Overview of your event analytics platform'),
+    ).toBeVisible();
   });
 
   test('should display four metric cards', async ({ page }) => {
@@ -43,9 +43,19 @@ test.describe('Dashboard Page', () => {
   });
 
   test('should display recent events table columns', async ({ page }) => {
-    await expect(page.getByText('Event Name', { exact: true })).toBeVisible();
-    await expect(page.getByText('Application', { exact: true })).toBeVisible();
-    await expect(page.getByText('Timestamp', { exact: true })).toBeVisible();
+    const recentEventsSection = page
+      .locator('div')
+      .filter({ has: page.getByRole('heading', { name: 'Recent Events' }) })
+      .first();
+    await expect(
+      recentEventsSection.getByText('Event Name', { exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      recentEventsSection.getByText('Application', { exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      recentEventsSection.getByText('Timestamp', { exact: true }).first(),
+    ).toBeVisible();
   });
 
   test('should display at least one row of recent event data', async ({

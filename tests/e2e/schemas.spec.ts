@@ -68,7 +68,7 @@ test.describe('Schemas page', () => {
 
   test('Application filter updates URL when selected', async ({ page }) => {
     await page.getByRole('button', { name: 'Application' }).click();
-    const webOption = page.getByRole('button', { name: 'EventPulse Web' });
+    const webOption = page.getByRole('button', { name: 'Demo Web App' });
     await expect(webOption).toBeVisible();
     await webOption.click();
     await page.waitForURL(/appId=/, { timeout: 8000 });

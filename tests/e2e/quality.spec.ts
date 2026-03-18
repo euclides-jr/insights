@@ -38,16 +38,30 @@ test.describe('Data Quality page', () => {
   });
 
   test('renders table column headers', async ({ page }) => {
-    await expect(page.getByText('Date')).toBeVisible();
-    await expect(page.getByText('Application', { exact: true })).toBeVisible();
-    await expect(page.getByText('Received', { exact: true })).toBeVisible();
-    await expect(page.getByText('Rejected', { exact: true })).toBeVisible();
-    await expect(page.getByText('Failure Rate', { exact: true })).toBeVisible();
-    await expect(page.getByText('Completeness', { exact: true })).toBeVisible();
+    const breakdownSection = page
+      .locator('section, div')
+      .filter({ has: page.getByText('Daily Breakdown', { exact: true }) })
+      .first();
+    await expect(breakdownSection.getByText('Date')).toBeVisible();
     await expect(
-      page.getByText('Duplicate Rate', { exact: true }),
+      breakdownSection.getByText('Application', { exact: true }),
     ).toBeVisible();
-    const statusHeaders = page.getByText('Status');
+    await expect(
+      breakdownSection.getByText('Received', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      breakdownSection.getByText('Rejected', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      breakdownSection.getByText('Failure Rate', { exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      breakdownSection.getByText('Completeness', { exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      breakdownSection.getByText('Duplicate Rate', { exact: true }).first(),
+    ).toBeVisible();
+    const statusHeaders = breakdownSection.getByText('Status');
     await expect(statusHeaders.first()).toBeVisible();
   });
 

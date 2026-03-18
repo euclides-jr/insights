@@ -10,9 +10,9 @@ test.describe('Events Page', () => {
     await expect(page.locator('h1')).toContainText('Events');
 
     // Check subtitle
-    await expect(page.locator('p').first()).toContainText(
-      'Track and monitor all events across your applications',
-    );
+    await expect(
+      page.getByText('Track and monitor all events across your applications'),
+    ).toBeVisible();
   });
 
   test('should display events table with columns', async ({ page }) => {

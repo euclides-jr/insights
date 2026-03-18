@@ -11,9 +11,9 @@ test.describe('Query Explorer Page', () => {
 
   test('should load with correct heading and description', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('Query Explorer');
-    await expect(page.locator('p').first()).toContainText(
-      'Filter and aggregate event data',
-    );
+    await expect(
+      page.getByText('Filter and aggregate event data across your applications'),
+    ).toBeVisible();
   });
 
   test('should show the query form with all key fields', async ({ page }) => {
