@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { auth } from '../lib/auth';
 import { refreshSegmentCount } from '../lib/services/segment-engine';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
@@ -37,6 +38,10 @@ function startOfDay(date: Date): Date {
 async function main() {
   console.log('🌱 Seeding database…');
 
+  const adminEmail = process.env.AUTH_ADMIN_EMAIL ?? 'admin@eventpulse.local';
+  const adminPassword = process.env.AUTH_ADMIN_PASSWORD ?? 'changeme12345';
+  const adminName = process.env.AUTH_ADMIN_NAME ?? 'EventPulse Admin';
+
   // ── 1. Applications ────────────────────────────────────────────────────────
   const [webApp, mobileApp, adminApp] = await Promise.all([
     prisma.application.upsert({
@@ -60,6 +65,27 @@ async function main() {
     '✅ Applications:',
     [webApp.name, mobileApp.name, adminApp.name].join(', '),
   );
+
+  await prisma.user.deleteMany({
+    where: {
+      email: adminEmail,
+    },
+  });
+
+  await auth.api.signUpEmail({
+    body: {
+      email: adminEmail,
+      password: adminPassword,
+      name: adminName,
+    },
+  });
+
+  await prisma.user.update({
+    where: { email: adminEmail },
+    data: { emailVerified: true },
+  });
+
+  console.log(`✅ Auth admin: ${adminEmail}`);
 
   // ── 2. Event Schemas (Web App) ─────────────────────────────────────────────
   const schemaRows = [

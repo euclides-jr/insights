@@ -15,7 +15,7 @@ All endpoints are namespaced under `/api/users`.
 
 ## Authentication
 
-All endpoints require the `X-API-Key` header containing a valid application API key. The key identifies the application context; users are always scoped to the authenticated application.
+All endpoints require the `X-API-Key` header containing a valid application API key. The key identifies the application context; users are always scoped to the authenticated application. This is separate from the Better Auth session used to access the internal dashboard UI.
 
 ```
 X-API-Key: <applicationApiKey>

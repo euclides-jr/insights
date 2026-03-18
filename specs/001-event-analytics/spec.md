@@ -145,8 +145,8 @@ A marketing manager creates user segments based on event behavior (e.g., "users 
 ## Assumptions _(mandatory)_
 
 - Event retention will follow industry-standard practices (90 days for raw events, longer for aggregated metrics)
-- Authentication will use standard token-based authentication for API access
-- The service will be accessed primarily through programmatic SDK/API rather than requiring a sophisticated UI (basic web dashboard acceptable for queries and admin tasks)
+- Public ingestion and write APIs will use application API keys, while the internal dashboard will use a server-backed session
+- The service will be accessed through both programmatic SDK/API usage and an authenticated internal dashboard for queries and administration
 - Initial deployment will support up to 5 distinct applications with separate event streams
 - Events will typically be under 10KB in size
 - User identifiers are managed by the client application (the analytics service tracks them but doesn't authenticate end users)
@@ -174,7 +174,7 @@ A marketing manager creates user segments based on event behavior (e.g., "users 
 - User session replay or heatmaps
 - A/B testing or feature flagging capabilities
 - Data warehouse integration or ETL pipelines
-- Advanced role-based access control (basic authentication sufficient for MVP)
+- Advanced role-based access control (single-admin/session-based dashboard access is sufficient for MVP)
 - Mobile SDK development (assume SDK exists or can be simple wrapper around HTTP API)
 - Automated alerting beyond basic threshold-based notifications
 

@@ -4,7 +4,9 @@
 **Date**: 2026-03-15  
 **Base URL**: `/api/charts`
 
-All endpoints are `GET`, unauthenticated (consistent with existing analytics API pattern), and return `Content-Type: application/json`.
+All endpoints are `GET`, require an authenticated dashboard session, and return `Content-Type: application/json`.
+
+Dashboard access is protected by the Next.js 16 `proxy.ts` gate. The chart endpoints are intended for the internal EventPulse UI, not for public client-side ingestion. Programmatic event ingestion and user data mutation APIs continue to use `X-API-Key` authentication separately.
 
 ---
 

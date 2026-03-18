@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { SignOutButton } from '@/components/auth/sign-out-button';
 
 const navigation = [
   { name: 'Dashboard', href: '/' },
@@ -16,7 +17,12 @@ const navigation = [
   { name: 'Webhooks', href: '/webhooks' },
 ];
 
-export function Sidebar() {
+type SidebarProps = {
+  userName: string;
+  userEmail: string;
+};
+
+export function Sidebar({ userName, userEmail }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -69,6 +75,16 @@ export function Sidebar() {
           })}
         </ul>
       </nav>
+
+      <div className="border-t border-[#E8E8E8] px-3 py-4">
+        <div className="mb-3 border border-[#E8E8E8] bg-[#FAFAFA] px-3 py-3">
+          <p className="truncate text-sm font-medium text-[#0D0D0D]">
+            {userName}
+          </p>
+          <p className="truncate text-xs text-[#7A7A7A]">{userEmail}</p>
+        </div>
+        <SignOutButton />
+      </div>
     </aside>
   );
 }

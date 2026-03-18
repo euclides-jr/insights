@@ -41,6 +41,11 @@ Create a `.env` file at the project root and set your database connection string
 
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/insights"
+BETTER_AUTH_SECRET="replace-with-a-random-32-char-secret"
+BETTER_AUTH_URL="http://localhost:3000"
+AUTH_ADMIN_EMAIL="admin@eventpulse.local"
+AUTH_ADMIN_PASSWORD="changeme12345"
+AUTH_ADMIN_NAME="EventPulse Admin"
 ```
 
 ### 3. Set up the database
@@ -57,6 +62,10 @@ Optionally seed the database with sample data:
 ```bash
 bun run db:seed
 ```
+
+The seed creates a dashboard admin account using `AUTH_ADMIN_EMAIL` and
+`AUTH_ADMIN_PASSWORD`. The `/sign-in` page is the only public dashboard route;
+the rest of the Next.js UI now requires an authenticated Better Auth session.
 
 ### 4. Start the development server
 

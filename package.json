@@ -20,6 +20,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
+    "better-auth": "^1.5.5",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "dotenv": "^17.3.1",
@@ -35,6 +36,9 @@
   "devDependencies": {
     "@playwright/test": "^1.44.0",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20",
     "@types/pg": "^8.18.0",
     "@types/react": "^19",
@@ -44,6 +48,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "jest-mock-extended": "^3.0.0",
+    "jsdom": "^29.0.0",
     "prisma": "^7.5.0",
     "tailwindcss": "^4",
     "tsx": "^4.7.0",

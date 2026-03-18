@@ -1,9 +1,19 @@
-import { Sidebar } from "@/components/sidebar";
+import { Sidebar } from '@/components/sidebar';
+import { getServerSession } from '@/lib/auth/session';
 
-export function DashboardLayout({ children }: { children: React.ReactNode }) {
+export async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const session = await getServerSession();
+
   return (
     <div className="flex h-screen bg-[#FAFAFA]">
-      <Sidebar />
+      <Sidebar
+        userName={session?.user.name ?? 'Authenticated User'}
+        userEmail={session?.user.email ?? 'session@eventpulse.local'}
+      />
       <main className="flex-1 overflow-auto">{children}</main>
     </div>
   );

@@ -435,6 +435,7 @@ Response: 200 OK (JSON)
 ### E2E Tests (Playwright)
 
 - Complete user flows:
+  - Sign in to dashboard → Navigate protected pages → Sign out → Verify redirect to sign-in
   - Create application → Generate API key → Send events → View events
   - Define event schema → Send valid/invalid events → See validation results
   - Create segment → Refresh segment → Export segment (CSV and JSON)
@@ -461,6 +462,7 @@ Response: 200 OK (JSON)
 - [x] Create migrations
 - [x] Set up testing infrastructure (Vitest, Playwright)
 - [x] Implement basic authentication middleware (API key validation)
+- [x] Protect dashboard UI with Better Auth + Prisma sessions via Next.js proxy
 
 ### Phase 2: Event Ingestion (Week 2) ✅ Complete
 

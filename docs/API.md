@@ -17,7 +17,7 @@ Development: http://localhost:3000
 
 ## Authentication
 
-All API requests require authentication via an API key passed in the request header.
+Programmatic ingestion and data APIs use an application API key passed in the request header.
 
 ```http
 X-API-Key: your_api_key_here
@@ -28,6 +28,8 @@ To get your API key:
 1. Navigate to Applications in the dashboard
 2. Create a new application or view existing ones
 3. Copy the API key
+
+The internal dashboard is authenticated separately with Better Auth email/password sessions. `/sign-in` is the only public dashboard route.
 
 ---
 

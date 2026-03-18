@@ -3,6 +3,8 @@
  * Runs before all tests
  */
 
+import '@testing-library/jest-dom/vitest';
+
 // Add any global test setup here
 // Example: Mock environment variables, set up test database, etc.
 

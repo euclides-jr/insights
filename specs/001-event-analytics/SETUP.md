@@ -23,6 +23,7 @@
 - ✅ Generated Prisma Client
 - ✅ Created and applied initial migration
 - ✅ Seeded database with sample data (2 apps, 2 schemas, 20 events, 1 segment, 1 quality metric)
+- ✅ Added Better Auth-backed dashboard authentication with Prisma-managed session tables
 
 ### 3. Project Structure
 
@@ -76,6 +77,10 @@ bun run lint               # Run ESLint
 3. **event_schemas** - Event validation rules
 4. **segments** - User cohorts based on behavior
 5. **data_quality_metrics** - Data health tracking
+6. **user** - Dashboard users for Better Auth
+7. **session** - Dashboard sessions for Better Auth
+8. **account** - Better Auth account records
+9. **verification** - Better Auth verification records
 
 ### Sample Data
 
@@ -105,6 +110,7 @@ bun run lint               # Run ESLint
 - **Database URL**: Currently using Prisma's hosted PostgreSQL (in .env)
 - **Test separation**: Use `bun test` for Vitest, `bun run test:e2e` for Playwright
 - **Environment variables**: Loaded via dotenv in prisma.config.ts
+- **Dashboard auth**: `/sign-in` is the only public UI route; protected routes are enforced centrally in `proxy.ts`
 
 ## 📁 Key Files Created
 
