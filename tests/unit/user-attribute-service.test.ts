@@ -34,6 +34,7 @@ import {
   upsertUserProfile,
   getUserProfile,
   listUsers,
+  buildCombinedUserQuery,
   getAttributeHistory,
 } from '@/lib/services/user-attribute-service';
 
@@ -430,7 +431,7 @@ describe('inferSqlCast and buildAttributeCondition (via listUsers SQL)', () => {
       operator: 'eq',
       value: 'x',
     });
-    expect(sql).toContain("attributes->>'my_custom_key'");
+    expect(sql).toContain("->>'my_custom_key'");
   });
 });
 
@@ -642,5 +643,55 @@ describe('getAttributeHistory', () => {
     const result = await getAttributeHistory(APP_ID, USER_ID, {});
     expect(result.userId).toBe(USER_ID);
     expect(result.applicationId).toBe(APP_ID);
+  });
+});
+
+// ─── 6. FR-019 historical attribute correlation ─────────────────────────────
+
+describe('buildCombinedUserQuery (FR-019 historical attribute correlation)', () => {
+  const APP_ID = 'app-historical';
+
+  beforeEach(() => {
+    prismaMock.$queryRawUnsafe
+      .mockResolvedValueOnce([{ count: BigInt(0) }])
+      .mockResolvedValueOnce([]);
+  });
+
+  it('evaluates attribute filters against attribute history at event timestamp', async () => {
+    await buildCombinedUserQuery(APP_ID, {
+      filters: [{ key: 'plan', operator: 'eq', value: 'pro', logic: 'and' }],
+      eventFilters: [{ eventName: 'checkout_clicked', operator: 'performed' }],
+      page: 1,
+      pageSize: 50,
+      sortBy: 'lastSeen',
+      sortOrder: 'desc',
+    });
+
+    const sql = prismaMock.$queryRawUnsafe.mock.calls[0]?.[0] as string;
+    expect(sql).toContain('LEFT JOIN LATERAL');
+    expect(sql).toContain('"changedAt" <= e.timestamp');
+    expect(sql).toContain("COALESCE(_hist.attrs, '{}'::jsonb)");
+    expect(sql).toContain("->>'plan'");
+  });
+
+  it('falls back to listUsers behavior when no event filters are present', async () => {
+    prismaMock.$queryRawUnsafe.mockReset();
+    prismaMock.$queryRawUnsafe
+      .mockResolvedValueOnce([{ count: BigInt(0) }])
+      .mockResolvedValueOnce([]);
+
+    await buildCombinedUserQuery(APP_ID, {
+      filters: [{ key: 'plan', operator: 'eq', value: 'pro', logic: 'and' }],
+      eventFilters: [],
+      page: 1,
+      pageSize: 50,
+      sortBy: 'lastSeen',
+      sortOrder: 'desc',
+    });
+
+    const sql = prismaMock.$queryRawUnsafe.mock.calls[0]?.[0] as string;
+    expect(sql).not.toContain('LEFT JOIN LATERAL');
+    expect(sql).toContain('FROM user_profiles up');
+    expect(sql).toContain("->>'plan'");
   });
 });

@@ -296,9 +296,10 @@ function inferSqlCast(value: unknown): string {
 function buildAttributeCondition(
   filter: AttributeFilter,
   paramOffset: number,
+  jsonSource = 'up.attributes',
 ): { sql: string; params: unknown[] } {
   const cast = inferSqlCast(filter.value);
-  const jsonExtract = `(up.attributes->>'${filter.key}')${cast}`;
+  const jsonExtract = `((${jsonSource})->>'${filter.key}')${cast}`;
   const placeholder = `$${paramOffset + 1}`;
 
   let sql: string;
@@ -341,6 +342,7 @@ function buildAttributeCondition(
 function buildAttributeWhereClause(
   filters: AttributeFilter[],
   baseParamIndex: number,
+  jsonSource = 'up.attributes',
 ): { sql: string; params: unknown[] } {
   if (filters.length === 0) return { sql: '1=1', params: [] };
 
@@ -350,7 +352,11 @@ function buildAttributeWhereClause(
   let paramIndex = baseParamIndex;
 
   for (const filter of filters) {
-    const { sql, params: p } = buildAttributeCondition(filter, paramIndex);
+    const { sql, params: p } = buildAttributeCondition(
+      filter,
+      paramIndex,
+      jsonSource,
+    );
     paramIndex += p.length;
     params.push(...p);
 
@@ -501,6 +507,10 @@ export async function buildCombinedUserQuery(
   applicationId: string,
   query: CombinedQuery,
 ): Promise<UserListResponse> {
+  if (!query.eventFilters || query.eventFilters.length === 0) {
+    return listUsers(applicationId, query);
+  }
+
   const start = Date.now();
   const {
     filters = [],
@@ -514,13 +524,17 @@ export async function buildCombinedUserQuery(
   const params: unknown[] = [applicationId];
   let paramIdx = 1; // $1 = applicationId
 
-  // ── Attribute WHERE clause ─────────────────────────────────────────────────
-  const { sql: attrWhere, params: attrParams } = buildAttributeWhereClause(
-    filters,
-    paramIdx,
-  );
-  params.push(...attrParams);
-  paramIdx += attrParams.length;
+  // Attribute filters in combined queries must be evaluated against the
+  // attribute state that was active when the matching event occurred (FR-019),
+  // not only against current user_profiles.attributes.
+  const { sql: historicalAttrWhere, params: historicalAttrParams } =
+    buildAttributeWhereClause(
+      filters,
+      paramIdx,
+      `COALESCE(_hist.attrs, '{}'::jsonb)`,
+    );
+  params.push(...historicalAttrParams);
+  paramIdx += historicalAttrParams.length;
 
   // ── Event behavior subclauses ──────────────────────────────────────────────
   const eventClauses: string[] = [];
@@ -560,17 +574,35 @@ export async function buildCombinedUserQuery(
       havingClause = `HAVING ${havingParts.join(' AND ')}`;
     }
 
+    const historyJoin = `
+      LEFT JOIN LATERAL (
+        SELECT jsonb_object_agg(_latest."attributeKey", _latest."newValue") AS attrs
+        FROM (
+          SELECT DISTINCT ON ("attributeKey")
+            "attributeKey",
+            "newValue"
+          FROM user_attribute_history
+          WHERE "applicationId" = $1
+            AND "userId" = e."userId"
+            AND "changedAt" <= e.timestamp
+          ORDER BY "attributeKey", "changedAt" DESC
+        ) _latest
+      ) _hist ON TRUE
+    `;
+
     const subquery = havingClause
       ? // Aggregate subquery for count conditions
         `EXISTS (
            SELECT 1 FROM (
              SELECT e."userId"
              FROM events e
+             ${historyJoin}
              WHERE e."applicationId" = $1
                AND e."eventName" = ${evtNameParam}
                AND e."userId" = up."userId"
                ${timeConstraint}
                ${propConstraint}
+               AND ${historicalAttrWhere}
              GROUP BY e."userId"
              ${havingClause}
            ) _freq
@@ -578,11 +610,13 @@ export async function buildCombinedUserQuery(
       : // Simple EXISTS / NOT EXISTS
         `EXISTS (
            SELECT 1 FROM events e
+           ${historyJoin}
            WHERE e."applicationId" = $1
              AND e."eventName" = ${evtNameParam}
              AND e."userId" = up."userId"
              ${timeConstraint}
              ${propConstraint}
+             AND ${historicalAttrWhere}
          )`;
 
     if (ef.operator === 'not_performed') {
@@ -612,7 +646,6 @@ export async function buildCombinedUserQuery(
        SELECT up."userId"
        FROM user_profiles up
        WHERE up."applicationId" = $1
-         AND ${attrWhere}
      )
      SELECT COUNT(*) AS count
      FROM user_profiles up
@@ -647,7 +680,6 @@ export async function buildCombinedUserQuery(
        SELECT up."userId"
        FROM user_profiles up
        WHERE up."applicationId" = $1
-         AND ${attrWhere}
      )
      SELECT up.id, up."userId", up."applicationId", up.attributes,
             up."firstSeen", up."lastSeen", up."eventCount", up."lastEventName",

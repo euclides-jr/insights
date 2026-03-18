@@ -87,6 +87,26 @@ async function identifyUser(
   }
 }
 
+async function createEventForUser(
+  userId: string,
+  eventName: string,
+  timestamp: Date,
+) {
+  const application = await getDemoApplication();
+
+  await prisma.event.create({
+    data: {
+      eventId: `e2e_${eventName}_${userId}_${timestamp.getTime()}`,
+      applicationId: application.id,
+      eventName,
+      userId,
+      sessionId: `sess_${userId}`,
+      timestamp,
+      properties: {},
+    },
+  });
+}
+
 // ─── Users list page ─────────────────────────────────────────────────────────
 
 test.describe('Users list page (/users)', () => {
@@ -202,6 +222,107 @@ test.describe('Users list page (/users)', () => {
     await expect(page.getByRole('heading', { level: 1 })).toContainText(
       userId?.trim() ?? '',
     );
+  });
+
+  test('combined query uses historical attributes active at event time (FR-019)', async ({
+    page,
+  }) => {
+    const userId = `e2e_hist_${Date.now()}`;
+    const eventName = `historical_checkout_${Date.now()}`;
+    const initialAttrAt = new Date(Date.now() - 5_000);
+    const eventTime = new Date(Date.now() - 3_000);
+    const finalAttrAt = new Date(Date.now() - 1_000);
+    const application = await getDemoApplication();
+
+    await prisma.userProfile.upsert({
+      where: {
+        applicationId_userId: {
+          applicationId: application.id,
+          userId,
+        },
+      },
+      update: {
+        attributes: { historical_plan: 'enterprise' },
+        eventCount: 1,
+        lastEventName: eventName,
+        firstSeen: initialAttrAt,
+        lastSeen: finalAttrAt,
+      },
+      create: {
+        applicationId: application.id,
+        userId,
+        attributes: { historical_plan: 'enterprise' },
+        eventCount: 1,
+        lastEventName: eventName,
+        firstSeen: initialAttrAt,
+        lastSeen: finalAttrAt,
+        createdAt: initialAttrAt,
+      },
+    });
+
+    await prisma.userAttributeHistory.createMany({
+      data: [
+        {
+          applicationId: application.id,
+          userId,
+          attributeKey: 'historical_plan',
+          oldValue: null,
+          newValue: 'pro',
+          changedAt: initialAttrAt,
+        },
+        {
+          applicationId: application.id,
+          userId,
+          attributeKey: 'historical_plan',
+          oldValue: 'pro',
+          newValue: 'enterprise',
+          changedAt: finalAttrAt,
+        },
+      ],
+    });
+
+    await prisma.event.create({
+      data: {
+        eventId: `e2e_${eventName}_${userId}_${eventTime.getTime()}`,
+        applicationId: application.id,
+        eventName,
+        userId,
+        sessionId: `sess_${userId}`,
+        timestamp: eventTime,
+        properties: {},
+      },
+    });
+
+    await page
+      .locator('select')
+      .first()
+      .selectOption({ label: 'Demo Web App' });
+    const attrRow = page.getByPlaceholder('plan_type').locator('xpath=ancestor::div[1]');
+    const attrInputs = attrRow.locator('input');
+    await attrInputs.nth(0).fill('historical_plan');
+    await attrInputs.nth(1).fill('pro');
+    await expect(attrInputs.nth(1)).toHaveValue('pro');
+
+    await page.getByRole('button', { name: 'Expand' }).click();
+    await page.getByRole('button', { name: '+ Add event filter' }).click();
+    const eventNameInput = page.getByPlaceholder('event_name');
+    const eventRow = eventNameInput.locator('xpath=ancestor::div[1]');
+    await eventRow.locator('select').first().selectOption('performed');
+    await eventNameInput.fill(eventName);
+    await page.getByPlaceholder('days').fill('1');
+
+    const responsePromise = page.waitForResponse(
+      (resp) => resp.url().includes('/api/users/query') && resp.status() === 200,
+    );
+    await page.getByRole('button', { name: 'Find users' }).click();
+    const response = await responsePromise;
+    const data = (await response.json()) as { users?: Array<{ userId: string }> };
+
+    expect(data.users?.some((user) => user.userId === userId)).toBe(true);
+
+    await expect(page.getByText(userId, { exact: true })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 });
 
@@ -432,10 +553,11 @@ test.describe('Users list — pagination', () => {
 
   test('"Next →" is disabled on the last page', async ({ page }) => {
     await applyFilter(page);
-    await page.getByRole('button', { name: 'Next →' }).click();
-    await page.waitForResponse(
+    const nextPageResponse = page.waitForResponse(
       (r) => r.url().includes('/api/users') && r.status() === 200,
     );
+    await page.getByRole('button', { name: 'Next →' }).click();
+    await nextPageResponse;
     await expect(page.getByRole('button', { name: 'Next →' })).toBeDisabled({
       timeout: 10_000,
     });

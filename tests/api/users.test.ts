@@ -398,6 +398,104 @@ describe('POST /api/users/query', () => {
     expect(found).toBeDefined();
   });
 
+  it('matches event behavior against the attribute state active at event time (FR-019)', async () => {
+    const userId = testUserId('historical');
+    const eventName = `historical_plan_event_${runId()}`;
+
+    await fetch(`${API_BASE_URL}/api/users/identify`, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({
+        userId,
+        attributes: { lifecycle_plan: 'pro' },
+      }),
+    });
+
+    const eventTimestamp = new Date().toISOString();
+    const eventRes = await fetch(`${API_BASE_URL}/api/events`, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({
+        eventName,
+        userId,
+        sessionId: `sess_${runId()}`,
+        timestamp: eventTimestamp,
+      }),
+    });
+    expect(eventRes.status).toBe(201);
+
+    await new Promise((resolve) => setTimeout(resolve, 25));
+
+    await fetch(`${API_BASE_URL}/api/users/identify`, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({
+        userId,
+        attributes: { lifecycle_plan: 'enterprise' },
+      }),
+    });
+
+    const proRes = await fetch(`${API_BASE_URL}/api/users/query`, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({
+        filters: [
+          {
+            key: 'lifecycle_plan',
+            operator: 'eq',
+            value: 'pro',
+            logic: 'and',
+          },
+        ],
+        eventFilters: [
+          {
+            eventName,
+            operator: 'performed',
+            timeWindow: { value: 1, unit: 'days' },
+          },
+        ],
+        page: 1,
+        pageSize: 50,
+      }),
+    });
+    expect(proRes.status).toBe(200);
+    const proData = await proRes.json();
+    const proMatch = (proData.users as { userId: string }[]).find(
+      (u) => u.userId === userId,
+    );
+    expect(proMatch).toBeDefined();
+
+    const enterpriseRes = await fetch(`${API_BASE_URL}/api/users/query`, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({
+        filters: [
+          {
+            key: 'lifecycle_plan',
+            operator: 'eq',
+            value: 'enterprise',
+            logic: 'and',
+          },
+        ],
+        eventFilters: [
+          {
+            eventName,
+            operator: 'performed',
+            timeWindow: { value: 1, unit: 'days' },
+          },
+        ],
+        page: 1,
+        pageSize: 50,
+      }),
+    });
+    expect(enterpriseRes.status).toBe(200);
+    const enterpriseData = await enterpriseRes.json();
+    const enterpriseMatch = (enterpriseData.users as { userId: string }[]).find(
+      (u) => u.userId === userId,
+    );
+    expect(enterpriseMatch).toBeUndefined();
+  });
+
   it('returns 400 for invalid body', async () => {
     const res = await fetch(`${API_BASE_URL}/api/users/query`, {
       method: 'POST',
