@@ -10,15 +10,23 @@ datasource db {
 }
 
 model User {
-  id            String    @id
-  name          String
-  email         String    @unique
-  emailVerified Boolean
-  image         String?
-  createdAt     DateTime
-  updatedAt     DateTime
-  sessions      Session[]
-  accounts      Account[]
+  id                    String            @id
+  name                  String
+  email                 String            @unique
+  emailVerified         Boolean
+  image                 String?
+  createdAt             DateTime
+  updatedAt             DateTime
+  sessions              Session[]
+  accounts              Account[]
+  workspaceMembership   WorkspaceMember?  @relation("WorkspaceMemberUser")
+  invitedMembers        WorkspaceMember[] @relation("WorkspaceMemberInvitedBy")
+  createdFunnels        Funnel[]          @relation("FunnelCreatedBy")
+  createdReports        SavedReport[]     @relation("SavedReportCreatedBy")
+  updatedReports        SavedReport[]     @relation("SavedReportUpdatedBy")
+  sentInvitations       Invitation[]      @relation("InvitationInvitedBy")
+  acceptedInvitations   Invitation[]      @relation("InvitationAcceptedBy")
+  auditLogEntries       AuditLogEntry[]   @relation("AuditLogActor")
 
   @@map("user")
 }
@@ -84,6 +92,8 @@ model Application {
   userAttributeHistory UserAttributeHistory[]
   userAttributeSchemas UserAttributeSchema[]
   webhookAlerts        WebhookAlert[]
+  funnels              Funnel[]
+  savedReports         SavedReport[]
 
   @@map("applications")
 }
@@ -258,4 +268,122 @@ enum AttributeValueType {
   NUMBER
   BOOLEAN
   DATE
+}
+
+enum WorkspaceRole {
+  VIEWER
+  EDITOR
+  ADMIN
+}
+
+enum SavedReportType {
+  QUERY
+  FUNNEL
+  RETENTION
+}
+
+model Funnel {
+  id              String   @id @default(uuid())
+  applicationId   String
+  name            String
+  description     String?
+  createdByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  application Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  createdBy   User         @relation("FunnelCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  steps       FunnelStep[]
+
+  @@index([applicationId])
+  @@index([createdByUserId])
+  @@map("funnels")
+}
+
+model FunnelStep {
+  id         String   @id @default(uuid())
+  funnelId   String
+  position   Int
+  eventName  String
+  properties Json?
+  createdAt  DateTime @default(now())
+
+  funnel Funnel @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+
+  @@unique([funnelId, position])
+  @@index([funnelId])
+  @@map("funnel_steps")
+}
+
+model SavedReport {
+  id              String          @id @default(uuid())
+  name            String
+  reportType      SavedReportType
+  applicationId   String?
+  config          Json
+  createdByUserId String
+  updatedByUserId String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  createdBy   User         @relation("SavedReportCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  updatedBy   User         @relation("SavedReportUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([reportType])
+  @@index([applicationId])
+  @@index([createdByUserId])
+  @@map("saved_reports")
+}
+
+model WorkspaceMember {
+  id              String        @id @default(uuid())
+  userId          String        @unique
+  role            WorkspaceRole
+  invitedByUserId String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user      User  @relation("WorkspaceMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy User? @relation("WorkspaceMemberInvitedBy", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([role])
+  @@map("workspace_members")
+}
+
+model Invitation {
+  id               String        @id @default(uuid())
+  email            String
+  role             WorkspaceRole
+  tokenHash        String        @unique
+  invitedByUserId  String
+  expiresAt        DateTime
+  acceptedAt       DateTime?
+  acceptedByUserId String?
+  createdAt        DateTime      @default(now())
+
+  invitedBy  User  @relation("InvitationInvitedBy", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+  acceptedBy User? @relation("InvitationAcceptedBy", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([expiresAt])
+  @@index([acceptedAt])
+  @@map("invitations")
+}
+
+model AuditLogEntry {
+  id          String   @id @default(uuid())
+  actorUserId String
+  action      String
+  targetType  String
+  targetId    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  actor User @relation("AuditLogActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@index([actorUserId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetType, targetId])
+  @@map("audit_log_entries")
 }

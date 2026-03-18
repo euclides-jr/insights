@@ -1,5 +1,10 @@
 import 'dotenv/config';
-import { PrismaClient, Prisma } from '@prisma/client';
+import {
+  PrismaClient,
+  Prisma,
+  SavedReportType,
+  WorkspaceRole,
+} from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { auth } from '../lib/auth';
@@ -41,6 +46,9 @@ async function main() {
   const adminEmail = process.env.AUTH_ADMIN_EMAIL ?? 'admin@eventpulse.local';
   const adminPassword = process.env.AUTH_ADMIN_PASSWORD ?? 'changeme12345';
   const adminName = process.env.AUTH_ADMIN_NAME ?? 'EventPulse Admin';
+  const editorEmail = 'editor@eventpulse.local';
+  const viewerEmail = 'viewer@eventpulse.local';
+  const sharedPassword = process.env.AUTH_ADMIN_PASSWORD ?? 'changeme12345';
 
   // ── 1. Applications ────────────────────────────────────────────────────────
   const [webApp, mobileApp, adminApp] = await Promise.all([
@@ -68,24 +76,86 @@ async function main() {
 
   await prisma.user.deleteMany({
     where: {
-      email: adminEmail,
+      email: {
+        in: [adminEmail, editorEmail, viewerEmail],
+      },
     },
   });
 
-  await auth.api.signUpEmail({
-    body: {
-      email: adminEmail,
-      password: adminPassword,
-      name: adminName,
-    },
-  });
+  await Promise.all([
+    auth.api.signUpEmail({
+      body: {
+        email: adminEmail,
+        password: adminPassword,
+        name: adminName,
+      },
+    }),
+    auth.api.signUpEmail({
+      body: {
+        email: editorEmail,
+        password: sharedPassword,
+        name: 'EventPulse Editor',
+      },
+    }),
+    auth.api.signUpEmail({
+      body: {
+        email: viewerEmail,
+        password: sharedPassword,
+        name: 'EventPulse Viewer',
+      },
+    }),
+  ]);
 
-  await prisma.user.update({
-    where: { email: adminEmail },
+  await prisma.user.updateMany({
+    where: {
+      email: {
+        in: [adminEmail, editorEmail, viewerEmail],
+      },
+    },
     data: { emailVerified: true },
   });
 
-  console.log(`✅ Auth admin: ${adminEmail}`);
+  const [adminUser, editorUser, viewerUser] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { email: adminEmail } }),
+    prisma.user.findUniqueOrThrow({ where: { email: editorEmail } }),
+    prisma.user.findUniqueOrThrow({ where: { email: viewerEmail } }),
+  ]);
+
+  await prisma.workspaceMember.upsert({
+    where: { userId: adminUser.id },
+    update: { role: WorkspaceRole.ADMIN, invitedByUserId: null },
+    create: { userId: adminUser.id, role: WorkspaceRole.ADMIN },
+  });
+
+  await prisma.workspaceMember.upsert({
+    where: { userId: editorUser.id },
+    update: {
+      role: WorkspaceRole.EDITOR,
+      invitedByUserId: adminUser.id,
+    },
+    create: {
+      userId: editorUser.id,
+      role: WorkspaceRole.EDITOR,
+      invitedByUserId: adminUser.id,
+    },
+  });
+
+  await prisma.workspaceMember.upsert({
+    where: { userId: viewerUser.id },
+    update: {
+      role: WorkspaceRole.VIEWER,
+      invitedByUserId: adminUser.id,
+    },
+    create: {
+      userId: viewerUser.id,
+      role: WorkspaceRole.VIEWER,
+      invitedByUserId: adminUser.id,
+    },
+  });
+
+  console.log(
+    `✅ Auth users: ${adminEmail} (admin), ${editorEmail} (editor), ${viewerEmail} (viewer)`,
+  );
 
   // ── 2. Event Schemas (Web App) ─────────────────────────────────────────────
   const schemaRows = [
@@ -925,6 +995,67 @@ async function main() {
     }
   }
   console.log('✅ Mobile user profiles seeded');
+
+  await prisma.funnel.upsert({
+    where: { id: 'seed_signup_activation_funnel' },
+    update: {
+      applicationId: webApp.id,
+      name: 'Signup Activation',
+      description: 'Signup to purchase conversion funnel',
+      createdByUserId: adminUser.id,
+      steps: {
+        deleteMany: {},
+        create: [
+          { position: 1, eventName: 'signup' },
+          { position: 2, eventName: 'button_click' },
+          { position: 3, eventName: 'purchase' },
+        ],
+      },
+    },
+    create: {
+      id: 'seed_signup_activation_funnel',
+      applicationId: webApp.id,
+      name: 'Signup Activation',
+      description: 'Signup to purchase conversion funnel',
+      createdByUserId: adminUser.id,
+      steps: {
+        create: [
+          { position: 1, eventName: 'signup' },
+          { position: 2, eventName: 'button_click' },
+          { position: 3, eventName: 'purchase' },
+        ],
+      },
+    },
+  });
+
+  await prisma.savedReport.upsert({
+    where: { id: 'seed_signup_funnel_report' },
+    update: {
+      name: 'Signup Funnel (30d)',
+      reportType: SavedReportType.FUNNEL,
+      applicationId: webApp.id,
+      createdByUserId: adminUser.id,
+      updatedByUserId: adminUser.id,
+      config: {
+        funnelId: 'seed_signup_activation_funnel',
+        timeWindow: { value: 30, unit: 'days' },
+      },
+    },
+    create: {
+      id: 'seed_signup_funnel_report',
+      name: 'Signup Funnel (30d)',
+      reportType: SavedReportType.FUNNEL,
+      applicationId: webApp.id,
+      createdByUserId: adminUser.id,
+      updatedByUserId: adminUser.id,
+      config: {
+        funnelId: 'seed_signup_activation_funnel',
+        timeWindow: { value: 30, unit: 'days' },
+      },
+    },
+  });
+
+  console.log('✅ Platform expansion seed data created');
 
   console.log('\n🎉 Seeding complete!');
 }
