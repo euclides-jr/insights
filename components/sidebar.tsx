@@ -5,20 +5,41 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { SignOutButton } from '@/components/auth/sign-out-button';
 
-const navigation = [
-  { name: 'Dashboard', href: '/' },
-  { name: 'Events', href: '/events' },
-  { name: 'Query Explorer', href: '/query' },
-  { name: 'Applications', href: '/applications' },
-  { name: 'Schemas', href: '/schemas' },
-  { name: 'Segments', href: '/segments' },
-  { name: 'Funnels', href: '/funnels' },
-  { name: 'Retention', href: '/retention' },
-  { name: 'Reports', href: '/reports' },
-  { name: 'Members', href: '/settings/members' },
-  { name: 'Users', href: '/users' },
-  { name: 'Data Quality', href: '/quality' },
-  { name: 'Webhooks', href: '/webhooks' },
+const navigationSections = [
+  {
+    label: 'Overview',
+    items: [{ name: 'Dashboard', href: '/' }],
+  },
+  {
+    label: 'Analysis',
+    items: [
+      { name: 'Events', href: '/events' },
+      { name: 'Query Explorer', href: '/query' },
+      { name: 'Funnels', href: '/funnels' },
+      { name: 'Retention', href: '/retention' },
+      { name: 'Reports', href: '/reports' },
+      { name: 'Segments', href: '/segments' },
+      { name: 'Users', href: '/users' },
+    ],
+  },
+  {
+    label: 'Data Model',
+    items: [
+      { name: 'Applications', href: '/applications' },
+      { name: 'Schemas', href: '/schemas' },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { name: 'Data Quality', href: '/quality' },
+      { name: 'Webhooks', href: '/webhooks' },
+    ],
+  },
+  {
+    label: 'Administration',
+    items: [{ name: 'Members', href: '/settings/members' }],
+  },
 ];
 
 type SidebarProps = {
@@ -47,37 +68,47 @@ export function Sidebar({ userName, userEmail }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-6">
-        <ul className="space-y-1">
-          {navigation.map((item) => {
-            const isActive =
-              item.href === '/'
-                ? pathname === '/'
-                : pathname === item.href ||
-                  pathname.startsWith(item.href + '/');
-            return (
-              <li key={item.name}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors font-[family-name:var(--font-space-grotesk)]',
-                    isActive
-                      ? 'bg-[#E42313] text-white'
-                      : 'text-[#0D0D0D] hover:bg-[#FAFAFA]',
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'w-1.5 h-1.5 rounded-full',
-                      isActive ? 'bg-white' : 'bg-[#E8E8E8]',
-                    )}
-                  />
-                  {item.name}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      <nav className="flex-1 overflow-y-auto px-3 py-6">
+        <div className="space-y-6">
+          {navigationSections.map((section) => (
+            <div key={section.label}>
+              <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#7A7A7A]">
+                {section.label}
+              </p>
+              <ul className="space-y-1">
+                {section.items.map((item) => {
+                  const isActive =
+                    item.href === '/'
+                      ? pathname === '/'
+                      : pathname === item.href ||
+                        pathname.startsWith(item.href + '/');
+
+                  return (
+                    <li key={item.name}>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors font-[family-name:var(--font-space-grotesk)]',
+                          isActive
+                            ? 'bg-[#E42313] text-white'
+                            : 'text-[#0D0D0D] hover:bg-[#FAFAFA]',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'h-1.5 w-1.5 rounded-full',
+                            isActive ? 'bg-white' : 'bg-[#E8E8E8]',
+                          )}
+                        />
+                        {item.name}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
       </nav>
 
       <div className="border-t border-[#E8E8E8] px-3 py-4">
