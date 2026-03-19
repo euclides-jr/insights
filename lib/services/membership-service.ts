@@ -29,6 +29,15 @@ function createInvitationToken() {
   return randomBytes(24).toString('hex');
 }
 
+export function getInvitationUrl(token: string) {
+  const baseUrl =
+    process.env.BETTER_AUTH_URL ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    'http://localhost:3000';
+
+  return `${baseUrl}/accept-invitation?token=${token}`;
+}
+
 async function ensureActorIsAdmin(actorUserId: string) {
   const membership = await prisma.workspaceMember.findUnique({
     where: { userId: actorUserId },
@@ -132,21 +141,36 @@ export async function createInvitation(
     data: {
       email: normalizedEmail,
       role: input.role,
+      token,
       tokenHash,
       invitedByUserId: actorUserId,
       expiresAt,
     },
   });
 
-  const baseUrl =
-    process.env.BETTER_AUTH_URL ??
-    process.env.NEXT_PUBLIC_APP_URL ??
-    'http://localhost:3000';
-
   return {
     ...invitation,
-    inviteUrl: `${baseUrl}/settings/members?inviteToken=${token}`,
+    inviteUrl: getInvitationUrl(token),
   };
+}
+
+export async function getInvitationPreview(token: string) {
+  return prisma.invitation.findUnique({
+    where: { tokenHash: hashInvitationToken(token) },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      expiresAt: true,
+      acceptedAt: true,
+      invitedBy: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
 }
 
 export async function acceptInvitation(

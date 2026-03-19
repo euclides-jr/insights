@@ -1313,6 +1313,7 @@ async function main() {
     data: {
       email: 'pending-analyst@eventpulse.local',
       role: WorkspaceRole.EDITOR,
+      token: 'seed-invite-pending-analyst',
       tokenHash: hashToken('seed-invite-pending-analyst'),
       invitedByUserId: adminUser.id,
       expiresAt: addDays(today, 7),

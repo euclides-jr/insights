@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableCell, TableHeader, TableRow } from '@/components/ui/table';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -12,13 +12,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 
 type MemberRow = {
   userId: string;
   email: string;
   name: string | null;
-  role: 'VIEWER' | 'EDITOR' | 'ADMIN';
+  role: "VIEWER" | "EDITOR" | "ADMIN";
   createdAt: string | Date;
   updatedAt: string | Date;
 };
@@ -26,18 +26,46 @@ type MemberRow = {
 type InvitationRow = {
   id: string;
   email: string;
-  role: 'VIEWER' | 'EDITOR' | 'ADMIN';
+  role: "VIEWER" | "EDITOR" | "ADMIN";
   expiresAt: string | Date;
   createdAt: string | Date;
+  inviteUrl: string | null;
 };
 
 function formatDate(value: string | Date) {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   }).format(new Date(value));
+}
+
+function markCopied(
+  invitationId: string,
+  setCopiedInvitationId: (
+    value: string | null | ((current: string | null) => string | null),
+  ) => void,
+) {
+  setCopiedInvitationId(invitationId);
+  window.setTimeout(() => {
+    setCopiedInvitationId((current) =>
+      current === invitationId ? null : current,
+    );
+  }, 2000);
+}
+
+function fallbackCopyText(value: string) {
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "true");
+  textarea.style.position = "absolute";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textarea);
+  return copied;
 }
 
 export function MemberTable({
@@ -55,28 +83,31 @@ export function MemberTable({
   const [pendingRoleChange, setPendingRoleChange] = useState<{
     userId: string;
     email: string;
-    currentRole: MemberRow['role'];
-    nextRole: MemberRow['role'];
+    currentRole: MemberRow["role"];
+    nextRole: MemberRow["role"];
   } | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<{
     userId: string;
     email: string;
   } | null>(null);
+  const [copiedInvitationId, setCopiedInvitationId] = useState<string | null>(
+    null,
+  );
 
-  async function updateRole(userId: string, role: MemberRow['role']) {
+  async function updateRole(userId: string, role: MemberRow["role"]) {
     setBusyKey(`role:${userId}`);
     setError(null);
 
     try {
       const response = await fetch(`/api/members/${userId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to update role');
+        throw new Error(data.error || "Failed to update role");
       }
 
       router.refresh();
@@ -84,7 +115,7 @@ export function MemberTable({
       setError(
         requestError instanceof Error
           ? requestError.message
-          : 'Failed to update role',
+          : "Failed to update role",
       );
     } finally {
       setBusyKey(null);
@@ -97,12 +128,12 @@ export function MemberTable({
 
     try {
       const response = await fetch(`/api/members/${userId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to remove member');
+        throw new Error(data.error || "Failed to remove member");
       }
 
       router.refresh();
@@ -110,7 +141,7 @@ export function MemberTable({
       setError(
         requestError instanceof Error
           ? requestError.message
-          : 'Failed to remove member',
+          : "Failed to remove member",
       );
     } finally {
       setBusyKey(null);
@@ -123,12 +154,12 @@ export function MemberTable({
 
     try {
       const response = await fetch(`/api/invitations/${invitationId}/revoke`, {
-        method: 'POST',
+        method: "POST",
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to revoke invitation');
+        throw new Error(data.error || "Failed to revoke invitation");
       }
 
       router.refresh();
@@ -136,10 +167,36 @@ export function MemberTable({
       setError(
         requestError instanceof Error
           ? requestError.message
-          : 'Failed to revoke invitation',
+          : "Failed to revoke invitation",
       );
     } finally {
       setBusyKey(null);
+    }
+  }
+
+  async function copyInvitationUrl(invitation: InvitationRow) {
+    if (!invitation.inviteUrl) {
+      setError("This invitation does not have a copyable URL");
+      return;
+    }
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(invitation.inviteUrl);
+      } else if (!fallbackCopyText(invitation.inviteUrl)) {
+        throw new Error("Clipboard unavailable");
+      }
+
+      markCopied(invitation.id, setCopiedInvitationId);
+      setError(null);
+    } catch {
+      if (fallbackCopyText(invitation.inviteUrl)) {
+        markCopied(invitation.id, setCopiedInvitationId);
+        setError(null);
+        return;
+      }
+
+      setError("Failed to copy invitation URL");
     }
   }
 
@@ -159,7 +216,7 @@ export function MemberTable({
             <DialogDescription>
               {pendingRoleChange
                 ? `Change ${pendingRoleChange.email} from ${pendingRoleChange.currentRole.toLowerCase()} to ${pendingRoleChange.nextRole.toLowerCase()}?`
-                : 'Confirm the new role for this member.'}
+                : "Confirm the new role for this member."}
             </DialogDescription>
           </DialogHeader>
 
@@ -204,7 +261,7 @@ export function MemberTable({
             <DialogDescription>
               {pendingRemoval
                 ? `Remove ${pendingRemoval.email} from the workspace?`
-                : 'Confirm member removal.'}
+                : "Confirm member removal."}
             </DialogDescription>
           </DialogHeader>
 
@@ -251,25 +308,39 @@ export function MemberTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableCell width="220px" className="font-medium text-xs text-[#7A7A7A]">
+              <TableCell
+                width="300px"
+                className="font-medium text-xs text-[#7A7A7A]"
+              >
                 Member
               </TableCell>
-              <TableCell width="140px" className="font-medium text-xs text-[#7A7A7A]">
+              <TableCell
+                width="140px"
+                className="font-medium text-xs text-[#7A7A7A]"
+              >
                 Role
               </TableCell>
-              <TableCell width="180px" className="font-medium text-xs text-[#7A7A7A]">
+              <TableCell
+                width="180px"
+                className="font-medium text-xs text-[#7A7A7A]"
+              >
                 Joined
               </TableCell>
-              <TableCell width="220px" className="font-medium text-xs text-[#7A7A7A]">
+              <TableCell
+                width="220px"
+                className="font-medium text-xs text-[#7A7A7A]"
+              >
                 Actions
               </TableCell>
             </TableRow>
           </TableHeader>
           {members.map((member) => (
             <TableRow key={member.userId}>
-              <TableCell width="220px">
+              <TableCell width="300px">
                 <div className="font-medium">{member.name ?? member.email}</div>
-                <div className="mt-1 text-xs text-[#7A7A7A]">{member.email}</div>
+                <div className="mt-1 text-xs text-[#7A7A7A]">
+                  {member.email}
+                </div>
               </TableCell>
               <TableCell width="140px">
                 <Badge variant="neutral">{member.role}</Badge>
@@ -284,7 +355,7 @@ export function MemberTable({
                     className="h-9 rounded-md border border-[#E8E8E8] bg-white px-2 text-sm"
                     value={member.role}
                     onChange={(event) => {
-                      const nextRole = event.target.value as MemberRow['role'];
+                      const nextRole = event.target.value as MemberRow["role"];
                       if (nextRole === member.role) {
                         return;
                       }
@@ -297,8 +368,7 @@ export function MemberTable({
                       });
                     }}
                     disabled={
-                      busyKey !== null ||
-                      member.userId === currentUserId
+                      busyKey !== null || member.userId === currentUserId
                     }
                   >
                     <option value="VIEWER">Viewer</option>
@@ -316,8 +386,7 @@ export function MemberTable({
                       })
                     }
                     disabled={
-                      busyKey !== null ||
-                      member.userId === currentUserId
+                      busyKey !== null || member.userId === currentUserId
                     }
                   >
                     Remove
@@ -335,23 +404,36 @@ export function MemberTable({
             Pending Invitations
           </h2>
           <p className="mt-2 text-sm text-[#7A7A7A]">
-            Invitation links are shown in the dialog after creation. Revoke any invite that should no longer be accepted.
+            Invitation links are shown in the dialog after creation. Revoke any
+            invite that should no longer be accepted.
           </p>
         </div>
 
         <Table>
           <TableHeader>
             <TableRow>
-              <TableCell width="220px" className="font-medium text-xs text-[#7A7A7A]">
+              <TableCell
+                width="300px"
+                className="font-medium text-xs text-[#7A7A7A]"
+              >
                 Email
               </TableCell>
-              <TableCell width="140px" className="font-medium text-xs text-[#7A7A7A]">
+              <TableCell
+                width="140px"
+                className="font-medium text-xs text-[#7A7A7A]"
+              >
                 Role
               </TableCell>
-              <TableCell width="180px" className="font-medium text-xs text-[#7A7A7A]">
+              <TableCell
+                width="180px"
+                className="font-medium text-xs text-[#7A7A7A]"
+              >
                 Expires
               </TableCell>
-              <TableCell width="140px" className="font-medium text-xs text-[#7A7A7A]">
+              <TableCell
+                width="140px"
+                className="font-medium text-xs text-[#7A7A7A]"
+              >
                 Actions
               </TableCell>
             </TableRow>
@@ -365,7 +447,7 @@ export function MemberTable({
           ) : (
             invitations.map((invitation) => (
               <TableRow key={invitation.id}>
-                <TableCell width="220px" className="font-medium">
+                <TableCell width="300px" className="font-medium">
                   {invitation.email}
                 </TableCell>
                 <TableCell width="140px">
@@ -374,16 +456,29 @@ export function MemberTable({
                 <TableCell width="180px" className="text-[#7A7A7A]">
                   {formatDate(invitation.expiresAt)}
                 </TableCell>
-                <TableCell width="140px">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => revokeInvitation(invitation.id)}
-                    disabled={busyKey !== null}
-                  >
-                    Revoke
-                  </Button>
+                <TableCell width="160px">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyInvitationUrl(invitation)}
+                      disabled={busyKey !== null || !invitation.inviteUrl}
+                    >
+                      {copiedInvitationId === invitation.id
+                        ? "Copied"
+                        : "Copy URL"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => revokeInvitation(invitation.id)}
+                      disabled={busyKey !== null}
+                    >
+                      Revoke
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))

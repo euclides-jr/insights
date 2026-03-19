@@ -355,6 +355,7 @@ model Invitation {
   id               String        @id @default(uuid())
   email            String
   role             WorkspaceRole
+  token            String?       @unique
   tokenHash        String        @unique
   invitedByUserId  String
   expiresAt        DateTime

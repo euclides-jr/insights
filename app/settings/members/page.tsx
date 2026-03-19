@@ -9,6 +9,7 @@ import {
   getCurrentWorkspaceMember,
   requireRole,
 } from '@/lib/auth/roles';
+import { getInvitationUrl } from '@/lib/services/membership-service';
 import { WorkspaceRole } from '@prisma/client';
 
 export default async function MembersSettingsPage() {
@@ -84,6 +85,7 @@ export default async function MembersSettingsPage() {
             role: invitation.role,
             expiresAt: invitation.expiresAt,
             createdAt: invitation.createdAt,
+            inviteUrl: invitation.token ? getInvitationUrl(invitation.token) : null,
           }))}
           currentUserId={currentMember.userId}
         />

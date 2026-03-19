@@ -49,13 +49,15 @@ describe('membership-service', () => {
       role: 'VIEWER',
     });
 
-    expect(invite.inviteUrl).toContain('inviteToken=');
+    expect(invite.inviteUrl).toContain('/accept-invitation?token=');
     expect(prismaMock.invitation.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           email: 'viewer@example.com',
           role: 'VIEWER',
           invitedByUserId: 'admin-1',
+          token: expect.any(String),
+          tokenHash: expect.any(String),
         }),
       }),
     );
