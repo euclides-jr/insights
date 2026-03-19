@@ -1,12 +1,11 @@
-import { DashboardLayout } from '@/components/dashboard-layout';
-import { Table, TableHeader, TableRow, TableCell } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { SearchInput } from '@/components/ui/search-input';
-import { FilterDropdown } from '@/components/ui/filter-dropdown';
-import { Pagination } from '@/components/ui/pagination';
-import { prisma } from '@/lib/db/prisma';
-import { formatDateTime } from '@/lib/format';
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { Table, TableHeader, TableRow, TableCell } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { SearchInput } from "@/components/ui/search-input";
+import { FilterDropdown } from "@/components/ui/filter-dropdown";
+import { Pagination } from "@/components/ui/pagination";
+import { prisma } from "@/lib/db/prisma";
+import { formatDateTime } from "@/lib/format";
 
 export default async function EventsPage({
   searchParams,
@@ -17,16 +16,16 @@ export default async function EventsPage({
   const currentPage = Number(params.page) || 1;
   const pageSize = 10;
   const skip = (currentPage - 1) * pageSize;
-  const q = params.q?.trim() || '';
-  const appId = params.appId || '';
+  const q = params.q?.trim() || "";
+  const appId = params.appId || "";
 
   const filters: Record<string, unknown>[] = [];
   if (q) {
     filters.push({
       OR: [
-        { eventName: { contains: q, mode: 'insensitive' as const } },
-        { userId: { contains: q, mode: 'insensitive' as const } },
-        { eventId: { contains: q, mode: 'insensitive' as const } },
+        { eventName: { contains: q, mode: "insensitive" as const } },
+        { userId: { contains: q, mode: "insensitive" as const } },
+        { eventId: { contains: q, mode: "insensitive" as const } },
       ],
     });
   }
@@ -38,13 +37,13 @@ export default async function EventsPage({
       where,
       take: pageSize,
       skip,
-      orderBy: { timestamp: 'desc' },
+      orderBy: { timestamp: "desc" },
       include: { application: true },
     }),
     prisma.event.count({ where }),
     prisma.application.findMany({
       select: { id: true, name: true },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     }),
   ]);
 
@@ -65,7 +64,6 @@ export default async function EventsPage({
               Track and monitor all events across your applications
             </p>
           </div>
-          <Button>+ Add Event</Button>
         </div>
 
         {/* Toolbar */}

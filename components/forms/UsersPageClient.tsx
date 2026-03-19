@@ -149,7 +149,11 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
                   eventName: f.eventName.trim(),
                   operator: f.operator,
                 };
-                if (f.count) ef.count = parseInt(f.count, 10);
+                if (f.count) {
+                  ef.count = {
+                    min: parseInt(f.count, 10),
+                  };
+                }
                 if (f.timeWindowDays)
                   ef.timeWindow = {
                     value: parseInt(f.timeWindowDays, 10),
