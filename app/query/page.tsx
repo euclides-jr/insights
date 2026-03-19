@@ -2,8 +2,14 @@ import { DashboardLayout } from '@/components/dashboard-layout';
 import { QueryForm } from '@/components/query-form';
 import { prisma } from '@/lib/db/prisma';
 import { listQueryFieldMetadata } from '@/lib/query/field-metadata';
+import { deserializeQueryStateFromSearchParams } from '@/lib/query/hydration';
 
-export default async function QueryPage() {
+export default async function QueryPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const applications = await prisma.application.findMany({
     orderBy: { name: 'asc' },
     select: { id: true, name: true, apiKey: true },
@@ -15,6 +21,9 @@ export default async function QueryPage() {
     ] as const),
   );
   const fieldMetadataByApplication = Object.fromEntries(fieldMetadataEntries);
+  const initialState = resolvedSearchParams
+    ? deserializeQueryStateFromSearchParams(resolvedSearchParams)
+    : {};
 
   return (
     <DashboardLayout>
@@ -39,6 +48,7 @@ export default async function QueryPage() {
           <QueryForm
             applications={applications}
             fieldMetadataByApplication={fieldMetadataByApplication}
+            initialState={initialState}
           />
         )}
       </div>

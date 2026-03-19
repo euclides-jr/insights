@@ -57,8 +57,24 @@ test.describe('Reports page', () => {
     await expect(page.getByText('"groupBy": "eventName"')).toBeVisible();
     await expect(page.getByText('Created by')).toBeVisible();
     await expect(
-      page.getByRole('link', { name: 'Open Source Page' }),
-    ).toHaveAttribute('href', '/query');
+      page.getByRole('link', { name: 'Open in Query Explorer' }),
+    ).toHaveAttribute('href', /\/query\?/);
+  });
+
+  test('opens a query report directly in Query Explorer with hydrated state', async ({
+    page,
+  }) => {
+    await page.getByRole('link', { name: 'Revenue by Event' }).click();
+    await page.getByRole('link', { name: 'Open in Query Explorer' }).click();
+
+    await expect(page).toHaveURL(/\/query\?/);
+    await expect(
+      page.locator('select').first().locator('option:checked'),
+    ).toHaveText('Demo Web App');
+    await expect(page.locator('input[placeholder="e.g. purchase"]')).toHaveValue(
+      'purchase',
+    );
+    await expect(page.locator('select').nth(1)).toHaveValue('count');
   });
 
   test('returns 404 for an unknown report id', async ({ page }) => {

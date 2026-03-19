@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { selectChevronStyle, selectInputClass } from '@/components/ui/select';
@@ -8,9 +9,14 @@ import { QueryResultChart } from '@/components/charts/QueryResultChart';
 import { SaveReportDialog } from '@/components/reports/save-report-dialog';
 import { PropertyFilterBuilder } from '@/components/query/property-filter-builder';
 import { QueryFieldPicker } from '@/components/query/query-field-picker';
+import { QueryExportActions } from '@/components/query/query-export-actions';
 import type { ChartViewMode, ChartEligibility } from '@/lib/charts/types';
-import type { PropertyFilter } from '@/lib/validations/query-schemas';
+import type {
+  PropertyFilter,
+  QueryDefinition,
+} from '@/lib/validations/query-schemas';
 import type { QueryFieldMetadata } from '@/lib/query/field-metadata';
+import { serializeQueryStateToQueryString } from '@/lib/query/hydration';
 
 interface Application {
   id: string;
@@ -37,32 +43,62 @@ type EditablePropertyFilter = Omit<PropertyFilter, 'value'> & {
 export function QueryForm({
   applications,
   fieldMetadataByApplication,
+  initialState,
 }: {
   applications: Application[];
   fieldMetadataByApplication: Record<string, QueryFieldMetadata[]>;
+  initialState?: Partial<QueryDefinition>;
 }) {
-  const [applicationId, setApplicationId] = useState(applications[0]?.id ?? '');
-  const [eventName, setEventName] = useState('');
+  const router = useRouter();
+  const initialApplicationId =
+    (initialState?.applicationId &&
+    applications.some((app) => app.id === initialState.applicationId)
+      ? initialState.applicationId
+      : applications[0]?.id) ?? '';
+
+  const [applicationId, setApplicationId] = useState(initialApplicationId);
+  const [eventName, setEventName] = useState(initialState?.eventName ?? '');
   const [startDate, setStartDate] = useState(() =>
-    new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+    (initialState?.startDate
+      ? new Date(initialState.startDate)
+      : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    )
+      .toISOString()
+      .slice(0, 16),
   );
   const [endDate, setEndDate] = useState(() =>
-    new Date().toISOString().slice(0, 16),
+    (initialState?.endDate ? new Date(initialState.endDate) : new Date())
+      .toISOString()
+      .slice(0, 16),
   );
   const [aggregation, setAggregation] = useState<
     'count' | 'unique_users' | 'avg' | 'sum'
-  >('count');
-  const [aggregationField, setAggregationField] = useState('');
-  const [groupMode, setGroupMode] = useState<'property' | 'time'>('property');
-  const [groupBy, setGroupBy] = useState('');
-  const [timeBucket, setTimeBucket] = useState<'hour' | 'day' | 'week' | 'month'>(
-    'day',
+  >(initialState?.aggregation ?? 'count');
+  const [aggregationField, setAggregationField] = useState(
+    initialState?.aggregationField ?? '',
   );
-  const [sortField, setSortField] = useState<'group' | 'value'>('value');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [pageSize, setPageSize] = useState(25);
+  const [groupMode, setGroupMode] = useState<'property' | 'time'>(
+    initialState?.groupBy?.kind === 'time' ? 'time' : 'property',
+  );
+  const [groupBy, setGroupBy] = useState(
+    initialState?.groupBy?.kind === 'property' ? initialState.groupBy.key : '',
+  );
+  const [timeBucket, setTimeBucket] = useState<'hour' | 'day' | 'week' | 'month'>(
+    initialState?.groupBy?.kind === 'time' ? initialState.groupBy.bucket : 'day',
+  );
+  const [sortField, setSortField] = useState<'group' | 'value'>(
+    initialState?.sort?.field ?? 'value',
+  );
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(
+    initialState?.sort?.direction ?? 'desc',
+  );
+  const [pageSize, setPageSize] = useState(initialState?.pageSize ?? 25);
   const [propertyFilters, setPropertyFilters] = useState<EditablePropertyFilter[]>(
-    [],
+    () =>
+      (initialState?.propertyFilters ?? []).map((filter, index) => ({
+        ...filter,
+        id: `hydrated-filter-${index + 1}`,
+      })),
   );
 
   const [result, setResult] = useState<QueryResult | null>(null);
@@ -181,6 +217,35 @@ export function QueryForm({
       });
   }
 
+  function buildQueryState(page = 1) {
+    return {
+      applicationId,
+      eventName: eventName || undefined,
+      startDate: new Date(startDate).toISOString(),
+      endDate: new Date(endDate).toISOString(),
+      aggregation,
+      aggregationField:
+        needsField && aggregationField ? aggregationField : undefined,
+      page,
+      pageSize,
+      sort:
+        (groupMode === 'property' && groupBy) || groupMode === 'time'
+          ? {
+              field: sortField,
+              direction: sortDirection,
+            }
+          : undefined,
+      groupBy:
+        groupMode === 'time'
+          ? { kind: 'time' as const, bucket: timeBucket }
+          : groupBy
+            ? { kind: 'property' as const, key: groupBy }
+            : undefined,
+      propertyFilters:
+        propertyFilters.length > 0 ? normalizePropertyFilters() : undefined,
+    };
+  }
+
   async function runQuery(page = 1) {
     if (!selectedApp) return;
 
@@ -188,35 +253,31 @@ export function QueryForm({
     setError(null);
     setResult(null);
 
+    const queryState = buildQueryState(page);
     const body: Record<string, unknown> = {
-      applicationId,
-      startDate: new Date(startDate).toISOString(),
-      endDate: new Date(endDate).toISOString(),
-      aggregation,
-      page,
-      pageSize,
+      applicationId: queryState.applicationId,
+      startDate: queryState.startDate,
+      endDate: queryState.endDate,
+      aggregation: queryState.aggregation,
+      page: queryState.page,
+      pageSize: queryState.pageSize,
+      ...(queryState.eventName ? { eventName: queryState.eventName } : {}),
+      ...(queryState.groupBy
+        ? {
+            groupBy:
+              queryState.groupBy.kind === 'property'
+                ? queryState.groupBy.key
+                : queryState.groupBy,
+          }
+        : {}),
+      ...(queryState.aggregationField
+        ? { aggregationField: queryState.aggregationField }
+        : {}),
+      ...(queryState.sort ? { sort: queryState.sort } : {}),
+      ...(queryState.propertyFilters
+        ? { propertyFilters: queryState.propertyFilters }
+        : {}),
     };
-    if (eventName) body.eventName = eventName;
-    if (groupMode === 'property' && groupBy) {
-      body.groupBy = groupBy;
-    }
-    if (groupMode === 'time') {
-      body.groupBy = {
-        kind: 'time',
-        bucket: timeBucket,
-      };
-    }
-    if (needsField && aggregationField)
-      body.aggregationField = aggregationField;
-    if ((groupMode === 'property' && groupBy) || groupMode === 'time') {
-      body.sort = {
-        field: sortField,
-        direction: sortDirection,
-      };
-    }
-    if (propertyFilters.length > 0) {
-      body.propertyFilters = normalizePropertyFilters();
-    }
 
     try {
       const res = await fetch('/api/query', {
@@ -231,6 +292,10 @@ export function QueryForm({
       if (!res.ok) {
         setError(data.error ?? 'Query failed');
       } else {
+        router.replace(
+          `/query?${serializeQueryStateToQueryString(queryState)}`,
+          { scroll: false },
+        );
         setResult(data);
         // Always reset to table view and recompute eligibility on new results
         setChartView('table');
@@ -492,6 +557,7 @@ export function QueryForm({
               setAggregationField('');
               setAggregation('count');
               setPropertyFilters([]);
+              router.replace('/query', { scroll: false });
             }}
           >
             Clear
@@ -507,32 +573,14 @@ export function QueryForm({
                 : `Query ${aggregation}`,
               reportType: 'QUERY',
               applicationId,
-              config: {
-                applicationId,
-                eventName: eventName || undefined,
-                startDate: new Date(startDate).toISOString(),
-                endDate: new Date(endDate).toISOString(),
-                aggregation,
-                aggregationField: aggregationField || undefined,
-                sort:
-                  (groupMode === 'property' && groupBy) || groupMode === 'time'
-                    ? {
-                        field: sortField,
-                        direction: sortDirection,
-                      }
-                    : undefined,
-                pageSize,
-                groupBy:
-                  groupMode === 'time'
-                    ? { kind: 'time', bucket: timeBucket }
-                    : groupBy || undefined,
-                propertyFilters:
-                  propertyFilters.length > 0
-                    ? normalizePropertyFilters()
-                    : undefined,
-              },
+              config: buildQueryState(1),
             }}
             buttonLabel="Save Current View"
+          />
+          <QueryExportActions
+            rows={result?.results ?? []}
+            applicationName={selectedApp?.name}
+            eventName={eventName || undefined}
           />
         </div>
       </form>

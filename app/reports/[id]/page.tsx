@@ -4,13 +4,18 @@ import { DashboardLayout } from '@/components/dashboard-layout';
 import { FunnelResults } from '@/components/funnels/funnel-results';
 import { RetentionGrid } from '@/components/retention/retention-grid';
 import { Badge } from '@/components/ui/badge';
-import { getSavedReport } from '@/lib/services/report-service';
+import { serializeQueryStateToQueryString } from '@/lib/query/hydration';
+import {
+  getSavedReport,
+  normalizeQueryReportConfig,
+} from '@/lib/services/report-service';
 import { runFunnel } from '@/lib/services/funnel-service';
 import { runRetention } from '@/lib/services/retention-service';
 
 function getSourceHref(
   reportType: 'QUERY' | 'FUNNEL' | 'RETENTION',
   config: Record<string, unknown>,
+  applicationId?: string | null,
 ) {
   if (reportType === 'FUNNEL') {
     return '/funnels';
@@ -18,11 +23,11 @@ function getSourceHref(
   if (reportType === 'RETENTION') {
     return '/retention';
   }
-  const eventName =
-    typeof config.eventName === 'string' && config.eventName.length > 0
-      ? `?eventName=${encodeURIComponent(config.eventName)}`
-      : '';
-  return `/query${eventName}`;
+  const normalized = normalizeQueryReportConfig(config, applicationId);
+  const queryString = normalized
+    ? serializeQueryStateToQueryString(normalized)
+    : '';
+  return queryString ? `/query?${queryString}` : '/query';
 }
 
 export default async function ReportDetailPage({
@@ -92,10 +97,12 @@ export default async function ReportDetailPage({
             </p>
           </div>
           <Link
-            href={getSourceHref(report.reportType, config)}
+            href={getSourceHref(report.reportType, config, report.applicationId)}
             className="border border-[#E8E8E8] bg-white px-4 py-3 text-sm font-medium text-[#0D0D0D]"
           >
-            Open Source Page
+            {report.reportType === 'QUERY'
+              ? 'Open in Query Explorer'
+              : 'Open Source Page'}
           </Link>
         </div>
 

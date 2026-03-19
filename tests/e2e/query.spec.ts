@@ -29,6 +29,8 @@ test.describe('Query Explorer Page', () => {
       page.getByRole('heading', { name: 'Property Filters' }),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Run Query' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Export CSV' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Export JSON' })).toBeDisabled();
   });
 
   test('should show aggregation options in the dropdown', async ({ page }) => {
@@ -130,6 +132,8 @@ test.describe('Query Explorer Page', () => {
     await expect(page.locator('text=/\\d+ ms/')).toBeVisible({
       timeout: 10000,
     });
+    await expect(page.getByRole('button', { name: 'Export CSV' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Export JSON' })).toBeEnabled();
   });
 
   test('should show row count in results heading', async ({ page }) => {
@@ -255,6 +259,45 @@ test.describe('Query Explorer Page', () => {
     await chartButton.click();
     await expect(chartButton).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('.recharts-responsive-container')).toBeVisible();
+  });
+
+  test('should hydrate query state from URL parameters', async ({ page }) => {
+    await page.goto('/query');
+    const demoWebAppId = await page
+      .locator('select')
+      .first()
+      .locator('option', { hasText: 'Demo Web App' })
+      .getAttribute('value');
+
+    expect(demoWebAppId).toBeTruthy();
+
+    const query = new URLSearchParams({
+      applicationId: demoWebAppId!,
+      eventName: 'purchase',
+      aggregation: 'sum',
+      aggregationField: 'amount',
+      startDate: '2020-01-01T00:00:00.000Z',
+      endDate: '2030-12-31T23:59:00.000Z',
+      groupByKind: 'time',
+      groupByBucket: 'day',
+      sortField: 'group',
+      sortDirection: 'asc',
+      pageSize: '10',
+    });
+
+    await page.goto(`/query?${query.toString()}`);
+
+    await expect(page.locator('select').first()).toHaveValue(demoWebAppId!);
+    await expect(page.locator('input[placeholder="e.g. purchase"]')).toHaveValue(
+      'purchase',
+    );
+    await expect(page.locator('select').nth(1)).toHaveValue('sum');
+    await expect(page.getByLabel('Aggregation field')).toHaveValue('amount');
+    await expect(page.locator('select').nth(2)).toHaveValue('time');
+    await expect(page.locator('select').nth(3)).toHaveValue('day');
+    await expect(page.locator('select').nth(4)).toHaveValue('group');
+    await expect(page.locator('select').nth(5)).toHaveValue('asc');
+    await expect(page.locator('select').nth(6)).toHaveValue('10');
   });
 
   test('should show schema-derived field suggestions for purchase queries', async ({

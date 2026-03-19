@@ -11,6 +11,7 @@ import {
   deleteSavedReport,
   getSavedReport,
   listSavedReports,
+  normalizeQueryReportConfig,
   updateSavedReport,
 } from '@/lib/services/report-service';
 import { prismaMock } from './prisma-singleton';
@@ -116,6 +117,31 @@ describe('report-service', () => {
 
     expect(prismaMock.savedReport.delete).toHaveBeenCalledWith({
       where: { id: 'report-1' },
+    });
+  });
+
+  it('normalizes legacy query report configs into query explorer state', () => {
+    const normalized = normalizeQueryReportConfig(
+      {
+        applicationId: 'app-1',
+        metric: 'count',
+        groupBy: 'eventName',
+        filters: [
+          {
+            key: 'eventName',
+            operator: 'in',
+            value: ['purchase', 'signup'],
+          },
+        ],
+      },
+      'app-1',
+    );
+
+    expect(normalized).toMatchObject({
+      applicationId: 'app-1',
+      eventName: 'purchase',
+      aggregation: 'count',
+      groupBy: { kind: 'property', key: 'eventName' },
     });
   });
 });
