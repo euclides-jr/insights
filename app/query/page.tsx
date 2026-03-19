@@ -1,12 +1,20 @@
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { QueryForm } from '@/components/query-form';
 import { prisma } from '@/lib/db/prisma';
+import { listQueryFieldMetadata } from '@/lib/query/field-metadata';
 
 export default async function QueryPage() {
   const applications = await prisma.application.findMany({
     orderBy: { name: 'asc' },
     select: { id: true, name: true, apiKey: true },
   });
+  const fieldMetadataEntries = await Promise.all(
+    applications.map(async (application) => [
+      application.id,
+      await listQueryFieldMetadata(application.id),
+    ] as const),
+  );
+  const fieldMetadataByApplication = Object.fromEntries(fieldMetadataEntries);
 
   return (
     <DashboardLayout>
@@ -28,7 +36,10 @@ export default async function QueryPage() {
             No applications found. Create an application first to run queries.
           </div>
         ) : (
-          <QueryForm applications={applications} />
+          <QueryForm
+            applications={applications}
+            fieldMetadataByApplication={fieldMetadataByApplication}
+          />
         )}
       </div>
     </DashboardLayout>

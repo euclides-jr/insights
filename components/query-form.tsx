@@ -7,8 +7,10 @@ import { selectChevronStyle, selectInputClass } from '@/components/ui/select';
 import { QueryResultChart } from '@/components/charts/QueryResultChart';
 import { SaveReportDialog } from '@/components/reports/save-report-dialog';
 import { PropertyFilterBuilder } from '@/components/query/property-filter-builder';
+import { QueryFieldPicker } from '@/components/query/query-field-picker';
 import type { ChartViewMode, ChartEligibility } from '@/lib/charts/types';
 import type { PropertyFilter } from '@/lib/validations/query-schemas';
+import type { QueryFieldMetadata } from '@/lib/query/field-metadata';
 
 interface Application {
   id: string;
@@ -20,6 +22,11 @@ interface QueryResult {
   results: Record<string, unknown>[];
   totalCount: number;
   executionTimeMs: number;
+  pagination?: {
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
 }
 
 type EditablePropertyFilter = Omit<PropertyFilter, 'value'> & {
@@ -27,7 +34,13 @@ type EditablePropertyFilter = Omit<PropertyFilter, 'value'> & {
   value?: string | number | boolean | string[] | number[];
 };
 
-export function QueryForm({ applications }: { applications: Application[] }) {
+export function QueryForm({
+  applications,
+  fieldMetadataByApplication,
+}: {
+  applications: Application[];
+  fieldMetadataByApplication: Record<string, QueryFieldMetadata[]>;
+}) {
   const [applicationId, setApplicationId] = useState(applications[0]?.id ?? '');
   const [eventName, setEventName] = useState('');
   const [startDate, setStartDate] = useState(() =>
@@ -45,6 +58,9 @@ export function QueryForm({ applications }: { applications: Application[] }) {
   const [timeBucket, setTimeBucket] = useState<'hour' | 'day' | 'week' | 'month'>(
     'day',
   );
+  const [sortField, setSortField] = useState<'group' | 'value'>('value');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [pageSize, setPageSize] = useState(25);
   const [propertyFilters, setPropertyFilters] = useState<EditablePropertyFilter[]>(
     [],
   );
@@ -91,9 +107,15 @@ export function QueryForm({ applications }: { applications: Application[] }) {
     };
   }, [result]);
 
-  // Resolves the API key associated with the selected application.
-  // We pass the app's API key via the hidden input below.
   const selectedApp = applications.find((a) => a.id === applicationId);
+  const availableFields = useMemo(() => {
+    const allFields = fieldMetadataByApplication[applicationId] ?? [];
+    if (!eventName.trim()) {
+      return allFields;
+    }
+
+    return allFields.filter((field) => field.eventName === eventName.trim());
+  }, [applicationId, eventName, fieldMetadataByApplication]);
 
   function normalizePropertyFilters() {
     return propertyFilters
@@ -159,22 +181,20 @@ export function QueryForm({ applications }: { applications: Application[] }) {
       });
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function runQuery(page = 1) {
     if (!selectedApp) return;
 
     setLoading(true);
     setError(null);
     setResult(null);
 
-    const formData = new FormData(e.currentTarget);
-    const apiKey = formData.get('apiKey') as string;
-
     const body: Record<string, unknown> = {
       applicationId,
       startDate: new Date(startDate).toISOString(),
       endDate: new Date(endDate).toISOString(),
       aggregation,
+      page,
+      pageSize,
     };
     if (eventName) body.eventName = eventName;
     if (groupMode === 'property' && groupBy) {
@@ -188,6 +208,12 @@ export function QueryForm({ applications }: { applications: Application[] }) {
     }
     if (needsField && aggregationField)
       body.aggregationField = aggregationField;
+    if ((groupMode === 'property' && groupBy) || groupMode === 'time') {
+      body.sort = {
+        field: sortField,
+        direction: sortDirection,
+      };
+    }
     if (propertyFilters.length > 0) {
       body.propertyFilters = normalizePropertyFilters();
     }
@@ -195,7 +221,10 @@ export function QueryForm({ applications }: { applications: Application[] }) {
     try {
       const res = await fetch('/api/query', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': selectedApp.apiKey,
+        },
         body: JSON.stringify(body),
       });
       const data = await res.json();
@@ -214,6 +243,11 @@ export function QueryForm({ applications }: { applications: Application[] }) {
     }
   }
 
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    await runQuery(1);
+  }
+
   return (
     <div className="space-y-10">
       {/* Query Form */}
@@ -221,14 +255,6 @@ export function QueryForm({ applications }: { applications: Application[] }) {
         onSubmit={handleSubmit}
         className="bg-white border border-[#E8E8E8] p-8 space-y-6"
       >
-        {/* Hidden API key for the selected app */}
-        <input
-          type="hidden"
-          name="apiKey"
-          readOnly
-          value={selectedApp?.apiKey ?? ''}
-        />
-
         <div className="grid grid-cols-2 gap-6">
           {/* Application */}
           <div className="space-y-2">
@@ -320,12 +346,15 @@ export function QueryForm({ applications }: { applications: Application[] }) {
                 {needsField ? '(required for avg/sum)' : '(not needed)'}
               </span>
             </label>
-            <Input
+            <QueryFieldPicker
               value={aggregationField}
-              onChange={(e) => setAggregationField(e.target.value)}
+              onChange={setAggregationField}
               placeholder="e.g. amount"
+              label="Aggregation field"
+              fields={availableFields.filter(
+                (field) => field.valueType === 'number',
+              )}
               disabled={!needsField}
-              required={needsField}
             />
           </div>
 
@@ -376,17 +405,70 @@ export function QueryForm({ applications }: { applications: Application[] }) {
                 <option value="month">Month</option>
               </select>
             ) : (
-              <Input
+              <QueryFieldPicker
                 value={groupBy}
-                onChange={(e) => setGroupBy(e.target.value)}
+                onChange={setGroupBy}
                 placeholder="e.g. currency"
+                label="Group by field"
+                fields={availableFields}
               />
             )}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-[#0D0D0D] font-(family-name:--font-space-grotesk)">
+              Sort
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <select
+                value={sortField}
+                onChange={(e) =>
+                  setSortField(e.target.value as 'group' | 'value')
+                }
+                className={selectInputClass}
+                style={selectChevronStyle}
+                aria-label="Sort field"
+              >
+                <option value="value">Value</option>
+                <option value="group">Group</option>
+              </select>
+              <select
+                value={sortDirection}
+                onChange={(e) =>
+                  setSortDirection(e.target.value as 'asc' | 'desc')
+                }
+                className={selectInputClass}
+                style={selectChevronStyle}
+                aria-label="Sort direction"
+              >
+                <option value="desc">Descending</option>
+                <option value="asc">Ascending</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-[#0D0D0D] font-(family-name:--font-space-grotesk)">
+              Row Limit
+            </label>
+            <select
+              value={String(pageSize)}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className={selectInputClass}
+              style={selectChevronStyle}
+              aria-label="Row limit"
+            >
+              <option value="10">10 rows</option>
+              <option value="25">25 rows</option>
+              <option value="50">50 rows</option>
+              <option value="100">100 rows</option>
+            </select>
           </div>
         </div>
 
         <PropertyFilterBuilder
           filters={propertyFilters}
+          availableFields={availableFields}
           onChange={setPropertyFilters}
         />
 
@@ -404,6 +486,9 @@ export function QueryForm({ applications }: { applications: Application[] }) {
               setGroupBy('');
               setGroupMode('property');
               setTimeBucket('day');
+              setSortField('value');
+              setSortDirection('desc');
+              setPageSize(25);
               setAggregationField('');
               setAggregation('count');
               setPropertyFilters([]);
@@ -429,6 +514,14 @@ export function QueryForm({ applications }: { applications: Application[] }) {
                 endDate: new Date(endDate).toISOString(),
                 aggregation,
                 aggregationField: aggregationField || undefined,
+                sort:
+                  (groupMode === 'property' && groupBy) || groupMode === 'time'
+                    ? {
+                        field: sortField,
+                        direction: sortDirection,
+                      }
+                    : undefined,
+                pageSize,
                 groupBy:
                   groupMode === 'time'
                     ? { kind: 'time', bucket: timeBucket }
@@ -559,6 +652,41 @@ export function QueryForm({ applications }: { applications: Application[] }) {
               </table>
             </div>
           )}
+
+          {result.pagination && result.pagination.totalPages > 1 ? (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-[#7A7A7A]">
+                Showing page {result.pagination.page} of{' '}
+                {result.pagination.totalPages}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void runQuery(result.pagination!.page - 1)}
+                  disabled={result.pagination.page === 1 || loading}
+                  className="flex h-9 w-9 items-center justify-center border border-[#E8E8E8] bg-white text-[#7A7A7A] disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label="Previous results page"
+                >
+                  ‹
+                </button>
+                <span className="min-w-16 text-center text-sm font-medium text-[#0D0D0D]">
+                  {result.pagination.page}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void runQuery(result.pagination!.page + 1)}
+                  disabled={
+                    result.pagination.page === result.pagination.totalPages ||
+                    loading
+                  }
+                  className="flex h-9 w-9 items-center justify-center border border-[#E8E8E8] bg-white text-[#0D0D0D] disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label="Next results page"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       )}
     </div>

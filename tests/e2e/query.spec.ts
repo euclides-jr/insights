@@ -257,6 +257,20 @@ test.describe('Query Explorer Page', () => {
     await expect(page.locator('.recharts-responsive-container')).toBeVisible();
   });
 
+  test('should show schema-derived field suggestions for purchase queries', async ({
+    page,
+  }) => {
+    await page.locator('select').first().selectOption({ label: 'Demo Web App' });
+    await page.locator('input[placeholder="e.g. purchase"]').fill('purchase');
+
+    const suggestions = page
+      .locator('p')
+      .filter({ hasText: 'Suggested fields:' })
+      .last();
+    await expect(suggestions).toContainText('amount');
+    await expect(suggestions).toContainText('currency');
+  });
+
   test('should add and remove property filter rows', async ({ page }) => {
     await expect(page.getByText('No property filters yet.')).toBeVisible();
 
@@ -311,6 +325,83 @@ test.describe('Query Explorer Page', () => {
       timeout: 10000,
     });
     await expect(page.locator('th', { hasText: 'value' })).toBeVisible();
+  });
+
+  test('should respect grouped row limits', async ({ page }) => {
+    await page.locator('select').first().selectOption({ label: 'Demo Web App' });
+    await page
+      .locator('input[type="datetime-local"]')
+      .first()
+      .fill('2020-01-01T00:00');
+    await page
+      .locator('input[type="datetime-local"]')
+      .nth(1)
+      .fill('2030-12-31T23:59');
+
+    await page.getByLabel('Grouping mode').selectOption('time');
+    await page.getByLabel('Time bucket').selectOption('day');
+    await page.getByLabel('Row limit').selectOption('10');
+
+    await page.getByRole('button', { name: 'Run Query' }).click();
+    await expect(page.locator('text=/Results \\(/')).toBeVisible({
+      timeout: 10000,
+    });
+
+    await expect(page.locator('tbody tr')).toHaveCount(10);
+  });
+
+  test('should allow grouped pagination navigation', async ({ page }) => {
+    await page
+      .locator('input[type="datetime-local"]')
+      .first()
+      .fill('2020-01-01T00:00');
+    await page
+      .locator('input[type="datetime-local"]')
+      .nth(1)
+      .fill('2030-12-31T23:59');
+
+    await page.getByLabel('Grouping mode').selectOption('time');
+    await page.getByLabel('Time bucket').selectOption('day');
+    await page.getByLabel('Row limit').selectOption('10');
+
+    await page.getByRole('button', { name: 'Run Query' }).click();
+    await expect(page.getByText(/Showing page 1 of/)).toBeVisible({
+      timeout: 10000,
+    });
+
+    const firstPageFirstRow = await page.locator('tbody tr').first().textContent();
+    await page.getByRole('button', { name: 'Next results page' }).click();
+    await expect(page.getByText(/Showing page 2 of/)).toBeVisible({
+      timeout: 10000,
+    });
+    const secondPageFirstRow = await page.locator('tbody tr').first().textContent();
+
+    expect(secondPageFirstRow).not.toBe(firstPageFirstRow);
+  });
+
+  test('should sort grouped results by group ascending', async ({ page }) => {
+    await page
+      .locator('input[type="datetime-local"]')
+      .first()
+      .fill('2020-01-01T00:00');
+    await page
+      .locator('input[type="datetime-local"]')
+      .nth(1)
+      .fill('2030-12-31T23:59');
+
+    await page.getByLabel('Group by field').fill('currency');
+    await page.getByLabel('Sort field').selectOption('group');
+    await page.getByLabel('Sort direction').selectOption('asc');
+    await page.getByLabel('Row limit').selectOption('10');
+
+    await page.getByRole('button', { name: 'Run Query' }).click();
+    await expect(page.locator('text=/Results \\(/')).toBeVisible({
+      timeout: 10000,
+    });
+
+    const groups = await page.locator('tbody tr td:first-child').allTextContents();
+    const sorted = [...groups].sort((a, b) => a.localeCompare(b));
+    expect(groups).toEqual(sorted);
   });
 
   test('should show a validation error for an invalid between filter', async ({

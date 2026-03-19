@@ -2,7 +2,9 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { QueryFieldPicker } from '@/components/query/query-field-picker';
 import { selectChevronStyle, selectInputClass } from '@/components/ui/select';
+import type { QueryFieldMetadata } from '@/lib/query/field-metadata';
 import type { PropertyFilter } from '@/lib/validations/query-schemas';
 
 type EditablePropertyFilter = Omit<PropertyFilter, 'value'> & {
@@ -12,6 +14,7 @@ type EditablePropertyFilter = Omit<PropertyFilter, 'value'> & {
 
 type PropertyFilterBuilderProps = {
   filters: EditablePropertyFilter[];
+  availableFields: QueryFieldMetadata[];
   onChange: (filters: EditablePropertyFilter[]) => void;
 };
 
@@ -64,6 +67,7 @@ function makeEmptyFilter(index: number): EditablePropertyFilter {
 
 export function PropertyFilterBuilder({
   filters,
+  availableFields,
   onChange,
 }: PropertyFilterBuilderProps) {
   const updateFilter = (
@@ -146,13 +150,22 @@ export function PropertyFilterBuilder({
                   )}
                 </div>
 
-                <Input
+                <QueryFieldPicker
                   value={filter.key}
-                  onChange={(event) =>
-                    updateFilter(filter.id, { key: event.target.value })
-                  }
+                  onChange={(value) => updateFilter(filter.id, { key: value })}
                   placeholder="property key"
-                  aria-label={`Property key ${index + 1}`}
+                  label={`Property key ${index + 1}`}
+                  fields={availableFields}
+                  onExactMatch={(field) => {
+                    if (!field || field.valueType === 'unknown') return;
+
+                    updateFilter(filter.id, {
+                      valueType: field.valueType,
+                      operator: nextOperatorForType(field.valueType),
+                      value: field.valueType === 'boolean' ? true : '',
+                      secondValue: undefined,
+                    });
+                  }}
                 />
 
                 <select
