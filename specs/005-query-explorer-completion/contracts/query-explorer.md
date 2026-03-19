@@ -160,6 +160,7 @@ The Query Explorer UI must expose:
 
 1. URL state
 2. saved query report config
+3. normalized legacy saved query report config when older reports omit `startDate` / `endDate` and still use `metric` plus simple `filters`
 
 ### Result Area
 
@@ -169,3 +170,7 @@ The results panel must support:
 - chart view when eligible
 - pagination for grouped results
 - export actions for current results
+
+### Saved Query Reopen Flow
+
+Query reports on `/reports/[id]` expose `Open in Query Explorer`, which links to `/query?...` using the normalized `QueryDefinition` serialization.

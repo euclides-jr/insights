@@ -23,6 +23,7 @@ Expected:
 - query succeeds
 - result count matches the seeded purchase data
 - chart toggle is enabled only if the returned shape is chart-eligible
+- `Export CSV` and `Export JSON` remain disabled until results are present
 
 ## 3. Verify time bucketing
 
@@ -49,6 +50,7 @@ Expected:
 
 - schema-derived fields such as `amount` and `currency` appear
 - manual entry remains possible if the field is not listed
+- grouped queries expose sort controls, row limit, and next/previous page when multiple result pages exist
 
 ## 5. Verify report hydration
 
@@ -60,6 +62,7 @@ Expected:
 
 - the Query Explorer form is prefilled from the saved config
 - rerunning the query produces the same result shape
+- the URL includes serialized query state that can be reopened directly
 
 ## 6. Verify exports
 

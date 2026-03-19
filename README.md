@@ -9,7 +9,7 @@ A self-hosted event analytics platform for tracking user interactions, monitorin
 - **Event Schemas** — Define and version expected event structures for validation
 - **User Segments** — Build dynamic user groups using event-based AND/OR criteria
 - **User Profiles & Attributes** — Store typed key-value attributes against user profiles, query users by attribute values and event behaviour
-- **Analytics Queries** — Filter, aggregate, and group events with a flexible query builder; toggle results between a table and an interactive chart
+- **Analytics Queries** — Filter, aggregate, and group events with typed property filters, time bucketing, schema-aware field suggestions, grouped pagination, saved-query hydration, export, and a table/chart toggle
 - **Data Quality Monitoring** — Track validation failures, duplicates, and completeness metrics with threshold-based alerting
 - **Dashboard** — View daily event volume trends, per-application event breakdowns, quality metric charts, and summary tiles at a glance
 
@@ -102,6 +102,19 @@ The project uses three distinct authentication paths:
 - **Programmatic APIs**: ingestion and data APIs such as `/api/events`, `/api/users`, `/api/query`, `/api/schemas`, `/api/segments`, and `/api/webhooks` remain reachable as JSON APIs and enforce their own `X-API-Key` authentication where applicable.
 
 This separation is intentional: page access is centralized in the proxy, while programmatic APIs are not redirected through the dashboard sign-in flow.
+
+## Query Explorer
+
+The Query Explorer at `/query` now supports:
+
+- typed property filters for string, number, and boolean event properties
+- time bucketing by `hour`, `day`, `week`, and `month`
+- schema-aware suggestions for aggregation fields, group-by keys, and property filters
+- grouped-result sorting, row limits, and pagination
+- saved report and URL hydration through a shared query-state model
+- CSV/JSON export of the current result set
+
+Saved query reports can be reopened directly into the Query Explorer from `/reports/[id]`.
 
 ## Sending Events
 

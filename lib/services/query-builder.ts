@@ -209,6 +209,31 @@ function buildPropertyFiltersClause(
   return { sql: `(${sql})`, nextIndex: idx };
 }
 
+function buildGroupedBaseSql(req: QueryRequest, where: string) {
+  const groupBy = buildGroupBySql(req);
+  if (!groupBy) {
+    return null;
+  }
+
+  return {
+    groupBy,
+    sql: [
+      `SELECT ${groupBy.select}, ${buildAggregationSql(req)}`,
+      `FROM events`,
+      `WHERE ${where}`,
+      `GROUP BY ${groupBy.groupBy}`,
+    ].join(' '),
+  };
+}
+
+function buildGroupedPagination(req: QueryRequest) {
+  const pageSize = Math.min(req.pageSize ?? req.limit ?? 1000, 1000);
+  const page = Math.max(1, req.page ?? 1);
+  const offset = (page - 1) * pageSize;
+
+  return { page, pageSize, offset };
+}
+
 function buildGroupBySql(req: QueryRequest) {
   if (!req.groupBy) {
     return null;
@@ -266,6 +291,9 @@ export async function executeQuery(req: QueryRequest): Promise<QueryResult> {
   conditions.push(`"timestamp" <= $${idx++}`);
   params.push(new Date(req.endDate));
 
+  // `buildPropertyFiltersClause` mutates `params` as it assigns placeholders.
+  // It returns the last placeholder index it consumed so the caller can keep
+  // parameter numbering aligned with the surrounding WHERE clause assembly.
   const propertyFilters = buildPropertyFiltersClause(
     req.propertyFilters,
     params,
@@ -278,9 +306,9 @@ export async function executeQuery(req: QueryRequest): Promise<QueryResult> {
   }
 
   const where = conditions.join(' AND ');
-  const groupBy = buildGroupBySql(req);
+  const groupedBase = buildGroupedBaseSql(req, where);
 
-  if (!groupBy) {
+  if (!groupedBase) {
     const sql = `SELECT ${buildAggregationSql(req)} FROM events WHERE ${where}`;
     const rows = (await prisma.$queryRawUnsafe(sql, ...params)) as Record<
       string,
@@ -294,18 +322,11 @@ export async function executeQuery(req: QueryRequest): Promise<QueryResult> {
     };
   }
 
-  const pageSize = Math.min(req.pageSize ?? req.limit ?? 1000, 1000);
-  const page = Math.max(1, req.page ?? 1);
-  const offset = (page - 1) * pageSize;
-  const aggregationSql = buildAggregationSql(req);
-  const groupedBaseSql = [
-    `SELECT ${groupBy.select}, ${aggregationSql}`,
-    `FROM events`,
-    `WHERE ${where}`,
-    `GROUP BY ${groupBy.groupBy}`,
-  ].join(' ');
+  const { page, pageSize, offset } = buildGroupedPagination(req);
 
-  const countSql = `SELECT COUNT(*) AS "count" FROM (${groupedBaseSql}) grouped_results`;
+  // Count the grouped subquery before applying LIMIT/OFFSET so the UI can
+  // render stable pagination metadata for grouped result browsing.
+  const countSql = `SELECT COUNT(*) AS "count" FROM (${groupedBase.sql}) grouped_results`;
   const countRows = (await prisma.$queryRawUnsafe(countSql, ...params)) as Array<{
     count: bigint | number;
   }>;
@@ -313,7 +334,7 @@ export async function executeQuery(req: QueryRequest): Promise<QueryResult> {
   const totalPages = totalCount === 0 ? 0 : Math.ceil(totalCount / pageSize);
 
   const rowsSql = [
-    groupedBaseSql,
+    groupedBase.sql,
     buildOrderBySql(req, true),
     `LIMIT ${pageSize}`,
     `OFFSET ${offset}`,

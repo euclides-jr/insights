@@ -50,14 +50,15 @@ The current Query Explorer at `/query` already provides:
 6. results table/chart toggle
 7. saved-report creation
 
-The main gaps relative to the spec are:
+The current implementation now also provides:
 
-1. no property filter builder in the UI
-2. property filtering limited to equality in the backend
-3. no timestamp bucketing
-4. no form hydration from saved query reports
-5. no limit/sort/pagination controls for grouped results
-6. no export
+1. typed property filter rows in the dashboard UI
+2. backend support for validated string/number/boolean filter operators
+3. time-bucket grouping with `hour`, `day`, `week`, and `month`
+4. schema-aware field suggestions and manual fallback entry
+5. grouped-result sorting, row limits, and pagination
+6. URL-backed hydration and direct report-to-query reopening
+7. CSV/JSON export actions from the results panel
 
 ## Project Structure
 
@@ -217,6 +218,18 @@ Cross-cutting cleanup:
 2. update documentation
 3. performance-check complex grouped queries
 4. ensure report/detail flows and Query Explorer hydration remain aligned
+
+## Implementation Snapshot
+
+Delivered so far:
+
+1. Phases 1–7 are implemented and covered by unit/API/E2E tests
+2. Query Explorer now supports typed property filters, time bucketing, schema-aware pickers, grouped pagination, hydration, and export
+3. Saved query reports reopen into `/query` using normalized query state
+
+Open follow-up:
+
+1. none required for the scoped feature; remaining future work would be new feature expansion rather than completion work
 
 ## Delivery Risks
 

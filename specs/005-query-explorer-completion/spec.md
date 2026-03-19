@@ -2,7 +2,7 @@
 
 **Feature Branch**: `005-query-explorer-completion`  
 **Created**: 2026-03-19  
-**Status**: Draft  
+**Status**: Implemented  
 **Input**: User description: "Make Query Explorer more feature complete"
 
 ## Summary
@@ -29,16 +29,17 @@ Implemented today:
 3. Table/chart result rendering
 4. Saved-report integration from the Query Explorer
 5. API-key-protected query execution through `POST /api/query`
+6. Typed property filter builder with string/number/boolean operators
+7. Time-series grouping by `hour` / `day` / `week` / `month`
+8. Schema-aware field suggestions for grouping, aggregation fields, and property filters
+9. Grouped-result sorting, row limits, and pagination controls
+10. Query form hydration from saved reports and URL state
+11. CSV/JSON export actions in the results panel
 
-Not yet implemented:
+Polish completed:
 
-1. Event property filter builder in the dashboard UI
-2. Operator support beyond exact-equality property matching
-3. Time-series grouping by hour/day/week/month
-4. Multi-column sort, user-controlled limits, and paginated grouped results
-5. Query form hydration from saved query reports or URL state
-6. Export of result sets
-7. Schema-aware dropdowns/autocomplete for property keys
+1. grouped SQL assembly was refactored for maintainability in `lib/services/query-builder.ts`
+2. quickstart scenarios were revalidated against the current seeded environment and automated coverage
 
 ## User Story 1 - Property Filters and Typed Operators (Priority: P1)
 

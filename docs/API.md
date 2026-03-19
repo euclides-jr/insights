@@ -37,6 +37,85 @@ API routes are not redirected through the dashboard sign-in flow. Page access is
 
 ## Endpoints
 
+### POST /api/query
+
+Run an aggregated event query for one application.
+
+#### Authentication
+
+```http
+X-API-Key: your_api_key_here
+```
+
+The dashboard Query Explorer also calls this route, but the JSON API contract remains API-key based.
+
+#### Request Body
+
+```json
+{
+  "applicationId": "app_123",
+  "eventName": "purchase",
+  "startDate": "2026-03-01T00:00:00.000Z",
+  "endDate": "2026-03-31T23:59:59.999Z",
+  "propertyFilters": [
+    {
+      "key": "currency",
+      "valueType": "string",
+      "operator": "eq",
+      "value": "USD"
+    },
+    {
+      "key": "amount",
+      "valueType": "number",
+      "operator": "gt",
+      "value": 100,
+      "logic": "and"
+    }
+  ],
+  "aggregation": "sum",
+  "aggregationField": "amount",
+  "groupBy": {
+    "kind": "time",
+    "bucket": "day"
+  },
+  "sort": {
+    "field": "group",
+    "direction": "asc"
+  },
+  "page": 1,
+  "pageSize": 50
+}
+```
+
+Backwards-compatible simpler requests are still accepted, including string `groupBy` and legacy exact-match `filters`.
+
+#### Success Response
+
+```json
+{
+  "results": [
+    { "group": "2026-03-01T00:00:00.000Z", "value": 182 },
+    { "group": "2026-03-02T00:00:00.000Z", "value": 205 }
+  ],
+  "totalCount": 14,
+  "executionTimeMs": 82,
+  "pagination": {
+    "page": 1,
+    "pageSize": 50,
+    "totalPages": 1
+  }
+}
+```
+
+#### Notes
+
+- `propertyFilters` support typed operators across `string`, `number`, and `boolean` fields
+- `groupBy` supports either a property key or a time bucket object
+- grouped results support sorting and pagination metadata
+- scalar aggregations still return a single-row `results` array with no pagination block
+
+---
+
 ### POST /api/events
 
 Submit one or more events to the platform.
