@@ -1,9 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useTransition, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { UsersTable, UserRow } from '@/components/tables/UsersTable';
+import { useState, useTransition, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { UsersTable, UserRow } from "@/components/tables/UsersTable";
 
 interface Application {
   id: string;
@@ -14,15 +13,15 @@ interface Application {
 interface AttributeFilterRow {
   id: string;
   key: string;
-  operator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains';
+  operator: "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "contains";
   value: string;
-  logic: 'and' | 'or';
+  logic: "and" | "or";
 }
 
 interface EventFilterRow {
   id: string;
   eventName: string;
-  operator: 'performed' | 'not_performed';
+  operator: "performed" | "not_performed";
   count?: string;
   timeWindowDays?: string;
 }
@@ -39,27 +38,27 @@ function uid() {
 }
 
 function emptyAttrFilter(): AttributeFilterRow {
-  return { id: uid(), key: '', operator: 'eq', value: '', logic: 'and' };
+  return { id: uid(), key: "", operator: "eq", value: "", logic: "and" };
 }
 
 function emptyEventFilter(): EventFilterRow {
   return {
     id: uid(),
-    eventName: '',
-    operator: 'performed',
-    count: '',
-    timeWindowDays: '',
+    eventName: "",
+    operator: "performed",
+    count: "",
+    timeWindowDays: "",
   };
 }
 
 const ATTR_OPERATORS = [
-  { value: 'eq', label: '=' },
-  { value: 'neq', label: '≠' },
-  { value: 'gt', label: '>' },
-  { value: 'gte', label: '≥' },
-  { value: 'lt', label: '<' },
-  { value: 'lte', label: '≤' },
-  { value: 'contains', label: 'contains' },
+  { value: "eq", label: "=" },
+  { value: "neq", label: "≠" },
+  { value: "gt", label: ">" },
+  { value: "gte", label: "≥" },
+  { value: "lt", label: "<" },
+  { value: "lte", label: "≤" },
+  { value: "contains", label: "contains" },
 ];
 
 interface UsersPageClientProps {
@@ -69,7 +68,7 @@ interface UsersPageClientProps {
 
 export function UsersPageClient({ applications }: UsersPageClientProps) {
   const [isPending, startTransition] = useTransition();
-  const [selectedApp, setSelectedApp] = useState(applications[0]?.id ?? '');
+  const [selectedApp, setSelectedApp] = useState(applications[0]?.id ?? "");
   const [attrFilters, setAttrFilters] = useState<AttributeFilterRow[]>([
     emptyAttrFilter(),
   ]);
@@ -150,18 +149,18 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
                 if (f.timeWindowDays)
                   ef.timeWindow = {
                     value: parseInt(f.timeWindowDays, 10),
-                    unit: 'days',
+                    unit: "days",
                   };
                 return ef;
               }),
               page: targetPage,
               pageSize: 50,
             };
-            res = await fetch('/api/users/query', {
-              method: 'POST',
+            res = await fetch("/api/users/query", {
+              method: "POST",
               headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': app.apiKey,
+                "Content-Type": "application/json",
+                "X-API-Key": app.apiKey,
               },
               body: JSON.stringify(body),
             });
@@ -169,11 +168,11 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
             // GET /api/users for attribute-only filtering
             const params = new URLSearchParams({
               page: String(targetPage),
-              pageSize: '50',
+              pageSize: "50",
             });
             if (validAttrFilters.length > 0) {
               params.set(
-                'filters',
+                "filters",
                 JSON.stringify(
                   validAttrFilters.map((f) => ({
                     key: f.key.trim(),
@@ -185,7 +184,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
               );
             }
             res = await fetch(`/api/users?${params}`, {
-              headers: { 'X-API-Key': app.apiKey },
+              headers: { "X-API-Key": app.apiKey },
             });
           }
 
@@ -210,7 +209,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
               : { page: 1, pageSize: 50, total: 0, totalPages: 1 },
           );
         } catch {
-          setError('Network error — please try again');
+          setError("Network error — please try again");
         }
       });
     },
@@ -218,7 +217,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
   );
 
   const selectClass =
-    'h-9 rounded-none border border-[#E8E8E8] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]';
+    "h-9 rounded-none border border-[#E8E8E8] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]";
 
   return (
     <div className="space-y-8">
@@ -248,27 +247,26 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
           Attribute filters
         </h2>
         <div className="space-y-2">
-          {attrFilters.map((f) => (
+          {attrFilters.map((f, index) => (
             <div key={f.id} className="flex items-center gap-2">
               {/* Logic selector (AND/OR) — only show after first row */}
-              <select
-                className={`${selectClass} w-16`}
-                value={f.logic}
-                onChange={(e) =>
-                  updateAttrFilter(f.id, {
-                    logic: e.target.value as 'and' | 'or',
-                  })
-                }
-                disabled={f.id === attrFilters[0]?.id}
-                title={
-                  f.id === attrFilters[0]?.id
-                    ? 'First filter has no logic prefix'
-                    : undefined
-                }
-              >
-                <option value="and">AND</option>
-                <option value="or">OR</option>
-              </select>
+              {index === 0 ? (
+                <div className="w-19 shrink-0" aria-hidden="true" />
+              ) : (
+                <select
+                  className={`${selectClass} w-19`}
+                  value={f.logic}
+                  onChange={(e) =>
+                    updateAttrFilter(f.id, {
+                      logic: e.target.value as "and" | "or",
+                    })
+                  }
+                  disabled={isPending}
+                >
+                  <option value="and">AND</option>
+                  <option value="or">OR</option>
+                </select>
+              )}
               <input
                 className={`h-9 w-36 rounded-none border border-[#E8E8E8] bg-white px-3 py-2 text-sm
                   placeholder:text-[#A3A3A3] focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]`}
@@ -284,7 +282,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
                 value={f.operator}
                 onChange={(e) =>
                   updateAttrFilter(f.id, {
-                    operator: e.target.value as AttributeFilterRow['operator'],
+                    operator: e.target.value as AttributeFilterRow["operator"],
                   })
                 }
                 disabled={isPending}
@@ -338,7 +336,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
             className="text-xs text-[#E42313] hover:underline"
             onClick={() => setShowEventFilters((v) => !v)}
           >
-            {showEventFilters ? 'Hide' : 'Expand'}
+            {showEventFilters ? "Hide" : "Expand"}
           </button>
         </div>
 
@@ -357,8 +355,8 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
                     onChange={(e) =>
                       updateEventFilter(f.id, {
                         operator: e.target.value as
-                          | 'performed'
-                          | 'not_performed',
+                          | "performed"
+                          | "not_performed",
                       })
                     }
                     disabled={isPending}
@@ -380,7 +378,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
                     className={`h-9 w-20 rounded-none border border-[#E8E8E8] bg-white px-3 py-2 text-sm
                       placeholder:text-[#A3A3A3] focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]`}
                     placeholder="≥ count"
-                    value={f.count ?? ''}
+                    value={f.count ?? ""}
                     type="number"
                     min="1"
                     onChange={(e) =>
@@ -393,7 +391,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
                     className={`h-9 w-20 rounded-none border border-[#E8E8E8] bg-white px-3 py-2 text-sm
                       placeholder:text-[#A3A3A3] focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]`}
                     placeholder="days"
-                    value={f.timeWindowDays ?? ''}
+                    value={f.timeWindowDays ?? ""}
                     type="number"
                     min="1"
                     onChange={(e) =>
@@ -430,7 +428,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
       {/* Query button */}
       <div>
         <Button onClick={() => runQuery(1)} disabled={isPending || !app}>
-          {isPending ? 'Querying…' : 'Find users'}
+          {isPending ? "Querying…" : "Find users"}
         </Button>
       </div>
 
