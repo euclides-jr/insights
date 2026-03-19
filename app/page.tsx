@@ -3,7 +3,7 @@ import { DashboardLayout } from '@/components/dashboard-layout';
 import { Table, TableHeader, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { prisma } from '@/lib/db/prisma';
-import { formatRelativeTime, formatNumber } from '@/lib/format';
+import { formatBytes, formatRelativeTime, formatNumber } from '@/lib/format';
 import { EventVolumeChart } from '@/components/charts/EventVolumeChart';
 import { EventsByApplicationChart } from '@/components/charts/EventsByApplicationChart';
 import type {
@@ -12,23 +12,57 @@ import type {
 } from '@/lib/charts/types';
 
 export default async function DashboardPage() {
+  const now = new Date();
   // Shared start date for 7-day charts
   const chartStartDate = new Date();
   chartStartDate.setDate(chartStartDate.getDate() - 6);
   chartStartDate.setHours(0, 0, 0, 0);
+  const previousChartStartDate = new Date(chartStartDate);
+  previousChartStartDate.setDate(previousChartStartDate.getDate() - 7);
+  const schemaRecentStart = new Date(now);
+  schemaRecentStart.setDate(schemaRecentStart.getDate() - 30);
+  const applicationRecentStart = new Date(now);
+  applicationRecentStart.setDate(applicationRecentStart.getDate() - 30);
 
   // Fetch metrics + chart data in parallel
   const [
     totalEvents,
     activeApplications,
+    totalApplications,
     eventSchemas,
+    totalSchemas,
+    recentEventCount,
+    previousEventCount,
+    recentApplicationCount,
+    eventsStorageRows,
     recentEvents,
     eventSeriesRows,
     appCountRows,
   ] = await Promise.all([
     prisma.event.count(),
+    prisma.application.count({ where: { status: 'ACTIVE' } }),
     prisma.application.count(),
     prisma.eventSchema.count({ where: { isActive: true } }),
+    prisma.eventSchema.count(),
+    prisma.event.count({
+      where: { timestamp: { gte: chartStartDate } },
+    }),
+    prisma.event.count({
+      where: {
+        timestamp: {
+          gte: previousChartStartDate,
+          lt: chartStartDate,
+        },
+      },
+    }),
+    prisma.application.count({
+      where: {
+        createdAt: { gte: applicationRecentStart },
+      },
+    }),
+    prisma.$queryRaw<{ bytes: bigint | number }[]>(Prisma.sql`
+      SELECT pg_total_relation_size('events') AS bytes
+    `),
     prisma.event.findMany({
       take: 5,
       orderBy: { timestamp: 'desc' },
@@ -80,30 +114,62 @@ export default async function DashboardPage() {
     count: Number(r.count),
   }));
 
+  const storageBytes = Number(eventsStorageRows[0]?.bytes ?? 0);
+  const eventDeltaRatio =
+    previousEventCount > 0
+      ? (recentEventCount - previousEventCount) / previousEventCount
+      : null;
+  const inactiveApplications = Math.max(totalApplications - activeApplications, 0);
+  const inactiveSchemas = Math.max(totalSchemas - eventSchemas, 0);
+  const bytesPerEvent = totalEvents > 0 ? storageBytes / totalEvents : 0;
+
+  function formatDelta(ratio: number | null) {
+    if (ratio === null) {
+      return 'New activity this week';
+    }
+
+    const sign = ratio > 0 ? '+' : '';
+    return `${sign}${(ratio * 100).toFixed(1)}% vs previous 7d`;
+  }
+
   const metrics = [
     {
       label: 'Total Events',
       value: formatNumber(totalEvents),
-      change: '+12.5%',
-      trend: 'up' as const,
+      change: formatDelta(eventDeltaRatio),
+      trend:
+        eventDeltaRatio === null
+          ? ('neutral' as const)
+          : eventDeltaRatio >= 0
+            ? ('up' as const)
+            : ('neutral' as const),
     },
     {
       label: 'Active Applications',
       value: activeApplications.toString(),
-      change: '+3',
-      trend: 'up' as const,
+      change:
+        recentApplicationCount > 0
+          ? `${recentApplicationCount} created in last 30d`
+          : `${inactiveApplications} inactive`,
+      trend: recentApplicationCount > 0 ? ('up' as const) : ('neutral' as const),
     },
     {
       label: 'Event Schemas',
       value: eventSchemas.toString(),
-      change: '0',
+      change:
+        inactiveSchemas > 0
+          ? `${inactiveSchemas} inactive`
+          : `0 inactive`,
       trend: 'neutral' as const,
     },
     {
       label: 'Data Volume',
-      value: '1.8TB',
-      change: '+8.2%',
-      trend: 'up' as const,
+      value: formatBytes(storageBytes),
+      change:
+        totalEvents > 0
+          ? `${formatBytes(Math.round(bytesPerEvent))} per event`
+          : 'No event payloads yet',
+      trend: 'neutral' as const,
     },
   ];
 
