@@ -110,6 +110,9 @@ export type TimeRangeOption = 7 | 30 | 90;
 /** Toggle between table and chart view in the Query Explorer */
 export type ChartViewMode = 'table' | 'chart';
 
+/** Explicit chart style selection for Query Explorer grouped results */
+export type QueryResultChartType = 'auto' | 'bar' | 'line' | 'area';
+
 /**
  * Computed eligibility for chart rendering in the Query Explorer.
  * A result set is eligible when it has ≥1 numeric and ≥1 non-numeric column.
@@ -148,4 +151,5 @@ export interface QueryResultChartProps {
   labelKey: string;
   /** Column name to use as Y-axis values */
   valueKey: string;
+  chartType?: QueryResultChartType;
 }

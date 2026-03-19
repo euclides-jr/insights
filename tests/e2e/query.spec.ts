@@ -259,6 +259,40 @@ test.describe('Query Explorer Page', () => {
     await chartButton.click();
     await expect(chartButton).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('.recharts-responsive-container')).toBeVisible();
+    await expect(page.getByLabel('Chart type')).toHaveValue('auto');
+  });
+
+  test('should allow switching between query chart types', async ({ page }) => {
+    await page
+      .locator('input[type="datetime-local"]')
+      .first()
+      .fill('2020-01-01T00:00');
+    await page
+      .locator('input[type="datetime-local"]')
+      .nth(1)
+      .fill('2030-12-31T23:59');
+
+    await page.locator('input[placeholder="e.g. currency"]').fill('currency');
+    await page.getByRole('button', { name: 'Run Query' }).click();
+    await expect(page.locator('text=/Results \\(/')).toBeVisible({
+      timeout: 10000,
+    });
+
+    await page.getByRole('button', { name: 'Chart' }).click();
+    const chartType = page.getByLabel('Chart type');
+    await expect(chartType).toBeVisible();
+
+    await chartType.selectOption('bar');
+    await expect(chartType).toHaveValue('bar');
+    await expect(page.locator('.recharts-responsive-container')).toBeVisible();
+
+    await chartType.selectOption('line');
+    await expect(chartType).toHaveValue('line');
+    await expect(page.locator('.recharts-responsive-container')).toBeVisible();
+
+    await chartType.selectOption('area');
+    await expect(chartType).toHaveValue('area');
+    await expect(page.locator('.recharts-responsive-container')).toBeVisible();
   });
 
   test('should hydrate query state from URL parameters', async ({ page }) => {

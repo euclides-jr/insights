@@ -1,6 +1,8 @@
 'use client';
 
 import {
+  Area,
+  AreaChart,
   BarChart,
   Bar,
   LineChart,
@@ -34,6 +36,7 @@ export function QueryResultChart({
   results,
   labelKey,
   valueKey,
+  chartType = 'auto',
 }: QueryResultChartProps) {
   if (results.length === 0) {
     return (
@@ -45,7 +48,8 @@ export function QueryResultChart({
   }
 
   // Determine chart type from the first row's labelKey value
-  const useLineChart = isDateLike(results[0][labelKey]);
+  const autoChartType = isDateLike(results[0][labelKey]) ? 'line' : 'bar';
+  const resolvedChartType = chartType === 'auto' ? autoChartType : chartType;
 
   const commonAxisProps = {
     tick: { fill: CHART_COLORS.axisText, fontSize: 12 },
@@ -73,7 +77,7 @@ export function QueryResultChart({
 
   return (
     <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-      {useLineChart ? (
+      {resolvedChartType === 'line' ? (
         <LineChart
           data={results}
           margin={{ top: 4, right: 16, bottom: 4, left: 0 }}
@@ -95,6 +99,29 @@ export function QueryResultChart({
             activeDot={{ r: 4, fill: CHART_COLORS.primary }}
           />
         </LineChart>
+      ) : resolvedChartType === 'area' ? (
+        <AreaChart
+          data={results}
+          margin={{ top: 4, right: 16, bottom: 4, left: 0 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+          <XAxis dataKey={labelKey} {...commonAxisProps} />
+          <YAxis
+            tickFormatter={formatAxisLabel}
+            width={48}
+            {...commonAxisProps}
+          />
+          <Tooltip content={tooltipContent} />
+          <Area
+            type="monotone"
+            dataKey={valueKey}
+            stroke={CHART_COLORS.primary}
+            strokeWidth={2}
+            fill={CHART_COLORS.primary}
+            fillOpacity={0.18}
+            activeDot={{ r: 4, fill: CHART_COLORS.primary }}
+          />
+        </AreaChart>
       ) : (
         <BarChart
           data={results}

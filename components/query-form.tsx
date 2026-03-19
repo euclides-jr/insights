@@ -10,7 +10,11 @@ import { SaveReportDialog } from '@/components/reports/save-report-dialog';
 import { PropertyFilterBuilder } from '@/components/query/property-filter-builder';
 import { QueryFieldPicker } from '@/components/query/query-field-picker';
 import { QueryExportActions } from '@/components/query/query-export-actions';
-import type { ChartViewMode, ChartEligibility } from '@/lib/charts/types';
+import type {
+  ChartViewMode,
+  ChartEligibility,
+  QueryResultChartType,
+} from '@/lib/charts/types';
 import type {
   PropertyFilter,
   QueryDefinition,
@@ -104,6 +108,7 @@ export function QueryForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [chartView, setChartView] = useState<ChartViewMode>('table');
+  const [chartType, setChartType] = useState<QueryResultChartType>('auto');
   const [chartEligibility, setChartEligibility] = useState<ChartEligibility>({
     eligible: false,
     reason: 'Run a query first',
@@ -297,6 +302,7 @@ export function QueryForm({
         setResult(data);
         // Always reset to table view and recompute eligibility on new results
         setChartView('table');
+        setChartType('auto');
         setChartEligibility(computeEligibility(data.results ?? []));
       }
     } catch {
@@ -639,6 +645,22 @@ export function QueryForm({
                   Chart
                 </button>
               </div>
+              {chartEligibility.eligible ? (
+                <select
+                  value={chartType}
+                  onChange={(e) =>
+                    setChartType(e.target.value as QueryResultChartType)
+                  }
+                  className={`${selectInputClass} h-8 min-w-32 py-1`}
+                  style={selectChevronStyle}
+                  aria-label="Chart type"
+                >
+                  <option value="auto">Auto chart</option>
+                  <option value="bar">Bar chart</option>
+                  <option value="line">Line chart</option>
+                  <option value="area">Area chart</option>
+                </select>
+              ) : null}
             </div>
           </div>
 
@@ -648,6 +670,7 @@ export function QueryForm({
                 results={result.results}
                 labelKey={labelKey}
                 valueKey={valueKey}
+                chartType={chartType}
               />
             </div>
           ) : (
