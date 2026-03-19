@@ -24,10 +24,11 @@ Implemented in the current codebase:
 1. Funnel CRUD, execution APIs, dashboard UI, and regression coverage
 2. Retention execution API, dashboard page, and regression coverage
 3. Saved report CRUD APIs, reports list/detail pages, and save-entry integration from query, funnel, and retention views
+4. Workspace invitation, acceptance, member listing, role update/removal APIs, and the first admin members page
 
 Still pending from this umbrella feature:
 
-1. Team invitations and multi-user RBAC management UI/API
+1. Role-aware restrictions across the rest of the dashboard’s mutating surfaces
 2. Audit log writes and admin audit surfaces
 
 ## User Story 1 - Funnel Analysis (Priority: P1)
@@ -145,7 +146,7 @@ An admin needs visibility into who changed application settings, API keys, schem
 ## Current Deviations
 
 - Saved reports reopen through `/reports/[id]` and source-page links. Query reports currently preserve configuration for reopening, but the query explorer does not yet auto-hydrate its form directly from report config via URL params.
-- The role model exists in schema/helpers, but invitation, member-management, and audit-log user stories remain unimplemented.
+- The member-management backend and `/settings/members` page exist, but role-aware UI restrictions across the rest of the dashboard and the audit-log story remain incomplete.
 
 ## Out of Scope
 

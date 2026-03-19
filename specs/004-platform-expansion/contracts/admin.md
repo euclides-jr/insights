@@ -160,6 +160,18 @@ Remove a workspace member.
 Business rules:
 
 - last remaining admin cannot be removed
+- admins cannot remove themselves
+
+---
+
+## UI Notes
+
+Current dashboard implementation also includes:
+
+- `/settings/members` admin-only page
+- invitation creation dialog with invite URL display
+- member table with inline role change and removal
+- pending invitation table with revoke action
 
 ---
 

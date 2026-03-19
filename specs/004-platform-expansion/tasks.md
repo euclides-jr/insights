@@ -93,13 +93,13 @@
 
 **Independent Test**: Invite viewer/admin users and verify access differences across UI and APIs.
 
-- [ ] T026 [P] [US4] Implement invitation create/accept/revoke and membership role-change logic in `lib/services/membership-service.ts`
-- [ ] T027 [P] [US4] Create `app/api/invitations/route.ts`, `app/api/invitations/accept/route.ts`, and `app/api/invitations/[id]/revoke/route.ts`
-- [ ] T028 [P] [US4] Create `app/api/members/route.ts` and `app/api/members/[userId]/route.ts`
-- [ ] T029 [US4] Create `components/settings/InviteMemberDialog.tsx` and `components/settings/MemberTable.tsx`
-- [ ] T030 [US4] Create `app/settings/members/page.tsx`
+- [x] T026 [P] [US4] Implement invitation create/accept/revoke and membership role-change logic in `lib/services/membership-service.ts`
+- [x] T027 [P] [US4] Create `app/api/invitations/route.ts`, `app/api/invitations/accept/route.ts`, and `app/api/invitations/[id]/revoke/route.ts`
+- [x] T028 [P] [US4] Create `app/api/members/route.ts` and `app/api/members/[userId]/route.ts`
+- [x] T029 [US4] Create `components/settings/InviteMemberDialog.tsx` and `components/settings/MemberTable.tsx`
+- [x] T030 [US4] Create `app/settings/members/page.tsx`
 - [ ] T031 [US4] Add role-aware UI hiding/disabled states across mutating surfaces: applications, schemas, webhooks, funnels, reports
-- [ ] T032 [P] [US4] Add `tests/unit/roles.test.ts`, `tests/api/members.test.ts`, and `tests/e2e/admin-rbac.spec.ts`
+- [x] T032 [P] [US4] Add `tests/unit/roles.test.ts`, `tests/api/members.test.ts`, and `tests/e2e/admin-rbac.spec.ts`
 
 **Checkpoint**: Multi-user dashboard usage is supported and protected.
 
@@ -172,5 +172,5 @@
 | 8 — Polish | — | T039–T042 | T039, T040 |
 
 **Total**: 42 tasks across 8 phases  
-**Completed**: T001–T025  
-**Next active scope**: Phase 6 — RBAC & invitations
+**Completed**: T001–T030, T032  
+**Next active scope**: T031 plus Phase 7 — audit logging

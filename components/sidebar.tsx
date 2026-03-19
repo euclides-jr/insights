@@ -15,6 +15,7 @@ const navigation = [
   { name: 'Funnels', href: '/funnels' },
   { name: 'Retention', href: '/retention' },
   { name: 'Reports', href: '/reports' },
+  { name: 'Members', href: '/settings/members' },
   { name: 'Users', href: '/users' },
   { name: 'Data Quality', href: '/quality' },
   { name: 'Webhooks', href: '/webhooks' },

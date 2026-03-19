@@ -73,10 +73,11 @@ Completed:
 2. Funnels end-to-end: APIs, service layer, dashboard CRUD/runner UI, and tests
 3. Retention end-to-end: service, API, dashboard page, and tests
 4. Saved reports end-to-end: CRUD service/routes, list/detail pages, and save entry points from query/funnel/retention
+5. First Phase 6 slice: invitations/member-management APIs, members settings page, and focused regression coverage
 
 Remaining:
 
-1. Roles/invitations delivery
+1. Role-aware restrictions across the broader dashboard
 2. Audit logging delivery
 3. Cross-cutting polish tasks
 
@@ -277,11 +278,13 @@ Persist reusable analysis definitions.
 
 Add multi-user dashboard support.
 
-### Expected Technical Approach
+### Current Technical Approach
 
-- Keep Better Auth as the identity provider
-- Add local role assignment table keyed to Better Auth user ids
-- Enforce authorization in server actions/API routes and page loaders
+- Better Auth remains the identity provider
+- Local membership and invitation records are keyed to Better Auth user ids
+- Admin-only invitation/member routes are implemented
+- `/settings/members` provides invitation creation, invitation revocation, member listing, role changes, and member removal
+- Broader role-aware UI restrictions outside member management are still pending
 
 ## Phase 7 — User Story 5: Audit Log (P5)
 
