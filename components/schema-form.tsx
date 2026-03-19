@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { selectChevronStyle, selectInputClass } from '@/components/ui/select';
 
 type PropertyType = 'string' | 'number' | 'boolean' | 'object' | 'array';
 
@@ -61,6 +62,7 @@ export function SchemaForm({
   );
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const compactSelectClass = `${selectInputClass} h-8 rounded-none px-2 py-1 pr-8 text-xs focus:ring-0`;
 
   // ─── Property row helpers ────────────────────────────────────────────────
 
@@ -171,7 +173,8 @@ export function SchemaForm({
             <select
               value={applicationId}
               onChange={(e) => setApplicationId(e.target.value)}
-              className="w-full h-10 px-3 border border-[#E8E8E8] bg-white text-sm focus:outline-none focus:border-[#0D0D0D] transition-colors"
+              className={selectInputClass}
+              style={selectChevronStyle}
             >
               {applications.map((app) => (
                 <option key={app.id} value={app.id}>
@@ -252,7 +255,8 @@ export function SchemaForm({
                     type: e.target.value as PropertyType,
                   })
                 }
-                className="w-full h-8 px-2 border border-[#E8E8E8] bg-white text-xs focus:outline-none focus:border-[#0D0D0D] transition-colors"
+                className={compactSelectClass}
+                style={selectChevronStyle}
               >
                 {(
                   ['string', 'number', 'boolean', 'object', 'array'] as const

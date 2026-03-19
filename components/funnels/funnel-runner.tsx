@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { selectChevronStyle, selectInputClass } from '@/components/ui/select';
 import { FunnelResults, type FunnelResultStep } from '@/components/funnels/funnel-results';
 import { SaveReportDialog } from '@/components/reports/save-report-dialog';
 
@@ -87,7 +88,8 @@ export function FunnelRunner({
             </label>
             <select
               aria-label="Saved Funnel"
-              className="h-10 w-full rounded-md border border-[#E8E8E8] bg-white px-3 py-2 text-sm"
+              className={selectInputClass}
+              style={selectChevronStyle}
               value={selectedFunnelId}
               onChange={(event) => setSelectedFunnelId(event.target.value)}
               disabled={isRunning || funnels.length === 0}
@@ -106,7 +108,8 @@ export function FunnelRunner({
             </label>
             <select
               aria-label="Time Window"
-              className="h-10 w-full rounded-md border border-[#E8E8E8] bg-white px-3 py-2 text-sm"
+              className={selectInputClass}
+              style={selectChevronStyle}
               value={timeWindowValue}
               onChange={(event) => setTimeWindowValue(Number(event.target.value))}
               disabled={isRunning || funnels.length === 0}

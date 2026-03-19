@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { selectChevronStyle, selectInputClass } from '@/components/ui/select';
 
 interface Application {
   id: string;
@@ -180,8 +181,7 @@ export function SegmentForm({
   // ─── Render ──────────────────────────────────────────────────────────────
 
   const labelClass = 'block text-xs font-medium text-[#7A7A7A] mb-1';
-  const inputClass =
-    'w-full h-8 px-2.5 text-sm border border-[#E8E8E8] bg-white focus:outline-none focus:border-[#0D0D0D]';
+  const compactSelectClass = `${selectInputClass} h-8 rounded-none px-2.5 py-1 pr-9 focus:ring-0`;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -192,7 +192,8 @@ export function SegmentForm({
           <select
             value={applicationId}
             onChange={(e) => setApplicationId(e.target.value)}
-            className={inputClass}
+            className={compactSelectClass}
+            style={selectChevronStyle}
           >
             {applications.map((a) => (
               <option key={a.id} value={a.id}>
@@ -364,7 +365,8 @@ export function SegmentForm({
                           timeWindowUnit: e.target.value as 'days' | 'hours',
                         })
                       }
-                      className="h-8 px-2 text-sm border border-[#E8E8E8] bg-white"
+                      className={`${compactSelectClass} w-auto`}
+                      style={selectChevronStyle}
                     >
                       <option value="days">days</option>
                       <option value="hours">hours</option>

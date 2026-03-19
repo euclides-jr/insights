@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { selectChevronStyle, selectInputClass } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -99,7 +100,8 @@ export function InviteMemberDialog() {
                 </label>
                 <select
                   aria-label="Role"
-                  className="h-10 w-full rounded-md border border-[#E8E8E8] bg-white px-3 py-2 text-sm"
+                  className={selectInputClass}
+                  style={selectChevronStyle}
                   value={role}
                   onChange={(event) =>
                     setRole(
@@ -120,7 +122,8 @@ export function InviteMemberDialog() {
                 </label>
                 <select
                   aria-label="Expires In"
-                  className="h-10 w-full rounded-md border border-[#E8E8E8] bg-white px-3 py-2 text-sm"
+                  className={selectInputClass}
+                  style={selectChevronStyle}
                   value={expiresInDays}
                   onChange={(event) => setExpiresInDays(Number(event.target.value))}
                   disabled={isSubmitting}

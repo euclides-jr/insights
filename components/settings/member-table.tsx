@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { selectChevronStyle, selectInputClass } from "@/components/ui/select";
 import { Table, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
@@ -77,6 +78,7 @@ export function MemberTable({
   invitations: InvitationRow[];
   currentUserId: string;
 }) {
+  const compactSelectClass = `${selectInputClass} h-9 w-auto py-1 pr-9`;
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -352,7 +354,8 @@ export function MemberTable({
                 <div className="flex items-center gap-2">
                   <select
                     aria-label={`Role for ${member.email}`}
-                    className="h-9 rounded-md border border-[#E8E8E8] bg-white px-2 text-sm"
+                    className={compactSelectClass}
+                    style={selectChevronStyle}
                     value={member.role}
                     onChange={(event) => {
                       const nextRole = event.target.value as MemberRow["role"];

@@ -2,6 +2,10 @@
 
 import { useState, useTransition, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  selectChevronStyle,
+  selectInputSquareClass,
+} from "@/components/ui/select";
 import { UsersTable, UserRow } from "@/components/tables/UsersTable";
 
 interface Application {
@@ -216,8 +220,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
     [app, attrFilters, eventFilters, showEventFilters],
   );
 
-  const selectClass =
-    "h-9 rounded-none border border-[#E8E8E8] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]";
+  const selectClass = `${selectInputSquareClass} h-9 w-auto py-1 pr-9`;
 
   return (
     <div className="space-y-8">
@@ -229,6 +232,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
           </label>
           <select
             className={selectClass}
+            style={selectChevronStyle}
             value={selectedApp}
             onChange={(e) => setSelectedApp(e.target.value)}
           >
@@ -255,6 +259,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
               ) : (
                 <select
                   className={`${selectClass} w-19`}
+                  style={selectChevronStyle}
                   value={f.logic}
                   onChange={(e) =>
                     updateAttrFilter(f.id, {
@@ -279,6 +284,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
               />
               <select
                 className={`${selectClass} w-28`}
+                style={selectChevronStyle}
                 value={f.operator}
                 onChange={(e) =>
                   updateAttrFilter(f.id, {
@@ -351,6 +357,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
                 <div key={f.id} className="flex items-center gap-2 flex-wrap">
                   <select
                     className={`${selectClass} w-36`}
+                    style={selectChevronStyle}
                     value={f.operator}
                     onChange={(e) =>
                       updateEventFilter(f.id, {

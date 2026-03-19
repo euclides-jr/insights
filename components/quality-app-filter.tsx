@@ -1,6 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { selectChevronStyle, selectInputClass } from '@/components/ui/select';
 
 interface Application {
   id: string;
@@ -32,7 +34,8 @@ export function QualityAppFilter({
     <select
       value={selectedId}
       onChange={handleChange}
-      className="h-9 px-3 border border-[#E8E8E8] bg-white text-sm focus:outline-none focus:border-[#0D0D0D] transition-colors"
+      className={cn(selectInputClass, 'h-9 rounded-none py-1')}
+      style={selectChevronStyle}
     >
       <option value="">All Applications</option>
       {applications.map((app) => (

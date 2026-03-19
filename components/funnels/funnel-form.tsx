@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
+import { selectChevronStyle, selectInputClass } from '@/components/ui/select';
 
 type ApplicationOption = {
   id: string;
@@ -136,7 +137,8 @@ export function FunnelForm({
           Application
         </label>
         <select
-          className="h-10 w-full rounded-md border border-[#E8E8E8] bg-white px-3 py-2 text-sm"
+          className={selectInputClass}
+          style={selectChevronStyle}
           value={applicationId}
           onChange={(e) => setApplicationId(e.target.value)}
           disabled={isSubmitting}

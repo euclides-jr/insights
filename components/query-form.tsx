@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { selectChevronStyle, selectInputClass } from '@/components/ui/select';
 import { QueryResultChart } from '@/components/charts/QueryResultChart';
 import { SaveReportDialog } from '@/components/reports/save-report-dialog';
 import type { ChartViewMode, ChartEligibility } from '@/lib/charts/types';
@@ -148,7 +149,8 @@ export function QueryForm({ applications }: { applications: Application[] }) {
             <select
               value={applicationId}
               onChange={(e) => setApplicationId(e.target.value)}
-              className="w-full h-10 px-3 border border-[#E8E8E8] text-sm bg-white focus:outline-none focus:border-[#0D0D0D]"
+              className={selectInputClass}
+              style={selectChevronStyle}
             >
               {applications.map((app) => (
                 <option key={app.id} value={app.id}>
@@ -211,7 +213,8 @@ export function QueryForm({ applications }: { applications: Application[] }) {
                   e.target.value as 'count' | 'unique_users' | 'avg' | 'sum',
                 )
               }
-              className="w-full h-10 px-3 border border-[#E8E8E8] text-sm bg-white focus:outline-none focus:border-[#0D0D0D]"
+              className={selectInputClass}
+              style={selectChevronStyle}
             >
               <option value="count">Count events</option>
               <option value="unique_users">Count unique users</option>

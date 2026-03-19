@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { selectChevronStyle, selectInputClass } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -134,7 +135,8 @@ function WebhookForm({
           onChange={(e) =>
             setValues((v) => ({ ...v, applicationId: e.target.value }))
           }
-          className="flex h-10 w-full border border-[#E8E8E8] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]"
+          className={selectInputClass}
+          style={selectChevronStyle}
         >
           {applications.map((a) => (
             <option key={a.id} value={a.id}>

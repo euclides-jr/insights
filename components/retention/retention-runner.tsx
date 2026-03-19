@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { selectChevronStyle, selectInputClass } from '@/components/ui/select';
 import { SaveReportDialog } from '@/components/reports/save-report-dialog';
 import {
   RetentionGrid,
@@ -80,7 +81,8 @@ export function RetentionRunner({
             </label>
             <select
               aria-label="Application"
-              className="h-10 w-full rounded-md border border-[#E8E8E8] bg-white px-3 py-2 text-sm"
+              className={selectInputClass}
+              style={selectChevronStyle}
               value={applicationId}
               onChange={(event) => setApplicationId(event.target.value)}
               disabled={isRunning || applications.length === 0}
@@ -99,7 +101,8 @@ export function RetentionRunner({
             </label>
             <select
               aria-label="Interval"
-              className="h-10 w-full rounded-md border border-[#E8E8E8] bg-white px-3 py-2 text-sm"
+              className={selectInputClass}
+              style={selectChevronStyle}
               value={interval}
               onChange={(event) =>
                 setInterval(event.target.value as 'daily' | 'weekly')
@@ -117,7 +120,8 @@ export function RetentionRunner({
             </label>
             <select
               aria-label="Window Size"
-              className="h-10 w-full rounded-md border border-[#E8E8E8] bg-white px-3 py-2 text-sm"
+              className={selectInputClass}
+              style={selectChevronStyle}
               value={windowValue}
               onChange={(event) => setWindowValue(Number(event.target.value))}
               disabled={isRunning}
@@ -136,7 +140,8 @@ export function RetentionRunner({
             </label>
             <select
               aria-label="Window Unit"
-              className="h-10 w-full rounded-md border border-[#E8E8E8] bg-white px-3 py-2 text-sm"
+              className={selectInputClass}
+              style={selectChevronStyle}
               value={windowUnit}
               onChange={(event) =>
                 setWindowUnit(event.target.value as 'days' | 'weeks')

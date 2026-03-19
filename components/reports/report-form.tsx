@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { selectChevronStyle, selectInputClass } from '@/components/ui/select';
 
 type ApplicationOption = {
   id: string;
@@ -126,7 +127,8 @@ export function ReportForm({
           </label>
           <select
             aria-label="Report Type"
-            className="h-10 w-full rounded-md border border-[#E8E8E8] bg-white px-3 py-2 text-sm"
+            className={selectInputClass}
+            style={selectChevronStyle}
             value={reportType}
             onChange={(event) =>
               setReportType(
@@ -147,7 +149,8 @@ export function ReportForm({
           </label>
           <select
             aria-label="Application"
-            className="h-10 w-full rounded-md border border-[#E8E8E8] bg-white px-3 py-2 text-sm"
+            className={selectInputClass}
+            style={selectChevronStyle}
             value={applicationId}
             onChange={(event) => setApplicationId(event.target.value)}
             disabled={isSubmitting}
