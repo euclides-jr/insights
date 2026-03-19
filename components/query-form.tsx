@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input';
 import { selectChevronStyle, selectInputClass } from '@/components/ui/select';
 import { QueryResultChart } from '@/components/charts/QueryResultChart';
 import { SaveReportDialog } from '@/components/reports/save-report-dialog';
+import { PropertyFilterBuilder } from '@/components/query/property-filter-builder';
 import type { ChartViewMode, ChartEligibility } from '@/lib/charts/types';
+import type { PropertyFilter } from '@/lib/validations/query-schemas';
 
 interface Application {
   id: string;
@@ -19,6 +21,11 @@ interface QueryResult {
   totalCount: number;
   executionTimeMs: number;
 }
+
+type EditablePropertyFilter = Omit<PropertyFilter, 'value'> & {
+  id: string;
+  value?: string | number | boolean | string[] | number[];
+};
 
 export function QueryForm({ applications }: { applications: Application[] }) {
   const [applicationId, setApplicationId] = useState(applications[0]?.id ?? '');
@@ -33,7 +40,14 @@ export function QueryForm({ applications }: { applications: Application[] }) {
     'count' | 'unique_users' | 'avg' | 'sum'
   >('count');
   const [aggregationField, setAggregationField] = useState('');
+  const [groupMode, setGroupMode] = useState<'property' | 'time'>('property');
   const [groupBy, setGroupBy] = useState('');
+  const [timeBucket, setTimeBucket] = useState<'hour' | 'day' | 'week' | 'month'>(
+    'day',
+  );
+  const [propertyFilters, setPropertyFilters] = useState<EditablePropertyFilter[]>(
+    [],
+  );
 
   const [result, setResult] = useState<QueryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +95,70 @@ export function QueryForm({ applications }: { applications: Application[] }) {
   // We pass the app's API key via the hidden input below.
   const selectedApp = applications.find((a) => a.id === applicationId);
 
+  function normalizePropertyFilters() {
+    return propertyFilters
+      .filter((filter) => filter.key.trim())
+      .map((filter, index) => {
+        const base = {
+          key: filter.key.trim(),
+          valueType: filter.valueType,
+          operator: filter.operator,
+          ...(index > 0 ? { logic: filter.logic ?? 'and' } : {}),
+        };
+
+        if (filter.operator === 'exists' || filter.operator === 'not_exists') {
+          return base;
+        }
+
+        if (filter.valueType === 'boolean') {
+          return {
+            ...base,
+            value: Boolean(filter.value),
+          };
+        }
+
+        if (filter.valueType === 'number') {
+          if (filter.operator === 'in' || filter.operator === 'not_in') {
+            const values = String(filter.value ?? '')
+              .split(',')
+              .map((value) => value.trim())
+              .filter(Boolean)
+              .map(Number);
+            return {
+              ...base,
+              value: values,
+            };
+          }
+
+          return {
+            ...base,
+            value:
+              filter.value === '' || filter.value === undefined
+                ? undefined
+                : Number(filter.value),
+            ...(filter.operator === 'between'
+              ? { secondValue: filter.secondValue }
+              : {}),
+          };
+        }
+
+        if (filter.operator === 'in' || filter.operator === 'not_in') {
+          return {
+            ...base,
+            value: String(filter.value ?? '')
+              .split(',')
+              .map((value) => value.trim())
+              .filter(Boolean),
+          };
+        }
+
+        return {
+          ...base,
+          value: String(filter.value ?? ''),
+        };
+      });
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!selectedApp) return;
@@ -99,9 +177,20 @@ export function QueryForm({ applications }: { applications: Application[] }) {
       aggregation,
     };
     if (eventName) body.eventName = eventName;
-    if (groupBy) body.groupBy = groupBy;
+    if (groupMode === 'property' && groupBy) {
+      body.groupBy = groupBy;
+    }
+    if (groupMode === 'time') {
+      body.groupBy = {
+        kind: 'time',
+        bucket: timeBucket,
+      };
+    }
     if (needsField && aggregationField)
       body.aggregationField = aggregationField;
+    if (propertyFilters.length > 0) {
+      body.propertyFilters = normalizePropertyFilters();
+    }
 
     try {
       const res = await fetch('/api/query', {
@@ -243,18 +332,63 @@ export function QueryForm({ applications }: { applications: Application[] }) {
           {/* Group By */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-[#0D0D0D] font-(family-name:--font-space-grotesk)">
-              Group By
+              Grouping Mode
               <span className="ml-1 text-[#7A7A7A] font-normal">
                 (optional)
               </span>
             </label>
-            <Input
-              value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value)}
-              placeholder="e.g. currency"
-            />
+            <select
+              value={groupMode}
+              onChange={(e) =>
+                setGroupMode(e.target.value as 'property' | 'time')
+              }
+              className={selectInputClass}
+              style={selectChevronStyle}
+              aria-label="Grouping mode"
+            >
+              <option value="property">Property</option>
+              <option value="time">Time bucket</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-[#0D0D0D] font-(family-name:--font-space-grotesk)">
+              {groupMode === 'time' ? 'Time Bucket' : 'Group By'}
+              <span className="ml-1 text-[#7A7A7A] font-normal">
+                (optional)
+              </span>
+            </label>
+            {groupMode === 'time' ? (
+              <select
+                value={timeBucket}
+                onChange={(e) =>
+                  setTimeBucket(
+                    e.target.value as 'hour' | 'day' | 'week' | 'month',
+                  )
+                }
+                className={selectInputClass}
+                style={selectChevronStyle}
+                aria-label="Time bucket"
+              >
+                <option value="hour">Hour</option>
+                <option value="day">Day</option>
+                <option value="week">Week</option>
+                <option value="month">Month</option>
+              </select>
+            ) : (
+              <Input
+                value={groupBy}
+                onChange={(e) => setGroupBy(e.target.value)}
+                placeholder="e.g. currency"
+              />
+            )}
           </div>
         </div>
+
+        <PropertyFilterBuilder
+          filters={propertyFilters}
+          onChange={setPropertyFilters}
+        />
 
         <div className="flex items-center gap-4 pt-2">
           <Button type="submit" disabled={loading}>
@@ -268,8 +402,11 @@ export function QueryForm({ applications }: { applications: Application[] }) {
               setError(null);
               setEventName('');
               setGroupBy('');
+              setGroupMode('property');
+              setTimeBucket('day');
               setAggregationField('');
               setAggregation('count');
+              setPropertyFilters([]);
             }}
           >
             Clear
@@ -292,7 +429,14 @@ export function QueryForm({ applications }: { applications: Application[] }) {
                 endDate: new Date(endDate).toISOString(),
                 aggregation,
                 aggregationField: aggregationField || undefined,
-                groupBy: groupBy || undefined,
+                groupBy:
+                  groupMode === 'time'
+                    ? { kind: 'time', bucket: timeBucket }
+                    : groupBy || undefined,
+                propertyFilters:
+                  propertyFilters.length > 0
+                    ? normalizePropertyFilters()
+                    : undefined,
               },
             }}
             buttonLabel="Save Current View"

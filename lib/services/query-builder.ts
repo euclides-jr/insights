@@ -1,35 +1,22 @@
 import { prisma } from '@/lib/db/prisma';
+import type {
+  PropertyFilter,
+  QueryDefinition,
+} from '@/lib/validations/query-schemas';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export interface QueryRequest {
-  applicationId: string;
-  eventName?: string;
-  startDate: string; // ISO 8601
-  endDate: string; // ISO 8601
-  filters?: Record<string, string | number | boolean>;
-  aggregation?: 'count' | 'unique_users' | 'avg' | 'sum';
-  aggregationField?: string; // JSON property key; required for avg/sum
-  groupBy?: string; // JSON property key to group results by
-  limit?: number; // max 10000, default 1000
-}
+export type QueryRequest = QueryDefinition;
 
 export interface QueryResult {
   results: Record<string, unknown>[];
   totalCount: number;
   executionTimeMs: number;
+  pagination?: {
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Allow only alphanumeric + underscore + dot in identifiers used as
- * JSON property keys in raw SQL to prevent injection.
- */
 function sanitizePropertyKey(key: string): string {
   if (!/^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(key)) {
     throw new Error(
@@ -39,25 +26,228 @@ function sanitizePropertyKey(key: string): string {
   return key;
 }
 
-/**
- * Serialise BigInt values returned by PostgreSQL COUNT / SUM to numbers.
- */
 function serialiseRow(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(row)) {
-    out[k] = typeof v === 'bigint' ? Number(v) : v;
+    if (typeof v === 'bigint') {
+      out[k] = Number(v);
+      continue;
+    }
+
+    if (v instanceof Date) {
+      out[k] = v.toISOString();
+      continue;
+    }
+
+    out[k] = v;
   }
   return out;
 }
 
-// ---------------------------------------------------------------------------
-// Core query execution
-// ---------------------------------------------------------------------------
+function buildAggregationSql(req: QueryRequest) {
+  if (req.aggregation === 'unique_users') {
+    return `COUNT(DISTINCT "userId") AS "value"`;
+  }
+
+  if (req.aggregation === 'avg' && req.aggregationField) {
+    const field = sanitizePropertyKey(req.aggregationField);
+    return `AVG((properties->>'${field}')::numeric) AS "value"`;
+  }
+
+  if (req.aggregation === 'sum' && req.aggregationField) {
+    const field = sanitizePropertyKey(req.aggregationField);
+    return `SUM((properties->>'${field}')::numeric) AS "value"`;
+  }
+
+  return `COUNT(*) AS "value"`;
+}
+
+function buildPropertyFilterSql(
+  filter: PropertyFilter,
+  params: unknown[],
+  startIndex: number,
+) {
+  const key = sanitizePropertyKey(filter.key);
+  const jsonAccessor = `properties->'${key}'`;
+  const textAccessor = `properties->>'${key}'`;
+  let idx = startIndex;
+
+  const pushParam = (value: unknown) => {
+    params.push(value);
+    idx += 1;
+    return `$${idx}`;
+  };
+
+  let expression: string;
+
+  if (filter.valueType === 'string') {
+    switch (filter.operator) {
+      case 'eq':
+        expression = `${textAccessor} = ${pushParam(filter.value)}`;
+        break;
+      case 'neq':
+        expression = `${textAccessor} <> ${pushParam(filter.value)}`;
+        break;
+      case 'contains':
+        expression = `${textAccessor} ILIKE ${pushParam(`%${String(filter.value)}%`)}`;
+        break;
+      case 'not_contains':
+        expression = `${textAccessor} NOT ILIKE ${pushParam(`%${String(filter.value)}%`)}`;
+        break;
+      case 'in': {
+        const values = Array.isArray(filter.value) ? filter.value : [];
+        const placeholders = values.map((value) => pushParam(value)).join(', ');
+        expression = `${textAccessor} IN (${placeholders || "''"})`;
+        break;
+      }
+      case 'not_in': {
+        const values = Array.isArray(filter.value) ? filter.value : [];
+        const placeholders = values.map((value) => pushParam(value)).join(', ');
+        expression = `${textAccessor} NOT IN (${placeholders || "''"})`;
+        break;
+      }
+      case 'exists':
+        expression = `properties ? '${key}'`;
+        break;
+      case 'not_exists':
+        expression = `NOT (properties ? '${key}')`;
+        break;
+      default:
+        throw new Error(`Unsupported string operator: ${filter.operator}`);
+    }
+  } else if (filter.valueType === 'number') {
+    const numericPrefix = `(jsonb_typeof(${jsonAccessor}) = 'number' AND `;
+    switch (filter.operator) {
+      case 'eq':
+        expression = `${numericPrefix}(${textAccessor})::numeric = ${pushParam(filter.value)})`;
+        break;
+      case 'neq':
+        expression = `${numericPrefix}(${textAccessor})::numeric <> ${pushParam(filter.value)})`;
+        break;
+      case 'gt':
+        expression = `${numericPrefix}(${textAccessor})::numeric > ${pushParam(filter.value)})`;
+        break;
+      case 'gte':
+        expression = `${numericPrefix}(${textAccessor})::numeric >= ${pushParam(filter.value)})`;
+        break;
+      case 'lt':
+        expression = `${numericPrefix}(${textAccessor})::numeric < ${pushParam(filter.value)})`;
+        break;
+      case 'lte':
+        expression = `${numericPrefix}(${textAccessor})::numeric <= ${pushParam(filter.value)})`;
+        break;
+      case 'between':
+        expression = `${numericPrefix}(${textAccessor})::numeric BETWEEN ${pushParam(filter.value)} AND ${pushParam(filter.secondValue)})`;
+        break;
+      case 'in': {
+        const values = Array.isArray(filter.value) ? filter.value : [];
+        const placeholders = values.map((value) => pushParam(value)).join(', ');
+        expression = `${numericPrefix}(${textAccessor})::numeric IN (${placeholders || 'NULL'}))`;
+        break;
+      }
+      case 'not_in': {
+        const values = Array.isArray(filter.value) ? filter.value : [];
+        const placeholders = values.map((value) => pushParam(value)).join(', ');
+        expression = `${numericPrefix}(${textAccessor})::numeric NOT IN (${placeholders || 'NULL'}))`;
+        break;
+      }
+      case 'exists':
+        expression = `properties ? '${key}'`;
+        break;
+      case 'not_exists':
+        expression = `NOT (properties ? '${key}')`;
+        break;
+      default:
+        throw new Error(`Unsupported number operator: ${filter.operator}`);
+    }
+  } else {
+    switch (filter.operator) {
+      case 'eq':
+        expression = `(jsonb_typeof(${jsonAccessor}) = 'boolean' AND (${textAccessor})::boolean = ${pushParam(filter.value)})`;
+        break;
+      case 'neq':
+        expression = `(jsonb_typeof(${jsonAccessor}) = 'boolean' AND (${textAccessor})::boolean <> ${pushParam(filter.value)})`;
+        break;
+      case 'exists':
+        expression = `properties ? '${key}'`;
+        break;
+      case 'not_exists':
+        expression = `NOT (properties ? '${key}')`;
+        break;
+      default:
+        throw new Error(`Unsupported boolean operator: ${filter.operator}`);
+    }
+  }
+
+  return { sql: expression, nextIndex: idx };
+}
+
+function buildPropertyFiltersClause(
+  filters: PropertyFilter[] | undefined,
+  params: unknown[],
+  startIndex: number,
+) {
+  if (!filters || filters.length === 0) {
+    return { sql: '', nextIndex: startIndex };
+  }
+
+  let idx = startIndex;
+  let sql = '';
+
+  for (const [filterIndex, filter] of filters.entries()) {
+    const built = buildPropertyFilterSql(filter, params, idx);
+    idx = built.nextIndex;
+    if (filterIndex === 0) {
+      sql += `(${built.sql})`;
+      continue;
+    }
+
+    const logic = filter.logic === 'or' ? 'OR' : 'AND';
+    sql += ` ${logic} (${built.sql})`;
+  }
+
+  return { sql: `(${sql})`, nextIndex: idx };
+}
+
+function buildGroupBySql(req: QueryRequest) {
+  if (!req.groupBy) {
+    return null;
+  }
+
+  if (req.groupBy.kind === 'time') {
+    return {
+      select: `date_trunc('${req.groupBy.bucket}', "timestamp") AS "group"`,
+      groupBy: `date_trunc('${req.groupBy.bucket}', "timestamp")`,
+      defaultOrderBy: `"group" ASC`,
+    };
+  }
+
+  const key = sanitizePropertyKey(req.groupBy.key);
+  return {
+    select: `properties->>'${key}' AS "group"`,
+    groupBy: `properties->>'${key}'`,
+    defaultOrderBy: `"value" DESC`,
+  };
+}
+
+function buildOrderBySql(req: QueryRequest, grouped: boolean) {
+  if (!grouped) {
+    return '';
+  }
+
+  if (req.sort) {
+    const field = req.sort.field === 'group' ? `"group"` : `"value"`;
+    const direction = req.sort.direction.toUpperCase();
+    return `ORDER BY ${field} ${direction}`;
+  }
+
+  const groupedSql = buildGroupBySql(req);
+  return groupedSql ? `ORDER BY ${groupedSql.defaultOrderBy}` : '';
+}
 
 export async function executeQuery(req: QueryRequest): Promise<QueryResult> {
   const startTime = Date.now();
 
-  // --- Build parameterised WHERE clause ---
   const conditions: string[] = [];
   const params: unknown[] = [];
   let idx = 1;
@@ -76,71 +266,74 @@ export async function executeQuery(req: QueryRequest): Promise<QueryResult> {
   conditions.push(`"timestamp" <= $${idx++}`);
   params.push(new Date(req.endDate));
 
-  if (req.filters) {
-    for (const [key, value] of Object.entries(req.filters)) {
-      const safeKey = sanitizePropertyKey(key);
-      conditions.push(`properties->>'${safeKey}' = $${idx++}`);
-      params.push(String(value));
-    }
+  const propertyFilters = buildPropertyFiltersClause(
+    req.propertyFilters,
+    params,
+    idx - 1,
+  );
+  idx = propertyFilters.nextIndex + 1;
+
+  if (propertyFilters.sql) {
+    conditions.push(propertyFilters.sql);
   }
 
   const where = conditions.join(' AND ');
-  const limit = Math.min(req.limit ?? 1000, 10000);
+  const groupBy = buildGroupBySql(req);
 
-  let sql: string;
+  if (!groupBy) {
+    const sql = `SELECT ${buildAggregationSql(req)} FROM events WHERE ${where}`;
+    const rows = (await prisma.$queryRawUnsafe(sql, ...params)) as Record<
+      string,
+      unknown
+    >[];
 
-  if (req.groupBy) {
-    // ----- Grouped results -----
-    const groupKey = sanitizePropertyKey(req.groupBy);
-
-    let selectAgg: string;
-    if (req.aggregation === 'unique_users') {
-      selectAgg = `COUNT(DISTINCT "userId") AS "value"`;
-    } else if (req.aggregation === 'avg' && req.aggregationField) {
-      const field = sanitizePropertyKey(req.aggregationField);
-      selectAgg = `AVG((properties->>'${field}')::numeric) AS "value"`;
-    } else if (req.aggregation === 'sum' && req.aggregationField) {
-      const field = sanitizePropertyKey(req.aggregationField);
-      selectAgg = `SUM((properties->>'${field}')::numeric) AS "value"`;
-    } else {
-      selectAgg = `COUNT(*) AS "value"`;
-    }
-
-    sql = [
-      `SELECT properties->>'${groupKey}' AS "group", ${selectAgg}`,
-      `FROM events`,
-      `WHERE ${where}`,
-      `GROUP BY properties->>'${groupKey}'`,
-      `ORDER BY 2 DESC`,
-      `LIMIT ${limit}`,
-    ].join(' ');
-  } else if (req.aggregation === 'avg' && req.aggregationField) {
-    // ----- Scalar avg -----
-    const field = sanitizePropertyKey(req.aggregationField);
-    sql = `SELECT AVG((properties->>'${field}')::numeric) AS "value" FROM events WHERE ${where}`;
-  } else if (req.aggregation === 'sum' && req.aggregationField) {
-    // ----- Scalar sum -----
-    const field = sanitizePropertyKey(req.aggregationField);
-    sql = `SELECT SUM((properties->>'${field}')::numeric) AS "value" FROM events WHERE ${where}`;
-  } else if (req.aggregation === 'unique_users') {
-    // ----- Scalar unique users -----
-    sql = `SELECT COUNT(DISTINCT "userId") AS "value" FROM events WHERE ${where}`;
-  } else {
-    // ----- Default: count -----
-    sql = `SELECT COUNT(*) AS "value" FROM events WHERE ${where}`;
+    return {
+      results: rows.map(serialiseRow),
+      totalCount: rows.length,
+      executionTimeMs: Date.now() - startTime,
+    };
   }
 
-  const rows = (await prisma.$queryRawUnsafe(sql, ...params)) as Record<
+  const pageSize = Math.min(req.pageSize ?? req.limit ?? 1000, 1000);
+  const page = Math.max(1, req.page ?? 1);
+  const offset = (page - 1) * pageSize;
+  const aggregationSql = buildAggregationSql(req);
+  const groupedBaseSql = [
+    `SELECT ${groupBy.select}, ${aggregationSql}`,
+    `FROM events`,
+    `WHERE ${where}`,
+    `GROUP BY ${groupBy.groupBy}`,
+  ].join(' ');
+
+  const countSql = `SELECT COUNT(*) AS "count" FROM (${groupedBaseSql}) grouped_results`;
+  const countRows = (await prisma.$queryRawUnsafe(countSql, ...params)) as Array<{
+    count: bigint | number;
+  }>;
+  const totalCount = Number(countRows[0]?.count ?? 0);
+  const totalPages = totalCount === 0 ? 0 : Math.ceil(totalCount / pageSize);
+
+  const rowsSql = [
+    groupedBaseSql,
+    buildOrderBySql(req, true),
+    `LIMIT ${pageSize}`,
+    `OFFSET ${offset}`,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const rows = (await prisma.$queryRawUnsafe(rowsSql, ...params)) as Record<
     string,
     unknown
   >[];
 
-  const results = rows.map(serialiseRow);
-  const executionTimeMs = Date.now() - startTime;
-
   return {
-    results,
-    totalCount: results.length,
-    executionTimeMs,
+    results: rows.map(serialiseRow),
+    totalCount,
+    executionTimeMs: Date.now() - startTime,
+    pagination: {
+      page,
+      pageSize,
+      totalPages,
+    },
   };
 }

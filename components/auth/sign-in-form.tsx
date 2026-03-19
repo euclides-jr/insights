@@ -101,7 +101,11 @@ export function SignInForm({ redirectTo: initialRedirectTo }: SignInFormProps) {
               type="button"
               onClick={() => setShowPassword((value) => !value)}
               className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-[#7A7A7A] transition-colors hover:text-[#0D0D0D]"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={
+                showPassword
+                  ? 'Hide secret text'
+                  : 'Show secret text'
+              }
               aria-pressed={showPassword}
             >
               {showPassword ? (

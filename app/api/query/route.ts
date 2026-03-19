@@ -1,23 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { z } from 'zod';
 import { executeQuery } from '@/lib/services/query-builder';
-
-// ---------------------------------------------------------------------------
-// Validation schema
-// ---------------------------------------------------------------------------
-
-const queryRequestSchema = z.object({
-  applicationId: z.string().min(1, 'applicationId is required'),
-  eventName: z.string().optional(),
-  startDate: z.string().datetime({ message: 'startDate must be ISO 8601' }),
-  endDate: z.string().datetime({ message: 'endDate must be ISO 8601' }),
-  filters: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
-  aggregation: z.enum(['count', 'unique_users', 'avg', 'sum']).optional(),
-  aggregationField: z.string().optional(),
-  groupBy: z.string().optional(),
-  limit: z.number().int().min(1).max(10000).optional(),
-});
+import { normalizeQueryDefinition } from '@/lib/validations/query-schemas';
+import { ZodError } from 'zod';
 
 // ---------------------------------------------------------------------------
 // POST /api/query
@@ -75,16 +60,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Parse & validate body
     const body = await request.json();
-    const validation = queryRequestSchema.safeParse(body);
-
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: validation.error.errors },
-        { status: 400 },
-      );
-    }
-
-    const req = validation.data;
+    const req = normalizeQueryDefinition(body);
 
     // 3. Authorise — requester may only query their own application
     if (req.applicationId !== application.id) {
@@ -107,6 +83,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error: unknown) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: error.errors },
+        { status: 400 },
+      );
+    }
+
     const message =
       error instanceof Error ? error.message : 'Internal server error';
 
@@ -133,6 +116,7 @@ export async function GET() {
     version: '1.0.0',
     description: 'POST to this endpoint to query and aggregate event data',
     supportedAggregations: ['count', 'unique_users', 'avg', 'sum'],
+    supportedTimeBuckets: ['hour', 'day', 'week', 'month'],
     example: {
       applicationId: '<your-app-id>',
       eventName: 'page_view',

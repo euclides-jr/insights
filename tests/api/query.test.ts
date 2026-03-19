@@ -334,6 +334,76 @@ describe('POST /api/query — GroupBy', () => {
     const data = await res.json();
     expect(data.results.length).toBeLessThanOrEqual(1);
   });
+
+  it('supports time-bucket grouping', async () => {
+    const res = await post({
+      applicationId,
+      startDate: START_DATE,
+      endDate: END_DATE,
+      aggregation: 'count',
+      groupBy: {
+        kind: 'time',
+        bucket: 'day',
+      },
+      pageSize: 5,
+    });
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(Array.isArray(data.results)).toBe(true);
+    expect(data.pagination.pageSize).toBe(5);
+    if (data.results.length > 0) {
+      expect('group' in data.results[0]).toBe(true);
+      expect('value' in data.results[0]).toBe(true);
+    }
+  });
+
+  it('supports typed property filters', async () => {
+    const res = await post({
+      applicationId,
+      startDate: START_DATE,
+      endDate: END_DATE,
+      eventName: 'purchase',
+      aggregation: 'count',
+      propertyFilters: [
+        {
+          key: 'currency',
+          valueType: 'string',
+          operator: 'eq',
+          value: 'USD',
+        },
+        {
+          key: 'amount',
+          valueType: 'number',
+          operator: 'gt',
+          value: 100,
+          logic: 'and',
+        },
+      ],
+    });
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.results).toHaveLength(1);
+    expect(typeof data.results[0].value).toBe('number');
+  });
+
+  it('returns 400 for invalid typed property filter combinations', async () => {
+    const res = await post({
+      applicationId,
+      startDate: START_DATE,
+      endDate: END_DATE,
+      propertyFilters: [
+        {
+          key: 'amount',
+          valueType: 'number',
+          operator: 'between',
+          value: 10,
+        },
+      ],
+    });
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe('Validation failed');
+  });
 });
 
 // ---------------------------------------------------------------------------

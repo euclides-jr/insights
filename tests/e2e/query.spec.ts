@@ -25,6 +25,9 @@ test.describe('Query Explorer Page', () => {
       page.locator('input[type="datetime-local"]').nth(1),
     ).toBeVisible(); // end date
     await expect(page.getByText('Aggregation', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Property Filters' }),
+    ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Run Query' })).toBeVisible();
   });
 
@@ -222,6 +225,116 @@ test.describe('Query Explorer Page', () => {
     // Grouped results should have "group" and "value" columns
     await expect(page.locator('th', { hasText: 'group' })).toBeVisible();
     await expect(page.locator('th', { hasText: 'value' })).toBeVisible();
+  });
+
+  test('should run a time-bucketed query and allow chart view', async ({
+    page,
+  }) => {
+    await page
+      .locator('input[type="datetime-local"]')
+      .first()
+      .fill('2020-01-01T00:00');
+    await page
+      .locator('input[type="datetime-local"]')
+      .nth(1)
+      .fill('2030-12-31T23:59');
+
+    await page.getByLabel('Grouping mode').selectOption('time');
+    await page.getByLabel('Time bucket').selectOption('day');
+
+    await page.getByRole('button', { name: 'Run Query' }).click();
+    await expect(page.locator('text=/Results \\(/')).toBeVisible({
+      timeout: 10000,
+    });
+
+    await expect(page.locator('th', { hasText: 'group' })).toBeVisible();
+    await expect(page.locator('th', { hasText: 'value' })).toBeVisible();
+
+    const chartButton = page.getByRole('button', { name: 'Chart' });
+    await expect(chartButton).toBeEnabled();
+    await chartButton.click();
+    await expect(chartButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.recharts-responsive-container')).toBeVisible();
+  });
+
+  test('should add and remove property filter rows', async ({ page }) => {
+    await expect(page.getByText('No property filters yet.')).toBeVisible();
+
+    await page.getByRole('button', { name: '+ Add Filter' }).click();
+    await expect(page.getByLabel('Property key 1')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Remove property filter 1' }).click();
+    await expect(page.getByText('No property filters yet.')).toBeVisible();
+  });
+
+  test('should run a query with string property filters', async ({ page }) => {
+    await page
+      .locator('input[type="datetime-local"]')
+      .first()
+      .fill('2020-01-01T00:00');
+    await page
+      .locator('input[type="datetime-local"]')
+      .nth(1)
+      .fill('2030-12-31T23:59');
+    await page.locator('input[placeholder="e.g. purchase"]').fill('purchase');
+
+    await page.getByRole('button', { name: '+ Add Filter' }).click();
+    await page.getByLabel('Property key 1').fill('currency');
+    await page.getByLabel('Value 1').fill('USD');
+
+    await page.getByRole('button', { name: 'Run Query' }).click();
+    await expect(page.locator('text=/Results \\(/')).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.locator('th', { hasText: 'value' })).toBeVisible();
+  });
+
+  test('should run a query with numeric property filters', async ({ page }) => {
+    await page
+      .locator('input[type="datetime-local"]')
+      .first()
+      .fill('2020-01-01T00:00');
+    await page
+      .locator('input[type="datetime-local"]')
+      .nth(1)
+      .fill('2030-12-31T23:59');
+    await page.locator('input[placeholder="e.g. purchase"]').fill('purchase');
+
+    await page.getByRole('button', { name: '+ Add Filter' }).click();
+    await page.getByLabel('Property key 1').fill('amount');
+    await page.getByLabel('Property type 1').selectOption('number');
+    await page.getByLabel('Operator 1').selectOption('gt');
+    await page.getByLabel('Value 1').fill('100');
+
+    await page.getByRole('button', { name: 'Run Query' }).click();
+    await expect(page.locator('text=/Results \\(/')).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.locator('th', { hasText: 'value' })).toBeVisible();
+  });
+
+  test('should show a validation error for an invalid between filter', async ({
+    page,
+  }) => {
+    await page
+      .locator('input[type="datetime-local"]')
+      .first()
+      .fill('2020-01-01T00:00');
+    await page
+      .locator('input[type="datetime-local"]')
+      .nth(1)
+      .fill('2030-12-31T23:59');
+
+    await page.getByRole('button', { name: '+ Add Filter' }).click();
+    await page.getByLabel('Property key 1').fill('amount');
+    await page.getByLabel('Property type 1').selectOption('number');
+    await page.getByLabel('Operator 1').selectOption('between');
+    await page.getByLabel('Value 1').fill('10');
+
+    await page.getByRole('button', { name: 'Run Query' }).click();
+    await expect(page.getByText('Validation failed')).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   // -------------------------------------------------------------------------
