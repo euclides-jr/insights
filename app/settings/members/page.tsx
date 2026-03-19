@@ -5,32 +5,60 @@ import { MemberTable } from '@/components/settings/member-table';
 import { prisma } from '@/lib/db/prisma';
 import {
   AuthError,
-  ForbiddenError,
   getCurrentWorkspaceMember,
-  requireRole,
+  hasRequiredRole,
 } from '@/lib/auth/roles';
 import { getInvitationUrl } from '@/lib/services/membership-service';
 import { WorkspaceRole } from '@prisma/client';
 
 export default async function MembersSettingsPage() {
+  let currentMember;
   try {
-    await requireRole(WorkspaceRole.ADMIN);
+    currentMember = await getCurrentWorkspaceMember();
   } catch (error) {
     if (error instanceof AuthError) {
       redirect('/sign-in');
     }
 
-    if (error instanceof ForbiddenError) {
-      redirect('/');
-    }
-
     throw error;
   }
 
-  const currentMember = await getCurrentWorkspaceMember();
-
   if (!currentMember) {
     redirect('/sign-in');
+  }
+
+  if (!hasRequiredRole(currentMember.role, WorkspaceRole.ADMIN)) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-10 p-12">
+          <div>
+            <h1 className="text-[40px] font-semibold font-[family-name:var(--font-space-grotesk)] tracking-tight">
+              Members
+            </h1>
+            <p className="mt-2 text-sm text-[#7A7A7A]">
+              Invite teammates and manage workspace roles
+            </p>
+          </div>
+
+          <div className="max-w-3xl border border-[#E8E8E8] bg-white p-8 space-y-4">
+            <h2 className="text-2xl font-semibold font-[family-name:var(--font-space-grotesk)] tracking-tight">
+              Higher role required
+            </h2>
+            <p className="text-sm text-[#4F4F4F]">
+              Access to this page requires an admin role. Your current role is{' '}
+              <span className="font-medium">
+                {currentMember.role.toLowerCase()}
+              </span>
+              .
+            </p>
+            <p className="text-sm text-[#7A7A7A]">
+              Ask a workspace admin to grant additional access if you need to
+              manage members or invitations.
+            </p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   const [members, invitations] = await Promise.all([

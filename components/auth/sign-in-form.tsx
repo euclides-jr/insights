@@ -2,6 +2,7 @@
 
 import { FormEvent, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { IoEyeOffOutline, IoEyeOutline } from 'react-icons/io5';
 import { authClient } from '@/lib/auth-client';
 import { getSafeRedirectPath } from '@/lib/auth/redirect';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ export function SignInForm({ redirectTo: initialRedirectTo }: SignInFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -85,15 +87,30 @@ export function SignInForm({ redirectTo: initialRedirectTo }: SignInFormProps) {
           >
             Password
           </label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            placeholder="••••••••••••"
-            className="h-11"
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              required
+              placeholder="••••••••••••"
+              className="h-11 pr-11"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((value) => !value)}
+              className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-[#7A7A7A] transition-colors hover:text-[#0D0D0D]"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-pressed={showPassword}
+            >
+              {showPassword ? (
+                <IoEyeOffOutline className="h-[18px] w-[18px]" />
+              ) : (
+                <IoEyeOutline className="h-[18px] w-[18px]" />
+              )}
+            </button>
+          </div>
         </div>
 
         {error ? (

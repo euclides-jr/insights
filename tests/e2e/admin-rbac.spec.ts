@@ -49,6 +49,9 @@ async function createInvitationFixture(input: {
 test.describe('Members settings page', () => {
   test.describe.configure({ mode: 'serial' });
 
+  const adminPassword = process.env.AUTH_ADMIN_PASSWORD ?? 'changeme12345';
+  const editorEmail = 'editor@eventpulse.local';
+
   test('navigates to the members page from the sidebar', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('link', { name: 'Members' }).click();
@@ -231,6 +234,66 @@ test.describe('Members settings page', () => {
     expect(membership?.role).toBe('VIEWER');
 
     await invitedContext.close();
+  });
+
+  test('shows an access message instead of redirecting for non-admin members', async ({
+    browser,
+  }) => {
+    const editorContext = await browser.newContext({
+      baseURL: 'http://localhost:3000',
+      storageState: { cookies: [], origins: [] },
+    });
+    const editorPage = await editorContext.newPage();
+
+    await editorPage.goto('/sign-in');
+    await editorPage.getByLabel('Email').fill(editorEmail);
+    await editorPage.getByLabel('Password').fill(adminPassword);
+    await editorPage.getByRole('button', { name: 'Sign in' }).click();
+    await editorPage.waitForURL('**/');
+
+    await editorPage.goto('/settings/members');
+
+    await expect(editorPage).toHaveURL(/\/settings\/members$/);
+    await expect(
+      editorPage.getByRole('heading', { name: 'Higher role required' }),
+    ).toBeVisible();
+    await expect(
+      editorPage.getByText(
+        'Access to this page requires an admin role. Your current role is editor.',
+      ),
+    ).toBeVisible();
+    await expect(
+      editorPage.getByText(
+        'Ask a workspace admin to grant additional access if you need to manage members or invitations.',
+      ),
+    ).toBeVisible();
+
+    await editorContext.close();
+  });
+
+  test('shows the access message after clicking Members in the sidebar as a non-admin', async ({
+    browser,
+  }) => {
+    const editorContext = await browser.newContext({
+      baseURL: 'http://localhost:3000',
+      storageState: { cookies: [], origins: [] },
+    });
+    const editorPage = await editorContext.newPage();
+
+    await editorPage.goto('/sign-in');
+    await editorPage.getByLabel('Email').fill(editorEmail);
+    await editorPage.getByLabel('Password').fill(adminPassword);
+    await editorPage.getByRole('button', { name: 'Sign in' }).click();
+    await editorPage.waitForURL('**/');
+
+    await editorPage.getByRole('link', { name: 'Members' }).click();
+
+    await expect(editorPage).toHaveURL(/\/settings\/members$/);
+    await expect(
+      editorPage.getByRole('heading', { name: 'Higher role required' }),
+    ).toBeVisible();
+
+    await editorContext.close();
   });
 
   test('shows missing-token state on the accept invitation page', async ({

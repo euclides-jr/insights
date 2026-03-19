@@ -26,6 +26,17 @@ const ROLE_ORDER: Record<WorkspaceRole, number> = {
   [WorkspaceRole.ADMIN]: 3,
 };
 
+export function hasRequiredRole(
+  role: WorkspaceRole | null | undefined,
+  minRole: WorkspaceRole,
+) {
+  if (!role) {
+    return false;
+  }
+
+  return ROLE_ORDER[role] >= ROLE_ORDER[minRole];
+}
+
 export function isViewer(role: WorkspaceRole | null | undefined) {
   return role === WorkspaceRole.VIEWER;
 }
@@ -66,7 +77,7 @@ export async function requireRole(minRole: WorkspaceRole) {
     throw new AuthError();
   }
 
-  if (ROLE_ORDER[membership.role] < ROLE_ORDER[minRole]) {
+  if (!hasRequiredRole(membership.role, minRole)) {
     throw new ForbiddenError(
       `Requires ${minRole.toLowerCase()} role or higher.`,
     );
