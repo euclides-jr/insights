@@ -32,6 +32,41 @@ test.describe('Reports page', () => {
     await expect(page.getByText('Saved report configuration and latest preview')).toBeVisible();
   });
 
+  test('renders the seeded retention report detail and source link', async ({
+    page,
+  }) => {
+    await page.getByRole('link', { name: 'Web Retention (8w)' }).click();
+
+    await expect(
+      page.getByRole('heading', { name: 'Web Retention (8w)' }),
+    ).toBeVisible();
+    await expect(page.getByTestId('retention-grid')).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Open Source Page' }),
+    ).toHaveAttribute('href', '/retention');
+  });
+
+  test('renders the seeded query report detail and source link', async ({
+    page,
+  }) => {
+    await page.getByRole('link', { name: 'Revenue by Event' }).click();
+
+    await expect(
+      page.getByRole('heading', { name: 'Revenue by Event' }),
+    ).toBeVisible();
+    await expect(page.getByText('"groupBy": "eventName"')).toBeVisible();
+    await expect(page.getByText('Created by')).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Open Source Page' }),
+    ).toHaveAttribute('href', '/query');
+  });
+
+  test('returns 404 for an unknown report id', async ({ page }) => {
+    const response = await page.goto('/reports/nonexistent-report-id-404');
+
+    expect(response?.status()).toBe(404);
+  });
+
   test('Reports nav link is highlighted as active', async ({ page }) => {
     const navLink = page.getByRole('link', { name: 'Reports' }).first();
     await expect(navLink).toHaveCSS('background-color', 'rgb(228, 35, 19)');

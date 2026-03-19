@@ -64,6 +64,16 @@ async function seedRetentionApplication() {
   return application;
 }
 
+async function seedEmptyRetentionApplication() {
+  const suffix = Date.now();
+  return prisma.application.create({
+    data: {
+      name: `Empty Retention App ${suffix}`,
+      apiKey: `retention_empty_key_${suffix}`,
+    },
+  });
+}
+
 test.describe('Retention page', () => {
   test('shows the Retention heading and sidebar state', async ({ page }) => {
     await page.goto('/retention');
@@ -112,5 +122,68 @@ test.describe('Retention page', () => {
     await expect(grid).toBeVisible();
     await expect(grid.getByText('D0')).toBeVisible();
     await expect(grid.getByText('D1')).toBeVisible();
+  });
+
+  test('switching to weekly retention updates the bucket labels', async ({
+    page,
+  }) => {
+    const application = await seedRetentionApplication();
+
+    await page.goto('/retention');
+    await page.getByLabel('Application').selectOption({ label: application.name });
+    await page.getByLabel('Interval').selectOption('weekly');
+    await page.getByLabel('Window Size').selectOption('4');
+    await page.getByLabel('Window Unit').selectOption('weeks');
+
+    const responsePromise = page.waitForResponse((response) =>
+      response.url().endsWith('/api/retention/run') &&
+      response.request().method() === 'POST',
+    );
+
+    await page.getByRole('button', { name: 'Run Retention' }).click();
+
+    const response = await responsePromise;
+    expect(response.ok()).toBeTruthy();
+
+    const payload = await response.json();
+    expect(payload.interval).toBe('weekly');
+    expect(payload.buckets).toContain('W1');
+
+    const grid = page.getByTestId('retention-grid');
+    await expect(grid).toBeVisible();
+    await expect(grid.getByText('W0')).toBeVisible();
+    await expect(grid.getByText('W1')).toBeVisible();
+  });
+
+  test('shows an empty-state grid when no cohorts exist for the selected app', async ({
+    page,
+  }) => {
+    const application = await seedEmptyRetentionApplication();
+
+    await page.goto('/retention');
+    await page.getByLabel('Application').selectOption({ label: application.name });
+    await page.getByLabel('Interval').selectOption('daily');
+    await page.getByLabel('Window Size').selectOption('7');
+    await page.getByLabel('Window Unit').selectOption('days');
+    await page.getByLabel('Return Event').fill('purchase');
+
+    const responsePromise = page.waitForResponse((response) =>
+      response.url().endsWith('/api/retention/run') &&
+      response.request().method() === 'POST',
+    );
+
+    await page.getByRole('button', { name: 'Run Retention' }).click();
+
+    const response = await responsePromise;
+    expect(response.ok()).toBeTruthy();
+
+    const payload = await response.json();
+    expect(payload.cohorts).toHaveLength(0);
+
+    const grid = page.getByTestId('retention-grid');
+    await expect(grid).toBeVisible();
+    await expect(
+      grid.getByText('No cohorts found for the selected filters.'),
+    ).toBeVisible();
   });
 });

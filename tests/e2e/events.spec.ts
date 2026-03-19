@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
 
+function eventRows(page: Parameters<typeof test>[0]['page']) {
+  return page.locator('div.border-t').filter({ hasText: 'Success' });
+}
+
 test.describe('Events Page', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/events');
@@ -235,6 +239,80 @@ test.describe('Events Page', () => {
     await expect(
       page.getByRole('button', { name: 'Application' }),
     ).toBeVisible();
+  });
+
+  test('search filters the table by event name', async ({ page }) => {
+    const search = page.getByPlaceholder('Search events...');
+    await search.fill('purchase');
+    await page.waitForURL(/\/events\?q=purchase$/);
+
+    const rows = eventRows(page);
+    await expect(rows.first()).toBeVisible();
+
+    const rowTexts = await rows.evaluateAll((elements) =>
+      elements.map((element) => element.textContent ?? ''),
+    );
+    expect(rowTexts.length).toBeGreaterThan(0);
+    for (const rowText of rowTexts) {
+      expect(rowText.toLowerCase()).toContain('purchase');
+    }
+  });
+
+  test('application filter narrows rows to a single application', async ({
+    page,
+  }) => {
+    await page.getByRole('button', { name: 'Application' }).click();
+    await page.getByRole('button', { name: 'Demo Web App' }).click();
+    await page.waitForURL(/appId=/);
+
+    const rows = eventRows(page);
+    await expect(rows.first()).toBeVisible();
+
+    const rowTexts = await rows.evaluateAll((elements) =>
+      elements.map((element) => element.textContent ?? ''),
+    );
+    expect(rowTexts.length).toBeGreaterThan(0);
+    for (const rowText of rowTexts) {
+      expect(rowText).toContain('Demo Web App');
+      expect(rowText).not.toContain('EventPulse iOS');
+      expect(rowText).not.toContain('Admin Dashboard');
+    }
+  });
+
+  test('combined search and application filter reset pagination and preserve both params', async ({
+    page,
+  }) => {
+    await page.goto('/events?page=2');
+
+    await page.getByPlaceholder('Search events...').fill('purchase');
+    await page.waitForURL(/\/events\?q=purchase$/);
+
+    await page.getByRole('button', { name: 'Application' }).click();
+    await page.getByRole('button', { name: 'Demo Web App' }).click();
+    await page.waitForURL(/appId=.*q=purchase|q=purchase.*appId=/);
+
+    const currentUrl = page.url();
+    expect(currentUrl).toContain('q=purchase');
+    expect(currentUrl).toContain('appId=');
+    expect(currentUrl).not.toContain('page=2');
+
+    const rows = eventRows(page);
+    await expect(rows.first()).toBeVisible();
+    const rowTexts = await rows.evaluateAll((elements) =>
+      elements.map((element) => element.textContent ?? ''),
+    );
+    for (const rowText of rowTexts) {
+      expect(rowText.toLowerCase()).toContain('purchase');
+      expect(rowText).toContain('Demo Web App');
+    }
+  });
+
+  test('searching for a missing term shows zero events', async ({ page }) => {
+    await page.getByPlaceholder('Search events...').fill(`missing_${Date.now()}`);
+    await page.waitForURL(/q=missing_/);
+
+    await expect(page.getByText('Showing 0-0 of 0 events')).toBeVisible();
+    await expect(eventRows(page)).toHaveCount(0);
   });
 
   test('should display event data correctly formatted', async ({ page }) => {

@@ -48,7 +48,7 @@ export default async function EventsPage({
   ]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
-  const showingStart = skip + 1;
+  const showingStart = totalCount === 0 ? 0 : skip + 1;
   const showingEnd = Math.min(skip + pageSize, totalCount);
 
   return (

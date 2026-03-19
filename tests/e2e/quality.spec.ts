@@ -1,4 +1,20 @@
 import { test, expect } from '@playwright/test';
+import { prisma } from '@/lib/db/prisma';
+
+async function seedEmptyQualityApplication() {
+  return prisma.application.create({
+    data: {
+      name: `Quality Empty ${Date.now()}`,
+      apiKey: `quality_empty_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      status: 'ACTIVE',
+    },
+    select: { id: true, name: true },
+  });
+}
+
+function qualityRows(page: Parameters<typeof test>[0]['page']) {
+  return page.locator('div.border-t').filter({ hasText: /OK|Warning|Alert/ });
+}
 
 test.describe('Data Quality page', () => {
   test.beforeEach(async ({ page }) => {
@@ -116,18 +132,28 @@ test.describe('Data Quality page', () => {
   });
 
   test('selecting an application updates the URL', async ({ page }) => {
-    // Open the application filter
-    const appFilter = page
-      .locator('select, button, [role="combobox"]')
-      .filter({ hasText: /application|all/i })
-      .first();
-    await appFilter.click();
+    await page.locator('select').first().selectOption({ label: 'Demo Web App' });
+    await page.waitForURL(/applicationId=/);
+    expect(page.url()).toContain('applicationId=');
+  });
 
-    const webOption = page.getByText('EventPulse Web').first();
-    if (await webOption.isVisible()) {
-      await webOption.click();
-      await page.waitForURL(/applicationId=/);
-      expect(page.url()).toContain('applicationId=');
+  test('application filter narrows the table rows to the selected app', async ({
+    page,
+  }) => {
+    await page.locator('select').first().selectOption({ label: 'Demo Web App' });
+    await page.waitForURL(/applicationId=/);
+
+    const rows = qualityRows(page);
+    await expect(rows.first()).toBeVisible();
+
+    const rowTexts = await rows.evaluateAll((elements) =>
+      elements.map((element) => element.textContent ?? ''),
+    );
+    expect(rowTexts.length).toBeGreaterThan(0);
+    for (const rowText of rowTexts) {
+      expect(rowText).toContain('Demo Web App');
+      expect(rowText).not.toContain('EventPulse iOS');
+      expect(rowText).not.toContain('Admin Dashboard');
     }
   });
 
@@ -167,5 +193,65 @@ test.describe('Data Quality page', () => {
   test('Data Quality nav link is highlighted as active', async ({ page }) => {
     const navLink = page.getByRole('link', { name: 'Data Quality' });
     await expect(navLink).toHaveCSS('background-color', 'rgb(228, 35, 19)');
+  });
+
+  test('changing the day range updates the visible row count summary', async ({
+    page,
+  }) => {
+    await page.goto('/quality?days=7');
+    const sevenDayShowing = await page
+      .getByText(/Showing \d+[–-]\d+ of \d+ rows/)
+      .textContent();
+
+    await page.getByRole('link', { name: '30d' }).click();
+    await page.waitForURL(/days=30/);
+    const thirtyDayShowing = await page
+      .getByText(/Showing \d+[–-]\d+ of \d+ rows/)
+      .textContent();
+
+    expect(sevenDayShowing).not.toBeNull();
+    expect(thirtyDayShowing).not.toBeNull();
+    expect(thirtyDayShowing).not.toEqual(sevenDayShowing);
+  });
+
+  test('pagination preserves the active application and day filters', async ({
+    page,
+  }) => {
+    await page.goto('/quality?days=30');
+    await page.locator('select').first().selectOption({ label: 'Demo Web App' });
+    await page.waitForURL(/days=30.*applicationId=|applicationId=.*days=30/);
+
+    const nextButton = page.locator('button:has-text("›")');
+    await expect(nextButton).toBeEnabled();
+    await nextButton.click();
+    await page.waitForURL(/page=2/);
+
+    const currentUrl = page.url();
+    expect(currentUrl).toContain('days=30');
+    expect(currentUrl).toContain('applicationId=');
+
+    const rows = qualityRows(page);
+    await expect(rows.first()).toBeVisible();
+    const rowTexts = await rows.evaluateAll((elements) =>
+      elements.map((element) => element.textContent ?? ''),
+    );
+    for (const rowText of rowTexts) {
+      expect(rowText).toContain('Demo Web App');
+    }
+  });
+
+  test('shows an empty state when the selected application has no quality metrics', async ({
+    page,
+  }) => {
+    const emptyApplication = await seedEmptyQualityApplication();
+
+    await page.goto(`/quality?days=30&applicationId=${emptyApplication.id}`);
+
+    await expect(
+      page.getByText(
+        'No data quality metrics yet. Send events with active schemas to start tracking.',
+      ),
+    ).toBeVisible();
+    await expect(page.locator('text=/of 0 rows/')).toHaveCount(0);
   });
 });
