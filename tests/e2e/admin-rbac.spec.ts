@@ -63,4 +63,36 @@ test.describe('Members settings page', () => {
       page.locator('div.border-t').filter({ hasText: inviteEmail }),
     ).toHaveCount(0, { timeout: 10000 });
   });
+
+  test('requires confirmation before role changes and member removal', async ({
+    page,
+  }) => {
+    await page.goto('/settings/members');
+
+    await page
+      .getByLabel('Role for editor@eventpulse.local')
+      .selectOption('VIEWER');
+
+    await expect(
+      page.getByRole('heading', { name: 'Confirm Role Change' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Confirm Role Change' }),
+    ).toHaveCount(0);
+
+    const editorRow = page
+      .locator('div.border-t')
+      .filter({ hasText: 'editor@eventpulse.local' })
+      .first();
+    await editorRow.getByRole('button', { name: 'Remove' }).click();
+
+    await expect(
+      page.getByRole('heading', { name: 'Confirm Member Removal' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Confirm Member Removal' }),
+    ).toHaveCount(0);
+  });
 });

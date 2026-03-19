@@ -4,6 +4,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { WebhookDialog } from '@/components/webhook-dialog';
 
 interface WebhookRow {
@@ -38,7 +46,9 @@ export function WebhookActions({
     success: boolean;
     status: number;
   } | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function handleTest() {
     setTesting(true);
@@ -58,14 +68,25 @@ export function WebhookActions({
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete webhook "${webhook.name}"? This cannot be undone.`))
-      return;
+    setDeleteError(null);
     setDeleting(true);
+
     try {
-      await fetch(`/api/webhooks/${webhook.id}`, { method: 'DELETE' });
+      const response = await fetch(`/api/webhooks/${webhook.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || 'Failed to delete webhook');
+      }
+
       router.refresh();
-    } catch {
-      alert('Failed to delete webhook');
+      setDeleteOpen(false);
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : 'Failed to delete webhook',
+      );
     } finally {
       setDeleting(false);
     }
@@ -100,7 +121,7 @@ export function WebhookActions({
         Edit
       </button>
       <button
-        onClick={handleDelete}
+        onClick={() => setDeleteOpen(true)}
         disabled={deleting}
         className="text-xs text-[#EF4444] hover:text-red-700 transition-colors disabled:opacity-50"
       >
@@ -121,6 +142,35 @@ export function WebhookActions({
         open={editOpen}
         onOpenChange={setEditOpen}
       />
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Webhook</DialogTitle>
+            <DialogDescription>
+              Permanently delete <span className="font-medium">{webhook.name}</span>.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteError ? (
+            <p className="text-sm text-red-500">{deleteError}</p>
+          ) : null}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleDelete} disabled={deleting}>
+              {deleting ? 'Deleting…' : 'Delete Webhook'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

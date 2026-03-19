@@ -190,13 +190,14 @@ test.describe('Webhooks page – dialog', () => {
 
     await expect(page.getByText(webhookName)).toBeVisible({ timeout: 8000 });
 
-    // Cleanup — accept the confirm dialog that appears
+    // Cleanup
     const row = getWebhookRow(page, webhookName);
-    page.once('dialog', (d) => d.accept());
     await row.getByRole('button', { name: /delete/i }).click();
-    await expect(page.getByText(webhookName)).not.toBeVisible({
-      timeout: 8000,
-    });
+    await expect(
+      page.getByRole('heading', { name: 'Delete Webhook' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Delete Webhook' }).click();
+    await expect(row).toHaveCount(0, { timeout: 8000 });
   });
 });
 
@@ -229,11 +230,16 @@ test.describe('Webhook CRUD flow', () => {
 
     // ── DELETE ───────────────────────────────────────────────────────────
     const updatedRow = getWebhookRow(page, updatedName);
-    page.once('dialog', (d) => d.accept());
     await updatedRow.getByRole('button', { name: /delete/i }).click();
-    await expect(page.getByText(updatedName)).not.toBeVisible({
-      timeout: 8000,
-    });
+    await expect(
+      page.getByRole('heading', { name: 'Delete Webhook' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByText(updatedName)).toBeVisible();
+
+    await updatedRow.getByRole('button', { name: /delete/i }).click();
+    await page.getByRole('button', { name: 'Delete Webhook' }).click();
+    await expect(updatedRow).toHaveCount(0, { timeout: 8000 });
   });
 });
 
@@ -259,8 +265,8 @@ test.describe('Webhook test delivery', () => {
     ).toBeVisible({ timeout: 20000 });
 
     // Cleanup
-    page.once('dialog', (d) => d.accept());
     await row.getByRole('button', { name: /delete/i }).click();
-    await expect(page.getByText(testName)).not.toBeVisible({ timeout: 8000 });
+    await page.getByRole('button', { name: 'Delete Webhook' }).click();
+    await expect(row).toHaveCount(0, { timeout: 8000 });
   });
 });

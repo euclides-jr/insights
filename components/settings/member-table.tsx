@@ -5,6 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableCell, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 type MemberRow = {
   userId: string;
@@ -44,6 +52,16 @@ export function MemberTable({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [pendingRoleChange, setPendingRoleChange] = useState<{
+    userId: string;
+    email: string;
+    currentRole: MemberRow['role'];
+    nextRole: MemberRow['role'];
+  } | null>(null);
+  const [pendingRemoval, setPendingRemoval] = useState<{
+    userId: string;
+    email: string;
+  } | null>(null);
 
   async function updateRole(userId: string, role: MemberRow['role']) {
     setBusyKey(`role:${userId}`);
@@ -127,6 +145,93 @@ export function MemberTable({
 
   return (
     <div className="space-y-8">
+      <Dialog
+        open={pendingRoleChange !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingRoleChange(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Role Change</DialogTitle>
+            <DialogDescription>
+              {pendingRoleChange
+                ? `Change ${pendingRoleChange.email} from ${pendingRoleChange.currentRole.toLowerCase()} to ${pendingRoleChange.nextRole.toLowerCase()}?`
+                : 'Confirm the new role for this member.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setPendingRoleChange(null)}
+              disabled={busyKey !== null}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={busyKey !== null || pendingRoleChange === null}
+              onClick={async () => {
+                if (!pendingRoleChange) return;
+                await updateRole(
+                  pendingRoleChange.userId,
+                  pendingRoleChange.nextRole,
+                );
+                setPendingRoleChange(null);
+              }}
+            >
+              Confirm Role Change
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={pendingRemoval !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingRemoval(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Member Removal</DialogTitle>
+            <DialogDescription>
+              {pendingRemoval
+                ? `Remove ${pendingRemoval.email} from the workspace?`
+                : 'Confirm member removal.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setPendingRemoval(null)}
+              disabled={busyKey !== null}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={busyKey !== null || pendingRemoval === null}
+              onClick={async () => {
+                if (!pendingRemoval) return;
+                await removeMember(pendingRemoval.userId);
+                setPendingRemoval(null);
+              }}
+            >
+              Confirm Remove Member
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {error ? (
         <div className="border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -178,12 +283,19 @@ export function MemberTable({
                     aria-label={`Role for ${member.email}`}
                     className="h-9 rounded-md border border-[#E8E8E8] bg-white px-2 text-sm"
                     value={member.role}
-                    onChange={(event) =>
-                      updateRole(
-                        member.userId,
-                        event.target.value as MemberRow['role'],
-                      )
-                    }
+                    onChange={(event) => {
+                      const nextRole = event.target.value as MemberRow['role'];
+                      if (nextRole === member.role) {
+                        return;
+                      }
+
+                      setPendingRoleChange({
+                        userId: member.userId,
+                        email: member.email,
+                        currentRole: member.role,
+                        nextRole,
+                      });
+                    }}
                     disabled={
                       busyKey !== null ||
                       member.userId === currentUserId
@@ -197,7 +309,12 @@ export function MemberTable({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => removeMember(member.userId)}
+                    onClick={() =>
+                      setPendingRemoval({
+                        userId: member.userId,
+                        email: member.email,
+                      })
+                    }
                     disabled={
                       busyKey !== null ||
                       member.userId === currentUserId
