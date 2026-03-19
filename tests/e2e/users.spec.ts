@@ -4,6 +4,12 @@ import { prisma } from '@/lib/db/prisma';
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const TEST_API_KEY = process.env.TEST_API_KEY ?? 'demo_app_key_123';
+const SEEDED_COMBO_USERS = {
+  powerBuyer: 'seed_combo_power_buyer',
+  trialExplorer: 'seed_combo_trial_explorer',
+  trialBuyer: 'seed_combo_trial_buyer',
+  canadaReader: 'seed_combo_canada_reader',
+};
 
 async function getDemoApplication() {
   const application = await prisma.application.findUnique({
@@ -85,26 +91,6 @@ async function identifyUser(
       },
     });
   }
-}
-
-async function createEventForUser(
-  userId: string,
-  eventName: string,
-  timestamp: Date,
-) {
-  const application = await getDemoApplication();
-
-  await prisma.event.create({
-    data: {
-      eventId: `e2e_${eventName}_${userId}_${timestamp.getTime()}`,
-      applicationId: application.id,
-      eventName,
-      userId,
-      sessionId: `sess_${userId}`,
-      timestamp,
-      properties: {},
-    },
-  });
 }
 
 // ─── Users list page ─────────────────────────────────────────────────────────
@@ -309,6 +295,7 @@ test.describe('Users list page (/users)', () => {
     const eventRow = eventNameInput.locator('xpath=ancestor::div[1]');
     await eventRow.locator('select').first().selectOption('performed');
     await eventNameInput.fill(eventName);
+    await eventRow.getByPlaceholder('≥ count').fill('1');
     await page.getByPlaceholder('days').fill('1');
 
     const responsePromise = page.waitForResponse(
@@ -323,6 +310,120 @@ test.describe('Users list page (/users)', () => {
     await expect(page.getByText(userId, { exact: true })).toBeVisible({
       timeout: 10_000,
     });
+  });
+
+  test('seeded matrix buyer matches purchase count and company contains filters', async ({
+    page,
+  }) => {
+    await page.locator('select').first().selectOption({ label: 'Demo Web App' });
+    const attrRow = page
+      .getByPlaceholder('plan_type')
+      .locator('xpath=ancestor::div[1]');
+    await attrRow.getByPlaceholder('plan_type').fill('company');
+    await attrRow.locator('select').first().selectOption('contains');
+    await attrRow.getByPlaceholder('pro').fill('Matrix');
+
+    await page.getByRole('button', { name: 'Expand' }).click();
+    await page.getByRole('button', { name: '+ Add event filter' }).click();
+    const eventNameInput = page.getByPlaceholder('event_name');
+    const eventRow = eventNameInput.locator('xpath=ancestor::div[1]');
+    await eventRow.locator('select').first().selectOption('performed');
+    await eventNameInput.fill('purchase');
+    await eventRow.getByPlaceholder('≥ count').fill('2');
+    await page.getByPlaceholder('days').fill('7');
+
+    const responsePromise = page.waitForResponse(
+      (resp) => resp.url().includes('/api/users/query') && resp.status() === 200,
+    );
+    await page.getByRole('button', { name: 'Find users' }).click();
+    await responsePromise;
+
+    await expect(
+      page.getByText(SEEDED_COMBO_USERS.powerBuyer, { exact: true }),
+    ).toBeVisible({ timeout: 10_000 });
+    await expect(
+      page.getByText(SEEDED_COMBO_USERS.trialExplorer, { exact: true }),
+    ).not.toBeVisible();
+  });
+
+  test('seeded trial buyer matches second-row attribute logic and starter purchase query', async ({
+    page,
+  }) => {
+    await page.locator('select').first().selectOption({ label: 'Demo Web App' });
+
+    const firstAttrRow = page
+      .getByPlaceholder('plan_type')
+      .locator('xpath=ancestor::div[1]');
+    await firstAttrRow.getByPlaceholder('plan_type').fill('company');
+    await firstAttrRow.locator('select').first().selectOption('contains');
+    await firstAttrRow.getByPlaceholder('pro').fill('Query Matrix');
+
+    await page.getByText('+ Add filter').click();
+    const secondAttrRow = page
+      .getByPlaceholder('plan_type')
+      .nth(1)
+      .locator('xpath=ancestor::div[1]');
+    await secondAttrRow.locator('select').first().selectOption('and');
+    await secondAttrRow.getByPlaceholder('plan_type').fill('plan');
+    await secondAttrRow.locator('select').nth(1).selectOption('eq');
+    await secondAttrRow.getByPlaceholder('pro').fill('starter');
+
+    await page.getByRole('button', { name: 'Expand' }).click();
+    await page.getByRole('button', { name: '+ Add event filter' }).click();
+    const eventNameInput = page.getByPlaceholder('event_name');
+    const eventRow = eventNameInput.locator('xpath=ancestor::div[1]');
+    await eventRow.locator('select').first().selectOption('performed');
+    await eventNameInput.fill('purchase');
+    await eventRow.getByPlaceholder('≥ count').fill('1');
+    await page.getByPlaceholder('days').fill('7');
+
+    const responsePromise = page.waitForResponse(
+      (resp) => resp.url().includes('/api/users/query') && resp.status() === 200,
+    );
+    await page.getByRole('button', { name: 'Find users' }).click();
+    await responsePromise;
+
+    await expect(
+      page.getByText(SEEDED_COMBO_USERS.trialBuyer, { exact: true }),
+    ).toBeVisible({ timeout: 10_000 });
+    await expect(
+      page.getByText(SEEDED_COMBO_USERS.trialExplorer, { exact: true }),
+    ).not.toBeVisible();
+  });
+
+  test('OR attribute filters surface seeded US and Canada combo users', async ({
+    page,
+  }) => {
+    await page.locator('select').first().selectOption({ label: 'Demo Web App' });
+
+    const firstAttrRow = page
+      .getByPlaceholder('plan_type')
+      .locator('xpath=ancestor::div[1]');
+    await firstAttrRow.getByPlaceholder('plan_type').fill('country');
+    await firstAttrRow.getByPlaceholder('pro').fill('US');
+
+    await page.getByText('+ Add filter').click();
+    const secondAttrRow = page
+      .getByPlaceholder('plan_type')
+      .nth(1)
+      .locator('xpath=ancestor::div[1]');
+    await secondAttrRow.locator('select').first().selectOption('or');
+    await secondAttrRow.getByPlaceholder('plan_type').fill('country');
+    await secondAttrRow.locator('select').nth(1).selectOption('eq');
+    await secondAttrRow.getByPlaceholder('pro').fill('CA');
+
+    const responsePromise = page.waitForResponse(
+      (resp) => resp.url().includes('/api/users') && resp.status() === 200,
+    );
+    await page.getByRole('button', { name: 'Find users' }).click();
+    await responsePromise;
+
+    await expect(
+      page.getByText(SEEDED_COMBO_USERS.powerBuyer, { exact: true }),
+    ).toBeVisible({ timeout: 10_000 });
+    await expect(
+      page.getByText(SEEDED_COMBO_USERS.canadaReader, { exact: true }),
+    ).toBeVisible({ timeout: 10_000 });
   });
 });
 
@@ -383,7 +484,6 @@ test.describe('User detail page (/users/:userId)', () => {
   test('attribute history contains plan change', async ({ page }) => {
     await expect(page.getByText('Attribute history')).toBeVisible();
     // Should show the "plan" key in history
-    const historySection = page.locator('text=Attribute history').locator('..');
     // Check that the history table has at least one row for "plan"
     await expect(page.getByText('pro').first()).toBeVisible();
   });
@@ -542,10 +642,11 @@ test.describe('Users list — pagination', () => {
 
   test('"← Prev" is enabled on page 2', async ({ page }) => {
     await applyFilter(page);
-    await page.getByRole('button', { name: 'Next →' }).click();
-    await page.waitForResponse(
+    const nextPageResponse = page.waitForResponse(
       (r) => r.url().includes('/api/users') && r.status() === 200,
     );
+    await page.getByRole('button', { name: 'Next →' }).click();
+    await nextPageResponse;
     await expect(page.getByRole('button', { name: '← Prev' })).toBeEnabled({
       timeout: 10_000,
     });
@@ -592,10 +693,11 @@ test.describe('Users list — pagination', () => {
     const page1Ids = await page1Links.allTextContents();
     expect(page1Ids.length).toBe(PAGE_SIZE);
 
-    await page.getByRole('button', { name: 'Next →' }).click();
-    await page.waitForResponse(
+    const nextPageResponse = page.waitForResponse(
       (r) => r.url().includes('/api/users') && r.status() === 200,
     );
+    await page.getByRole('button', { name: 'Next →' }).click();
+    await nextPageResponse;
     const page2Links = page.locator(`a[href^="/users/e2e_pg_${GROUP_TAG}_"]`);
     const page2Ids = await page2Links.allTextContents();
 
@@ -624,10 +726,11 @@ test.describe('Users list — pagination', () => {
       .selectOption({ label: 'Demo Web App' });
     await page.getByPlaceholder('plan_type').fill('pagination_group');
     await page.getByPlaceholder('pro').fill(smallTag);
-    await page.getByRole('button', { name: 'Find users' }).click();
-    await page.waitForResponse(
+    const responsePromise = page.waitForResponse(
       (r) => r.url().includes('/api/users') && r.status() === 200,
     );
+    await page.getByRole('button', { name: 'Find users' }).click();
+    await responsePromise;
     await page.waitForSelector(`a[href^="/users/e2e_small_${smallTag}_"]`, {
       timeout: 10_000,
     });

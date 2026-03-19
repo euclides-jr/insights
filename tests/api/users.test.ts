@@ -14,7 +14,7 @@
  * must result in all attribute keys being present in the final profile.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3000';
 const TEST_API_KEY = process.env.TEST_API_KEY || 'demo_app_key_123';
@@ -22,6 +22,14 @@ const TEST_API_KEY = process.env.TEST_API_KEY || 'demo_app_key_123';
 const HEADERS = {
   'Content-Type': 'application/json',
   'X-API-Key': TEST_API_KEY,
+};
+
+const SEEDED_COMBO_USERS = {
+  powerBuyer: 'seed_combo_power_buyer',
+  trialExplorer: 'seed_combo_trial_explorer',
+  trialBuyer: 'seed_combo_trial_buyer',
+  canadaReader: 'seed_combo_canada_reader',
+  inactiveEnterprise: 'seed_combo_inactive_enterprise',
 };
 
 // ─── Test-run-scoped user ID helpers ──────────────────────────────────────────
@@ -362,6 +370,27 @@ describe('GET /api/users', () => {
     });
     expect(res.status).toBe(400);
   });
+
+  it('supports seeded contains filters across company names', async () => {
+    const filters = JSON.stringify([
+      { key: 'company', operator: 'contains', value: 'Matrix', logic: 'and' },
+    ]);
+    const res = await fetch(
+      `${API_BASE_URL}/api/users?filters=${encodeURIComponent(filters)}`,
+      {
+        headers: HEADERS,
+      },
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    const userIds = (data.users as { userId: string }[]).map((user) => user.userId);
+
+    expect(userIds).toContain(SEEDED_COMBO_USERS.powerBuyer);
+    expect(userIds).toContain(SEEDED_COMBO_USERS.trialExplorer);
+    expect(userIds).toContain(SEEDED_COMBO_USERS.trialBuyer);
+    expect(userIds).toContain(SEEDED_COMBO_USERS.canadaReader);
+    expect(userIds).toContain(SEEDED_COMBO_USERS.inactiveEnterprise);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -451,6 +480,7 @@ describe('POST /api/users/query', () => {
           {
             eventName,
             operator: 'performed',
+            count: { min: 1 },
             timeWindow: { value: 1, unit: 'days' },
           },
         ],
@@ -481,6 +511,7 @@ describe('POST /api/users/query', () => {
           {
             eventName,
             operator: 'performed',
+            count: { min: 1 },
             timeWindow: { value: 1, unit: 'days' },
           },
         ],
@@ -494,6 +525,151 @@ describe('POST /api/users/query', () => {
       (u) => u.userId === userId,
     );
     expect(enterpriseMatch).toBeUndefined();
+  });
+
+  it('accepts event count filters using the schema count object shape', async () => {
+    const userId = testUserId('eventcount');
+    const eventName = `purchase_count_${runId()}`;
+
+    await fetch(`${API_BASE_URL}/api/users/identify`, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({
+        userId,
+        attributes: { plan: 'pro' },
+      }),
+    });
+
+    const firstEventRes = await fetch(`${API_BASE_URL}/api/events`, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({
+        eventName,
+        userId,
+        sessionId: `sess_${runId()}`,
+      }),
+    });
+    expect(firstEventRes.status).toBe(201);
+
+    const secondEventRes = await fetch(`${API_BASE_URL}/api/events`, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({
+        eventName,
+        userId,
+        sessionId: `sess_${runId()}`,
+      }),
+    });
+    expect(secondEventRes.status).toBe(201);
+
+    const res = await fetch(`${API_BASE_URL}/api/users/query`, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({
+        filters: [{ key: 'plan', operator: 'eq', value: 'pro', logic: 'and' }],
+        eventFilters: [
+          {
+            eventName,
+            operator: 'performed',
+            count: { min: 2 },
+            timeWindow: { value: 1, unit: 'days' },
+          },
+        ],
+        page: 1,
+        pageSize: 50,
+      }),
+    });
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(
+      (data.users as { userId: string }[]).some((candidate) => candidate.userId === userId),
+    ).toBe(true);
+  });
+
+  it('returns seeded buyers who purchased at least twice within 7 days', async () => {
+    const res = await fetch(`${API_BASE_URL}/api/users/query`, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({
+        filters: [
+          { key: 'company', operator: 'contains', value: 'Matrix', logic: 'and' },
+          { key: 'plan', operator: 'eq', value: 'pro', logic: 'and' },
+        ],
+        eventFilters: [
+          {
+            eventName: 'purchase',
+            operator: 'performed',
+            count: { min: 2 },
+            timeWindow: { value: 7, unit: 'days' },
+          },
+        ],
+        page: 1,
+        pageSize: 50,
+      }),
+    });
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    const userIds = (data.users as { userId: string }[]).map((user) => user.userId);
+
+    expect(userIds).toContain(SEEDED_COMBO_USERS.powerBuyer);
+    expect(userIds).not.toContain(SEEDED_COMBO_USERS.trialExplorer);
+    expect(userIds).not.toContain(SEEDED_COMBO_USERS.canadaReader);
+  });
+
+  it('returns seeded trial buyers and excludes seeded trial explorers for starter purchase queries', async () => {
+    const res = await fetch(`${API_BASE_URL}/api/users/query`, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({
+        filters: [
+          { key: 'plan', operator: 'eq', value: 'starter', logic: 'and' },
+          { key: 'company', operator: 'contains', value: 'Query Matrix', logic: 'and' },
+        ],
+        eventFilters: [
+          {
+            eventName: 'purchase',
+            operator: 'performed',
+            count: { min: 1 },
+            timeWindow: { value: 7, unit: 'days' },
+          },
+        ],
+        page: 1,
+        pageSize: 50,
+      }),
+    });
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    const userIds = (data.users as { userId: string }[]).map((user) => user.userId);
+
+    expect(userIds).toContain(SEEDED_COMBO_USERS.trialBuyer);
+    expect(userIds).not.toContain(SEEDED_COMBO_USERS.trialExplorer);
+  });
+
+  it('supports OR attribute filters across seeded countries', async () => {
+    const res = await fetch(`${API_BASE_URL}/api/users/query`, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({
+        filters: [
+          { key: 'country', operator: 'eq', value: 'US', logic: 'and' },
+          { key: 'country', operator: 'eq', value: 'CA', logic: 'or' },
+        ],
+        eventFilters: [],
+        page: 1,
+        pageSize: 50,
+      }),
+    });
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    const userIds = (data.users as { userId: string }[]).map((user) => user.userId);
+
+    expect(userIds).toContain(SEEDED_COMBO_USERS.powerBuyer);
+    expect(userIds).toContain(SEEDED_COMBO_USERS.canadaReader);
+    expect(userIds).not.toContain(SEEDED_COMBO_USERS.trialExplorer);
   });
 
   it('returns 400 for invalid body', async () => {

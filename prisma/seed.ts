@@ -31,6 +31,13 @@ type UserSeed = {
   industry: string;
   teamSize: number;
   lifecycle: 'new' | 'active' | 'power' | 'at_risk';
+  extraAttributes?: JsonMap;
+  eventPattern?:
+    | 'power_buyer'
+    | 'trial_explorer'
+    | 'trial_buyer'
+    | 'canada_reader'
+    | 'inactive_enterprise';
   changes?: Array<{
     key: string;
     oldValue: Prisma.InputJsonValue;
@@ -320,6 +327,94 @@ function buildWebUsers(): UserSeed[] {
     });
   }
 
+  fixed.push(
+    {
+      userId: 'seed_combo_power_buyer',
+      plan: 'pro',
+      country: 'US',
+      company: 'Query Matrix Labs',
+      role: 'admin',
+      accountAgeDays: 14,
+      isTrial: false,
+      industry: 'SaaS',
+      teamSize: 120,
+      lifecycle: 'power',
+      extraAttributes: {
+        query_matrix_group: 'combo',
+        persona: 'buyer',
+      },
+      eventPattern: 'power_buyer',
+    },
+    {
+      userId: 'seed_combo_trial_explorer',
+      plan: 'starter',
+      country: 'FR',
+      company: 'Query Matrix Labs',
+      role: 'analyst',
+      accountAgeDays: 10,
+      isTrial: true,
+      industry: 'Education',
+      teamSize: 16,
+      lifecycle: 'active',
+      extraAttributes: {
+        query_matrix_group: 'combo',
+        persona: 'explorer',
+      },
+      eventPattern: 'trial_explorer',
+    },
+    {
+      userId: 'seed_combo_trial_buyer',
+      plan: 'starter',
+      country: 'GB',
+      company: 'Query Matrix Labs',
+      role: 'editor',
+      accountAgeDays: 9,
+      isTrial: false,
+      industry: 'SaaS',
+      teamSize: 22,
+      lifecycle: 'active',
+      extraAttributes: {
+        query_matrix_group: 'combo',
+        persona: 'trial_buyer',
+      },
+      eventPattern: 'trial_buyer',
+    },
+    {
+      userId: 'seed_combo_canada_reader',
+      plan: 'pro',
+      country: 'CA',
+      company: 'Matrix North',
+      role: 'editor',
+      accountAgeDays: 12,
+      isTrial: false,
+      industry: 'Media',
+      teamSize: 34,
+      lifecycle: 'active',
+      extraAttributes: {
+        query_matrix_group: 'combo',
+        persona: 'reader',
+      },
+      eventPattern: 'canada_reader',
+    },
+    {
+      userId: 'seed_combo_inactive_enterprise',
+      plan: 'enterprise',
+      country: 'DE',
+      company: 'Legacy Matrix GmbH',
+      role: 'viewer',
+      accountAgeDays: 35,
+      isTrial: false,
+      industry: 'Manufacturing',
+      teamSize: 240,
+      lifecycle: 'at_risk',
+      extraAttributes: {
+        query_matrix_group: 'combo',
+        persona: 'inactive',
+      },
+      eventPattern: 'inactive_enterprise',
+    },
+  );
+
   return fixed;
 }
 
@@ -345,6 +440,314 @@ function pushEvent(
   });
 }
 
+function pushQueryMatrixEvents(
+  events: EventRecord[],
+  sequence: { value: number },
+  applicationId: string,
+  user: UserSeed,
+) {
+  const sessionBase = `matrix_${user.userId}`;
+
+  switch (user.eventPattern) {
+    case 'power_buyer': {
+      const signupAt = dateDaysAgo(14, 9, 15);
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'signup',
+        user.userId,
+        signupAt,
+        {
+          plan: user.plan,
+          source: 'query_matrix',
+          invited: false,
+        },
+        `${sessionBase}_signup`,
+      );
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'button_click',
+        user.userId,
+        dateDaysAgo(6, 10, 5),
+        {
+          buttonId: 'upgrade_plan',
+          page: '/pricing',
+          label: 'Upgrade now',
+        },
+        `${sessionBase}_recent`,
+      );
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'purchase',
+        user.userId,
+        dateDaysAgo(6, 10, 15),
+        {
+          amount: 149,
+          currency: 'USD',
+          productId: 'prod_pro',
+          quantity: 1,
+          coupon: '',
+        },
+        `${sessionBase}_purchase_1`,
+      );
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'page_view',
+        user.userId,
+        dateDaysAgo(2, 14, 10),
+        {
+          path: '/dashboard',
+          referrer: 'https://google.com',
+          duration: 180,
+        },
+        `${sessionBase}_recent`,
+      );
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'purchase',
+        user.userId,
+        dateDaysAgo(1, 16, 20),
+        {
+          amount: 189,
+          currency: 'USD',
+          productId: 'prod_pro',
+          quantity: 1,
+          coupon: 'MATRIX20',
+        },
+        `${sessionBase}_purchase_2`,
+      );
+      return true;
+    }
+    case 'trial_explorer': {
+      const signupAt = dateDaysAgo(10, 8, 40);
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'signup',
+        user.userId,
+        signupAt,
+        {
+          plan: user.plan,
+          source: 'query_matrix',
+          invited: true,
+        },
+        `${sessionBase}_signup`,
+      );
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'page_view',
+        user.userId,
+        dateDaysAgo(3, 11, 0),
+        {
+          path: '/features',
+          referrer: 'https://x.com',
+          duration: 90,
+        },
+        `${sessionBase}_engagement`,
+      );
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'button_click',
+        user.userId,
+        dateDaysAgo(2, 13, 15),
+        {
+          buttonId: 'cta_view_demo',
+          page: '/features',
+          label: 'View demo',
+        },
+        `${sessionBase}_engagement`,
+      );
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'page_view',
+        user.userId,
+        dateDaysAgo(1, 9, 30),
+        {
+          path: '/pricing',
+          referrer: 'https://google.com',
+          duration: 70,
+        },
+        `${sessionBase}_engagement`,
+      );
+      return true;
+    }
+    case 'trial_buyer': {
+      const signupAt = dateDaysAgo(9, 9, 0);
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'signup',
+        user.userId,
+        signupAt,
+        {
+          plan: user.plan,
+          source: 'query_matrix',
+          invited: true,
+        },
+        `${sessionBase}_signup`,
+      );
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'button_click',
+        user.userId,
+        dateDaysAgo(5, 11, 10),
+        {
+          buttonId: 'upgrade_plan',
+          page: '/pricing',
+          label: 'Upgrade now',
+        },
+        `${sessionBase}_purchase`,
+      );
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'purchase',
+        user.userId,
+        dateDaysAgo(4, 15, 25),
+        {
+          amount: 59,
+          currency: 'USD',
+          productId: 'prod_starter',
+          quantity: 1,
+          coupon: 'START10',
+        },
+        `${sessionBase}_purchase`,
+      );
+      return true;
+    }
+    case 'canada_reader': {
+      const signupAt = dateDaysAgo(12, 9, 5);
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'signup',
+        user.userId,
+        signupAt,
+        {
+          plan: user.plan,
+          source: 'query_matrix',
+          invited: false,
+        },
+        `${sessionBase}_signup`,
+      );
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'page_view',
+        user.userId,
+        dateDaysAgo(4, 10, 10),
+        {
+          path: '/docs',
+          referrer: 'https://news.ycombinator.com',
+          duration: 120,
+        },
+        `${sessionBase}_reading`,
+      );
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'page_view',
+        user.userId,
+        dateDaysAgo(2, 15, 5),
+        {
+          path: '/integrations',
+          referrer: '',
+          duration: 140,
+        },
+        `${sessionBase}_reading`,
+      );
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'button_click',
+        user.userId,
+        dateDaysAgo(1, 11, 45),
+        {
+          buttonId: 'invite_teammate',
+          page: '/settings/members',
+          label: 'Invite teammate',
+        },
+        `${sessionBase}_reading`,
+      );
+      return true;
+    }
+    case 'inactive_enterprise': {
+      const signupAt = dateDaysAgo(35, 8, 20);
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'signup',
+        user.userId,
+        signupAt,
+        {
+          plan: user.plan,
+          source: 'query_matrix',
+          invited: false,
+        },
+        `${sessionBase}_signup`,
+      );
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'purchase',
+        user.userId,
+        dateDaysAgo(22, 15, 0),
+        {
+          amount: 349,
+          currency: 'USD',
+          productId: 'prod_enterprise',
+          quantity: 1,
+          coupon: '',
+        },
+        `${sessionBase}_legacy`,
+      );
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'page_view',
+        user.userId,
+        dateDaysAgo(18, 12, 10),
+        {
+          path: '/dashboard',
+          referrer: 'https://google.com',
+          duration: 210,
+        },
+        `${sessionBase}_legacy`,
+      );
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+
 function buildWebEvents(applicationId: string, users: UserSeed[]) {
   const events: EventRecord[] = [];
   const sequence = { value: 0 };
@@ -355,6 +758,10 @@ function buildWebEvents(applicationId: string, users: UserSeed[]) {
   const currencies = ['USD', 'EUR', 'GBP'];
 
   users.forEach((user, index) => {
+    if (pushQueryMatrixEvents(events, sequence, applicationId, user)) {
+      return;
+    }
+
     const signupAt = dateDaysAgo(user.accountAgeDays, 9 + (index % 4), 10);
     const signedUpDaysAgo = Math.max(0, Math.floor((today.getTime() - signupAt.getTime()) / DAY_MS));
     const sessionBase = `websess_${user.userId}`;
@@ -615,6 +1022,7 @@ function buildAttributePayload(user: UserSeed): JsonMap {
     industry: user.industry,
     team_size: user.teamSize,
     lifecycle_stage: user.lifecycle,
+    ...(user.extraAttributes ?? {}),
   };
 }
 
