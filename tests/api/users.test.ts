@@ -15,9 +15,16 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
+import { sessionFetch } from './helpers/session';
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3000';
 const TEST_API_KEY = process.env.TEST_API_KEY || 'demo_app_key_123';
+const rawFetch = globalThis.fetch;
+const fetch = (input: string, init?: RequestInit) =>
+  input.includes('/api/users/identify') || input.includes('/api/events')
+    ? rawFetch(input, init)
+    : sessionFetch(input, init);
+let applicationId: string;
 
 const HEADERS = {
   'Content-Type': 'application/json',
@@ -42,14 +49,37 @@ function testUserId(label: string) {
   return `test_user_${label}_${runId()}`;
 }
 
+function userProfileUrl(userId: string, extraParams?: Record<string, string>) {
+  const params = new URLSearchParams({ applicationId });
+  if (extraParams) {
+    for (const [key, value] of Object.entries(extraParams)) {
+      params.set(key, value);
+    }
+  }
+  return `${API_BASE_URL}/api/users/${encodeURIComponent(userId)}?${params}`;
+}
+
+function userHistoryUrl(userId: string, extraParams?: Record<string, string>) {
+  const params = new URLSearchParams({ applicationId });
+  if (extraParams) {
+    for (const [key, value] of Object.entries(extraParams)) {
+      params.set(key, value);
+    }
+  }
+  return `${API_BASE_URL}/api/users/${encodeURIComponent(userId)}/history?${params}`;
+}
+
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
 
 beforeAll(async () => {
-  // Verify the server is reachable and the API key is valid
   const res = await fetch(`${API_BASE_URL}/api/applications`);
   expect(res.status).toBe(200);
+  const body: { applications: { id: string; apiKey: string }[] } = await res.json();
+  const demo = body.applications.find((a) => a.apiKey === TEST_API_KEY);
+  expect(demo).toBeDefined();
+  applicationId = demo!.id;
 });
 
 // ---------------------------------------------------------------------------
@@ -145,6 +175,15 @@ describe('POST /api/users/identify', () => {
     expect(res.status).toBe(403);
   });
 
+  it('returns 401 when only a dashboard session is present', async () => {
+    const res = await sessionFetch(`${API_BASE_URL}/api/users/identify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: 'any', attributes: {} }),
+    });
+    expect(res.status).toBe(401);
+  });
+
   it('returns 400 for invalid request body', async () => {
     const res = await fetch(`${API_BASE_URL}/api/users/identify`, {
       method: 'POST',
@@ -183,12 +222,7 @@ describe('Concurrent identify requests (SC-008)', () => {
     expect(statuses.every((s) => s === 200)).toBe(true);
 
     // Fetch the final profile and verify all 20 attribute keys are present
-    const profileRes = await fetch(
-      `${API_BASE_URL}/api/users/${encodeURIComponent(userId)}`,
-      {
-        headers: HEADERS,
-      },
-    );
+    const profileRes = await fetch(userProfileUrl(userId));
     expect(profileRes.status).toBe(200);
     const profile = await profileRes.json();
     const attrs = profile.attributes as Record<string, unknown>;
@@ -215,10 +249,7 @@ describe('Concurrent identify requests (SC-008)', () => {
 
     await Promise.all(requests);
 
-    const profileRes = await fetch(
-      `${API_BASE_URL}/api/users/${encodeURIComponent(userId)}`,
-      { headers: HEADERS },
-    );
+    const profileRes = await fetch(userProfileUrl(userId));
     expect(profileRes.status).toBe(200);
     const profile = await profileRes.json();
     const attrs = profile.attributes as Record<string, unknown>;
@@ -245,12 +276,7 @@ describe('GET /api/users/:userId', () => {
       body: JSON.stringify({ userId, attributes: { tier: 'gold' } }),
     });
 
-    const res = await fetch(
-      `${API_BASE_URL}/api/users/${encodeURIComponent(userId)}`,
-      {
-        headers: HEADERS,
-      },
-    );
+    const res = await fetch(userProfileUrl(userId));
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.userId).toBe(userId);
@@ -259,10 +285,7 @@ describe('GET /api/users/:userId', () => {
 
   it('returns 404 for unknown userId', async () => {
     const res = await fetch(
-      `${API_BASE_URL}/api/users/nonexistent_user_xyz_abc`,
-      {
-        headers: HEADERS,
-      },
+      userProfileUrl('nonexistent_user_xyz_abc'),
     );
     expect(res.status).toBe(404);
   });
@@ -281,8 +304,7 @@ describe('GET /api/users/:userId', () => {
     });
 
     const res = await fetch(
-      `${API_BASE_URL}/api/users/${encodeURIComponent(userId)}?includeHistory=true`,
-      { headers: HEADERS },
+      userProfileUrl(userId, { includeHistory: 'true' }),
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -330,9 +352,7 @@ describe('POST /api/users/identify/batch', () => {
 
 describe('GET /api/users', () => {
   it('returns a paginated list of users', async () => {
-    const res = await fetch(`${API_BASE_URL}/api/users`, {
-      headers: HEADERS,
-    });
+    const res = await fetch(`${API_BASE_URL}/api/users?applicationId=${applicationId}`);
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(Array.isArray(data.users)).toBe(true);
@@ -351,10 +371,7 @@ describe('GET /api/users', () => {
       { key: 'filter_plan', operator: 'eq', value: 'platinum', logic: 'and' },
     ]);
     const res = await fetch(
-      `${API_BASE_URL}/api/users?filters=${encodeURIComponent(filters)}`,
-      {
-        headers: HEADERS,
-      },
+      `${API_BASE_URL}/api/users?applicationId=${applicationId}&filters=${encodeURIComponent(filters)}`,
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -365,9 +382,9 @@ describe('GET /api/users', () => {
   });
 
   it('returns 400 for malformed filter JSON', async () => {
-    const res = await fetch(`${API_BASE_URL}/api/users?filters=not_json`, {
-      headers: HEADERS,
-    });
+    const res = await fetch(
+      `${API_BASE_URL}/api/users?applicationId=${applicationId}&filters=not_json`,
+    );
     expect(res.status).toBe(400);
   });
 
@@ -376,10 +393,7 @@ describe('GET /api/users', () => {
       { key: 'company', operator: 'contains', value: 'Matrix', logic: 'and' },
     ]);
     const res = await fetch(
-      `${API_BASE_URL}/api/users?filters=${encodeURIComponent(filters)}`,
-      {
-        headers: HEADERS,
-      },
+      `${API_BASE_URL}/api/users?applicationId=${applicationId}&filters=${encodeURIComponent(filters)}`,
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -390,6 +404,12 @@ describe('GET /api/users', () => {
     expect(userIds).toContain(SEEDED_COMBO_USERS.trialBuyer);
     expect(userIds).toContain(SEEDED_COMBO_USERS.canadaReader);
     expect(userIds).toContain(SEEDED_COMBO_USERS.inactiveEnterprise);
+  });
+
+  it('returns 401 without a session for dashboard list routes', async () => {
+    const res = await rawFetch(`${API_BASE_URL}/api/users?applicationId=${applicationId}`);
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: 'Authentication required' });
   });
 });
 
@@ -408,8 +428,9 @@ describe('POST /api/users/query', () => {
 
     const res = await fetch(`${API_BASE_URL}/api/users/query`, {
       method: 'POST',
-      headers: HEADERS,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        applicationId,
         filters: [
           { key: 'query_plan', operator: 'eq', value: 'diamond', logic: 'and' },
         ],
@@ -466,8 +487,9 @@ describe('POST /api/users/query', () => {
 
     const proRes = await fetch(`${API_BASE_URL}/api/users/query`, {
       method: 'POST',
-      headers: HEADERS,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        applicationId,
         filters: [
           {
             key: 'lifecycle_plan',
@@ -497,8 +519,9 @@ describe('POST /api/users/query', () => {
 
     const enterpriseRes = await fetch(`${API_BASE_URL}/api/users/query`, {
       method: 'POST',
-      headers: HEADERS,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        applicationId,
         filters: [
           {
             key: 'lifecycle_plan',
@@ -564,8 +587,9 @@ describe('POST /api/users/query', () => {
 
     const res = await fetch(`${API_BASE_URL}/api/users/query`, {
       method: 'POST',
-      headers: HEADERS,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        applicationId,
         filters: [{ key: 'plan', operator: 'eq', value: 'pro', logic: 'and' }],
         eventFilters: [
           {
@@ -590,8 +614,9 @@ describe('POST /api/users/query', () => {
   it('returns seeded buyers who purchased at least twice within 7 days', async () => {
     const res = await fetch(`${API_BASE_URL}/api/users/query`, {
       method: 'POST',
-      headers: HEADERS,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        applicationId,
         filters: [
           { key: 'company', operator: 'contains', value: 'Matrix', logic: 'and' },
           { key: 'plan', operator: 'eq', value: 'pro', logic: 'and' },
@@ -621,8 +646,9 @@ describe('POST /api/users/query', () => {
   it('returns seeded trial buyers and excludes seeded trial explorers for starter purchase queries', async () => {
     const res = await fetch(`${API_BASE_URL}/api/users/query`, {
       method: 'POST',
-      headers: HEADERS,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        applicationId,
         filters: [
           { key: 'plan', operator: 'eq', value: 'starter', logic: 'and' },
           { key: 'company', operator: 'contains', value: 'Query Matrix', logic: 'and' },
@@ -651,8 +677,9 @@ describe('POST /api/users/query', () => {
   it('supports OR attribute filters across seeded countries', async () => {
     const res = await fetch(`${API_BASE_URL}/api/users/query`, {
       method: 'POST',
-      headers: HEADERS,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        applicationId,
         filters: [
           { key: 'country', operator: 'eq', value: 'US', logic: 'and' },
           { key: 'country', operator: 'eq', value: 'CA', logic: 'or' },
@@ -675,10 +702,27 @@ describe('POST /api/users/query', () => {
   it('returns 400 for invalid body', async () => {
     const res = await fetch(`${API_BASE_URL}/api/users/query`, {
       method: 'POST',
-      headers: HEADERS,
-      body: JSON.stringify({ page: 'not_a_number' }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId, page: 'not_a_number' }),
     });
     expect(res.status).toBe(400);
+  });
+
+  it('returns 401 without a session for dashboard queries', async () => {
+    const res = await rawFetch(`${API_BASE_URL}/api/users/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        applicationId,
+        filters: [],
+        eventFilters: [],
+        page: 1,
+        pageSize: 10,
+      }),
+    });
+
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: 'Authentication required' });
   });
 });
 
@@ -701,8 +745,7 @@ describe('GET /api/users/:userId/history', () => {
     });
 
     const res = await fetch(
-      `${API_BASE_URL}/api/users/${encodeURIComponent(userId)}/history`,
-      { headers: HEADERS },
+      userHistoryUrl(userId),
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -731,8 +774,7 @@ describe('GET /api/users/:userId/history', () => {
     });
 
     const res = await fetch(
-      `${API_BASE_URL}/api/users/${encodeURIComponent(userId)}/history?attributeKey=key_a`,
-      { headers: HEADERS },
+      userHistoryUrl(userId, { attributeKey: 'key_a' }),
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -752,8 +794,9 @@ describe('/api/users/attributes/schema', () => {
     const key = `test_attr_${runId()}`;
     const postRes = await fetch(`${API_BASE_URL}/api/users/attributes/schema`, {
       method: 'POST',
-      headers: HEADERS,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        applicationId,
         attributeKey: key,
         valueType: 'STRING',
         isIndexed: false,
@@ -763,14 +806,23 @@ describe('/api/users/attributes/schema', () => {
     const postData = await postRes.json();
     expect(postData.schema.attributeKey).toBe(key);
 
-    const getRes = await fetch(`${API_BASE_URL}/api/users/attributes/schema`, {
-      headers: HEADERS,
-    });
+    const getRes = await fetch(
+      `${API_BASE_URL}/api/users/attributes/schema?applicationId=${applicationId}`,
+    );
     expect(getRes.status).toBe(200);
     const getData = await getRes.json();
     const found = (getData.schemas as { attributeKey: string }[]).find(
       (s) => s.attributeKey === key,
     );
     expect(found).toBeDefined();
+  });
+
+  it('returns 401 without a session for dashboard schema routes', async () => {
+    const res = await rawFetch(
+      `${API_BASE_URL}/api/users/attributes/schema?applicationId=${applicationId}`,
+    );
+
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: 'Authentication required' });
   });
 });

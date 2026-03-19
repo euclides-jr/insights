@@ -12,7 +12,7 @@ export default async function QueryPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const applications = await prisma.application.findMany({
     orderBy: { name: 'asc' },
-    select: { id: true, name: true, apiKey: true },
+    select: { id: true, name: true },
   });
   const fieldMetadataEntries = await Promise.all(
     applications.map(async (application) => [

@@ -5,22 +5,33 @@ import { getSafeRedirectPath } from '@/lib/auth/redirect';
 
 const GUEST_ONLY_PATHS = new Set(['/sign-in']);
 const PUBLIC_PATHS = new Set(['/accept-invitation']);
-const PUBLIC_PREFIXES = ['/api'];
+const PUBLIC_API_PREFIXES = ['/api/auth'];
+const PUBLIC_API_PATHS = new Set([
+  '/api/events',
+  '/api/users/identify',
+  '/api/users/identify/batch',
+]);
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const sessionCookie = getSessionCookie(request);
+  const isApiPath = pathname.startsWith('/api/');
+  const isPublicApiPath =
+    PUBLIC_API_PATHS.has(pathname) ||
+    PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));
   const isPublicPath =
     GUEST_ONLY_PATHS.has(pathname) ||
     PUBLIC_PATHS.has(pathname) ||
-    PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+    isPublicApiPath;
 
   if (!sessionCookie && !isPublicPath) {
-    const signInUrl = new URL('/sign-in', request.url);
-    if (!pathname.startsWith('/api/')) {
-      const redirectTo = getSafeRedirectPath(`${pathname}${search}`);
-      signInUrl.searchParams.set('redirectTo', redirectTo);
+    if (isApiPath) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
+
+    const signInUrl = new URL('/sign-in', request.url);
+    const redirectTo = getSafeRedirectPath(`${pathname}${search}`);
+    signInUrl.searchParams.set('redirectTo', redirectTo);
     return NextResponse.redirect(signInUrl);
   }
 

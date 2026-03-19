@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
 import { executeQuery } from '@/lib/services/query-builder';
 import { normalizeQueryDefinition } from '@/lib/validations/query-schemas';
 import { ZodError } from 'zod';
@@ -12,7 +11,7 @@ import { ZodError } from 'zod';
  * POST /api/query
  *
  * Run a filtered / aggregated query over events for an application.
- * Requires X-API-Key authentication.
+ * Requires an authenticated dashboard session.
  *
  * @example Count page_view events in date range
  * ```json
@@ -40,37 +39,11 @@ import { ZodError } from 'zod';
  */
 export async function POST(request: NextRequest) {
   try {
-    // 1. Authenticate
-    const apiKey = request.headers.get('x-api-key');
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'Missing X-API-Key header' },
-        { status: 401 },
-      );
-    }
-
-    const application = await prisma.application.findUnique({
-      where: { apiKey },
-      select: { id: true },
-    });
-
-    if (!application) {
-      return NextResponse.json({ error: 'Invalid API key' }, { status: 401 });
-    }
-
-    // 2. Parse & validate body
+    // 1. Parse & validate body
     const body = await request.json();
     const req = normalizeQueryDefinition(body);
 
-    // 3. Authorise — requester may only query their own application
-    if (req.applicationId !== application.id) {
-      return NextResponse.json(
-        { error: 'Access denied: applicationId does not match API key' },
-        { status: 403 },
-      );
-    }
-
-    // 4. Validate date range
+    // 2. Validate date range
     if (new Date(req.endDate) < new Date(req.startDate)) {
       return NextResponse.json(
         { error: 'endDate must be after startDate' },
@@ -78,7 +51,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Run query
+    // 3. Run query
     const result = await executeQuery(req);
 
     return NextResponse.json(result);

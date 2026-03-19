@@ -21,7 +21,6 @@ import { serializeQueryStateToQueryString } from '@/lib/query/hydration';
 interface Application {
   id: string;
   name: string;
-  apiKey: string;
 }
 
 interface QueryResult {
@@ -284,7 +283,6 @@ export function QueryForm({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': selectedApp.apiKey,
         },
         body: JSON.stringify(body),
       });

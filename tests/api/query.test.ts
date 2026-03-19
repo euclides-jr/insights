@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
+import { sessionFetch } from './helpers/session';
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3000';
 const TEST_API_KEY = process.env.TEST_API_KEY || 'demo_app_key_123'; // From seed
@@ -24,7 +25,7 @@ let applicationId: string;
 // Setup: resolve applicationId for the demo app
 // ---------------------------------------------------------------------------
 beforeAll(async () => {
-  const res = await fetch(`${API_BASE_URL}/api/applications`);
+  const res = await sessionFetch(`${API_BASE_URL}/api/applications`);
   expect(res.status).toBe(200);
   const body: { applications: { id: string; name: string; apiKey: string }[] } =
     await res.json();
@@ -36,61 +37,43 @@ beforeAll(async () => {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function post(body: object, apiKey = TEST_API_KEY) {
-  return fetch(`${API_BASE_URL}/api/query`, {
+function post(body: object) {
+  return sessionFetch(`${API_BASE_URL}/api/query`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
 }
 
 // ---------------------------------------------------------------------------
 describe('GET /api/query', () => {
-  it('should return service info', async () => {
-    const res = await fetch(`${API_BASE_URL}/api/query`);
+  it('should return service info for an authenticated session', async () => {
+    const res = await sessionFetch(`${API_BASE_URL}/api/query`);
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.service).toBe('Event Query API');
     expect(data.supportedAggregations).toContain('count');
   });
-});
 
-// ---------------------------------------------------------------------------
-describe('POST /api/query — Authentication', () => {
-  it('should return 401 when X-API-Key is missing', async () => {
+  it('should return 401 when no session is present', async () => {
     const res = await fetch(`${API_BASE_URL}/api/query`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        applicationId: 'any',
-        startDate: START_DATE,
-        endDate: END_DATE,
-      }),
+      headers: { Accept: 'application/json' },
     });
     expect(res.status).toBe(401);
     const data = await res.json();
-    expect(data.error).toBe('Missing X-API-Key header');
+    expect(data.error).toBe('Authentication required');
   });
 
-  it('should return 401 when API key is invalid', async () => {
-    const res = await post(
-      { applicationId: 'any', startDate: START_DATE, endDate: END_DATE },
-      'invalid_key_xyz',
-    );
+  it('should return 401 when only an API key is provided', async () => {
+    const res = await fetch(`${API_BASE_URL}/api/query`, {
+      headers: {
+        Accept: 'application/json',
+        'X-API-Key': TEST_API_KEY,
+      },
+    });
     expect(res.status).toBe(401);
     const data = await res.json();
-    expect(data.error).toBe('Invalid API key');
-  });
-
-  it('should return 403 when applicationId does not belong to the API key', async () => {
-    const res = await post({
-      applicationId: '00000000-0000-0000-0000-000000000000',
-      startDate: START_DATE,
-      endDate: END_DATE,
-    });
-    expect(res.status).toBe(403);
-    const data = await res.json();
-    expect(data.error).toContain('Access denied');
+    expect(data.error).toBe('Authentication required');
   });
 });
 

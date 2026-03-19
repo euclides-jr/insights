@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { sessionFetch } from './helpers/session';
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3000';
 const TEST_API_KEY = process.env.TEST_API_KEY || 'demo_app_key_123'; // From seed file
@@ -45,6 +46,22 @@ describe('POST /api/events', () => {
       expect(response.status).toBe(401);
       const data = await response.json();
       expect(data.error).toBe('Invalid API key');
+    });
+
+    it('should return 401 when only a dashboard session is present', async () => {
+      const response = await sessionFetch(`${API_BASE_URL}/api/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventName: 'test_event',
+          userId: 'user_123',
+          sessionId: 'session_456',
+        }),
+      });
+
+      expect(response.status).toBe(401);
+      const data = await response.json();
+      expect(data.error).toBe('Missing X-API-Key header');
     });
   });
 

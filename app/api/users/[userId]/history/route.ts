@@ -1,25 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
 import { getAttributeHistory } from '@/lib/services/user-attribute-service';
 
 type Params = { params: Promise<{ userId: string }> };
 
 export async function GET(req: NextRequest, { params }: Params) {
-  // ── Auth ─────────────────────────────────────────────────────────────────
-  const apiKey = req.headers.get('x-api-key');
-  if (!apiKey) {
-    return NextResponse.json({ error: 'API key required' }, { status: 401 });
-  }
-  const application = await prisma.application.findUnique({
-    where: { apiKey },
-    select: { id: true },
-  });
-  if (!application) {
-    return NextResponse.json({ error: 'Invalid API key' }, { status: 403 });
-  }
-
   const { userId } = await params;
   const { searchParams } = new URL(req.url);
+  const applicationId = searchParams.get('applicationId');
+  if (!applicationId) {
+    return NextResponse.json(
+      { error: 'applicationId is required' },
+      { status: 400 },
+    );
+  }
 
   const attributeKey = searchParams.get('attributeKey') ?? undefined;
   const since = searchParams.get('since') ?? undefined;
@@ -40,7 +33,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     }
   }
 
-  const history = await getAttributeHistory(application.id, userId, {
+  const history = await getAttributeHistory(applicationId, userId, {
     attributeKey,
     since: since ? new Date(since) : undefined,
     until: until ? new Date(until) : undefined,

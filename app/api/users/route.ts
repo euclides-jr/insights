@@ -1,24 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
 import { listUsers } from '@/lib/services/user-attribute-service';
 import { attributeFilterSchema } from '@/lib/validations/user-schemas';
 import { z } from 'zod';
 
 export async function GET(req: NextRequest) {
-  // ── Auth ─────────────────────────────────────────────────────────────────
-  const apiKey = req.headers.get('x-api-key');
-  if (!apiKey) {
-    return NextResponse.json({ error: 'API key required' }, { status: 401 });
-  }
-  const application = await prisma.application.findUnique({
-    where: { apiKey },
-    select: { id: true },
-  });
-  if (!application) {
-    return NextResponse.json({ error: 'Invalid API key' }, { status: 403 });
-  }
-
   const { searchParams } = new URL(req.url);
+  const applicationId = searchParams.get('applicationId');
+  if (!applicationId) {
+    return NextResponse.json(
+      { error: 'applicationId is required' },
+      { status: 400 },
+    );
+  }
 
   // ── Parse filters from query param ───────────────────────────────────────
   const filtersRaw = searchParams.get('filters');
@@ -58,7 +51,7 @@ export async function GET(req: NextRequest) {
 
   const start = Date.now();
   try {
-    const result = await listUsers(application.id, {
+    const result = await listUsers(applicationId, {
       filters,
       eventFilters: [],
       sortBy,

@@ -10,9 +10,12 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { sessionFetch } from './helpers/session';
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3000';
 const TEST_API_KEY = process.env.TEST_API_KEY || 'demo_app_key_123';
+const rawFetch = globalThis.fetch;
+const fetch = sessionFetch;
 
 let applicationId: string;
 const createdSegmentIds: string[] = [];
@@ -209,7 +212,7 @@ describe('POST /api/segments', () => {
   it('memberCount should reflect matching users in event data', async () => {
     // Send a known event so there is at least 1 user
     const userId = `test_user_${Date.now()}`;
-    await fetch(`${API_BASE_URL}/api/events`, {
+    await rawFetch(`${API_BASE_URL}/api/events`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

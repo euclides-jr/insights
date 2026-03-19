@@ -11,7 +11,6 @@ import { UsersTable, UserRow } from "@/components/tables/UsersTable";
 interface Application {
   id: string;
   name: string;
-  apiKey: string;
 }
 
 interface AttributeFilterRow {
@@ -138,6 +137,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
           if (useEventQuery) {
             // POST /api/users/query for combined attribute + event filtering
             const body = {
+              applicationId: selectedApp,
               filters: validAttrFilters.map((f) => ({
                 key: f.key.trim(),
                 operator: f.operator,
@@ -168,13 +168,13 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "X-API-Key": app.apiKey,
               },
               body: JSON.stringify(body),
             });
           } else {
             // GET /api/users for attribute-only filtering
             const params = new URLSearchParams({
+              applicationId: selectedApp,
               page: String(targetPage),
               pageSize: "50",
             });
@@ -191,9 +191,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
                 ),
               );
             }
-            res = await fetch(`/api/users?${params}`, {
-              headers: { "X-API-Key": app.apiKey },
-            });
+            res = await fetch(`/api/users?${params}`);
           }
 
           if (!res.ok) {
@@ -221,7 +219,7 @@ export function UsersPageClient({ applications }: UsersPageClientProps) {
         }
       });
     },
-    [app, attrFilters, eventFilters, showEventFilters],
+    [app, attrFilters, eventFilters, selectedApp, showEventFilters],
   );
 
   const selectClass = `${selectInputSquareClass} h-9 w-auto py-1 pr-9`;

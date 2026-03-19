@@ -12,7 +12,7 @@ export default async function UsersPage({
 
   // Load applications for API key selection
   const applications = await prisma.application.findMany({
-    select: { id: true, name: true, apiKey: true },
+    select: { id: true, name: true },
     orderBy: { name: 'asc' },
   });
 

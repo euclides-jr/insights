@@ -10,17 +10,22 @@
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import { THRESHOLDS } from '@/app/api/quality/route';
+import { sessionFetch } from './helpers/session';
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3000';
 const TEST_API_KEY = process.env.TEST_API_KEY || 'demo_app_key_123';
 
 let applicationId: string;
 
+function dashboardFetch(path: string, init?: RequestInit) {
+  return sessionFetch(`${API_BASE_URL}${path}`, init);
+}
+
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
 beforeAll(async () => {
-  const res = await fetch(`${API_BASE_URL}/api/applications`);
+  const res = await dashboardFetch('/api/applications');
   expect(res.status).toBe(200);
   const body: { applications: { id: string; apiKey: string }[] } =
     await res.json();
@@ -34,7 +39,7 @@ beforeAll(async () => {
 // ---------------------------------------------------------------------------
 describe('GET /api/quality', () => {
   it('should return metrics with summary and thresholds', async () => {
-    const res = await fetch(`${API_BASE_URL}/api/quality`);
+    const res = await dashboardFetch('/api/quality');
     expect(res.status).toBe(200);
     const data = await res.json();
 
@@ -59,8 +64,8 @@ describe('GET /api/quality', () => {
   });
 
   it('should filter by applicationId', async () => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/quality?applicationId=${applicationId}`,
+    const res = await dashboardFetch(
+      `/api/quality?applicationId=${applicationId}`,
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -70,7 +75,7 @@ describe('GET /api/quality', () => {
   });
 
   it('should respect the days filter', async () => {
-    const res = await fetch(`${API_BASE_URL}/api/quality?days=30`);
+    const res = await dashboardFetch('/api/quality?days=30');
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.summary.windowDays).toBe(30);
@@ -85,16 +90,14 @@ describe('GET /api/quality', () => {
   });
 
   it('should cap days at 90', async () => {
-    const res = await fetch(`${API_BASE_URL}/api/quality?days=999`);
+    const res = await dashboardFetch('/api/quality?days=999');
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.summary.windowDays).toBe(90);
   });
 
   it('should support pagination', async () => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/quality?page=1&pageSize=2&days=90`,
-    );
+    const res = await dashboardFetch('/api/quality?page=1&pageSize=2&days=90');
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.metrics.length).toBeLessThanOrEqual(2);
@@ -102,7 +105,7 @@ describe('GET /api/quality', () => {
   });
 
   it('should include alert levels on each metric row', async () => {
-    const res = await fetch(`${API_BASE_URL}/api/quality?days=90`);
+    const res = await dashboardFetch('/api/quality?days=90');
     expect(res.status).toBe(200);
     const data = await res.json();
     for (const m of data.metrics) {
@@ -117,7 +120,7 @@ describe('GET /api/quality', () => {
   });
 
   it('should include application name in each metric row', async () => {
-    const res = await fetch(`${API_BASE_URL}/api/quality?days=90`);
+    const res = await dashboardFetch('/api/quality?days=90');
     expect(res.status).toBe(200);
     const data = await res.json();
     for (const m of data.metrics) {
@@ -126,8 +129,8 @@ describe('GET /api/quality', () => {
   });
 
   it('should return empty metrics array when no data exists for filter', async () => {
-    const res = await fetch(
-      `${API_BASE_URL}/api/quality?applicationId=00000000-0000-0000-0000-000000000000`,
+    const res = await dashboardFetch(
+      '/api/quality?applicationId=00000000-0000-0000-0000-000000000000',
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -170,7 +173,7 @@ describe('Alert threshold logic', () => {
 describe('Quality metrics written on validation failures', () => {
   it('should record a metric when events fail schema validation', async () => {
     // First, create a schema so we can trigger a violation
-    const schemaRes = await fetch(`${API_BASE_URL}/api/schemas`, {
+    const schemaRes = await dashboardFetch('/api/schemas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -187,8 +190,8 @@ describe('Quality metrics written on validation failures', () => {
     const eventName: string = schema.eventName;
 
     // Get current count before
-    const before = await fetch(
-      `${API_BASE_URL}/api/quality?applicationId=${applicationId}&days=1`,
+    const before = await dashboardFetch(
+      `/api/quality?applicationId=${applicationId}&days=1`,
     );
     const beforeData = await before.json();
     const beforeRejected: number = beforeData.summary.eventsRejected;
@@ -211,14 +214,14 @@ describe('Quality metrics written on validation failures', () => {
     expect(eventRes.status).toBe(422);
 
     // Quality metrics should now reflect the rejection
-    const after = await fetch(
-      `${API_BASE_URL}/api/quality?applicationId=${applicationId}&days=1`,
+    const after = await dashboardFetch(
+      `/api/quality?applicationId=${applicationId}&days=1`,
     );
     const afterData = await after.json();
     expect(afterData.summary.eventsRejected).toBeGreaterThan(beforeRejected);
 
     // Clean up: deactivate the schema
-    await fetch(`${API_BASE_URL}/api/schemas/${schema.id}`, {
+    await dashboardFetch(`/api/schemas/${schema.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: false }),

@@ -1,24 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { prisma } from '@/lib/db/prisma';
 import { attributeSchemaRequestSchema } from '@/lib/validations/user-schemas';
 
+const attributeSchemaListQuerySchema = z.object({
+  applicationId: z.string().uuid('applicationId must be a valid UUID'),
+});
+
 // ── GET /api/users/attributes/schema ─────────────────────────────────────────
-// List all attribute schemas for the authenticated application
+// List all attribute schemas for one application.
 export async function GET(req: NextRequest) {
-  const apiKey = req.headers.get('x-api-key');
-  if (!apiKey) {
-    return NextResponse.json({ error: 'API key required' }, { status: 401 });
-  }
-  const application = await prisma.application.findUnique({
-    where: { apiKey },
-    select: { id: true },
-  });
-  if (!application) {
-    return NextResponse.json({ error: 'Invalid API key' }, { status: 403 });
+  const parsed = attributeSchemaListQuerySchema.safeParse(
+    Object.fromEntries(new URL(req.url).searchParams),
+  );
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: parsed.error.flatten() },
+      { status: 400 },
+    );
   }
 
   const schemas = await prisma.userAttributeSchema.findMany({
-    where: { applicationId: application.id },
+    where: { applicationId: parsed.data.applicationId },
     orderBy: { attributeKey: 'asc' },
   });
 
@@ -28,18 +31,6 @@ export async function GET(req: NextRequest) {
 // ── POST /api/users/attributes/schema ────────────────────────────────────────
 // Register or update an attribute schema entry
 export async function POST(req: NextRequest) {
-  const apiKey = req.headers.get('x-api-key');
-  if (!apiKey) {
-    return NextResponse.json({ error: 'API key required' }, { status: 401 });
-  }
-  const application = await prisma.application.findUnique({
-    where: { apiKey },
-    select: { id: true },
-  });
-  if (!application) {
-    return NextResponse.json({ error: 'Invalid API key' }, { status: 403 });
-  }
-
   let body: unknown;
   try {
     body = await req.json();
@@ -55,17 +46,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { attributeKey, valueType, description, isIndexed } = parsed.data;
+  const { applicationId, attributeKey, valueType, description, isIndexed } =
+    parsed.data;
 
   const schema = await prisma.userAttributeSchema.upsert({
     where: {
       applicationId_attributeKey: {
-        applicationId: application.id,
+        applicationId,
         attributeKey,
       },
     },
     create: {
-      applicationId: application.id,
+      applicationId,
       attributeKey,
       valueType,
       description: description ?? null,

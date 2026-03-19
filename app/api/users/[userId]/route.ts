@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
 import {
   getUserProfile,
   getAttributeHistory,
@@ -11,9 +10,8 @@ import {
  * Retrieve a user profile by userId. When ?includeHistory=true is passed,
  * the full attribute change log is included in the response.
  *
- * Authentication: X-API-Key header
- *
  * Query params:
+ *   applicationId   string   Application scope for this user lookup
  *   includeHistory  boolean  Include attribute change history (default false)
  */
 export async function GET(
@@ -21,30 +19,20 @@ export async function GET(
   { params }: { params: Promise<{ userId: string }> },
 ) {
   try {
-    // 1. Authenticate
-    const apiKey = request.headers.get('x-api-key');
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'Missing X-API-Key header' },
-        { status: 401 },
-      );
-    }
-
-    const application = await prisma.application.findUnique({
-      where: { apiKey },
-      select: { id: true },
-    });
-    if (!application) {
-      return NextResponse.json({ error: 'Invalid API key' }, { status: 403 });
-    }
-
     const { userId } = await params;
     const { searchParams } = new URL(request.url);
+    const applicationId = searchParams.get('applicationId');
+    if (!applicationId) {
+      return NextResponse.json(
+        { error: 'applicationId is required' },
+        { status: 400 },
+      );
+    }
     const includeHistory = searchParams.get('includeHistory') === 'true';
     const atParam = searchParams.get('at');
 
     // 2. Fetch profile
-    const profile = await getUserProfile(application.id, userId);
+    const profile = await getUserProfile(applicationId, userId);
     if (!profile) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
@@ -55,7 +43,7 @@ export async function GET(
 
     // 3. Optionally fetch history
     const atDate = atParam ? new Date(atParam) : undefined;
-    const historyResult = await getAttributeHistory(application.id, userId, {
+    const historyResult = await getAttributeHistory(applicationId, userId, {
       at: atDate,
     });
 

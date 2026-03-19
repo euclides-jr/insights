@@ -155,6 +155,7 @@ export type EventFilter = z.infer<typeof eventFilterSchema>;
  * behavior filters for cohort-style user lookups (FR-007).
  */
 export const combinedQuerySchema = z.object({
+  applicationId: z.string().uuid('applicationId must be a valid UUID'),
   filters: z.array(attributeFilterSchema).optional().default([]),
   eventFilters: z.array(eventFilterSchema).optional().default([]),
   sortBy: z.enum(['lastSeen', 'firstSeen', 'eventCount', 'userId']).optional(),
@@ -173,6 +174,7 @@ export type CombinedQuery = z.infer<typeof combinedQuerySchema>;
  * and optional expression indexes (FR-003, US5 type registry).
  */
 export const attributeSchemaRequestSchema = z.object({
+  applicationId: z.string().uuid('applicationId must be a valid UUID'),
   attributeKey: z
     .string()
     .min(1)
