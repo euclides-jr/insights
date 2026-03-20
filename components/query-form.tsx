@@ -41,6 +41,7 @@ interface QueryResult {
 type EditablePropertyFilter = Omit<PropertyFilter, 'value'> & {
   id: string;
   value?: string | number | boolean | string[] | number[];
+  secondValue?: number;
 };
 
 export function QueryForm({
@@ -160,7 +161,7 @@ export function QueryForm({
   function normalizePropertyFilters() {
     return propertyFilters
       .filter((filter) => filter.key.trim())
-      .map((filter, index) => {
+      .map<PropertyFilter>((filter, index) => {
         const base = {
           key: filter.key.trim(),
           valueType: filter.valueType,
@@ -169,14 +170,14 @@ export function QueryForm({
         };
 
         if (filter.operator === 'exists' || filter.operator === 'not_exists') {
-          return base;
+          return base as PropertyFilter;
         }
 
         if (filter.valueType === 'boolean') {
           return {
             ...base,
             value: Boolean(filter.value),
-          };
+          } as PropertyFilter;
         }
 
         if (filter.valueType === 'number') {
@@ -189,7 +190,7 @@ export function QueryForm({
             return {
               ...base,
               value: values,
-            };
+            } as PropertyFilter;
           }
 
           return {
@@ -201,7 +202,7 @@ export function QueryForm({
             ...(filter.operator === 'between'
               ? { secondValue: filter.secondValue }
               : {}),
-          };
+          } as PropertyFilter;
         }
 
         if (filter.operator === 'in' || filter.operator === 'not_in') {
@@ -211,13 +212,13 @@ export function QueryForm({
               .split(',')
               .map((value) => value.trim())
               .filter(Boolean),
-          };
+          } as PropertyFilter;
         }
 
         return {
           ...base,
           value: String(filter.value ?? ''),
-        };
+        } as PropertyFilter;
       });
   }
 

@@ -6,6 +6,7 @@ import type {
 import { prisma } from '@/lib/db/prisma';
 import {
   normalizeQueryDefinition,
+  queryAggregationSchema,
   type QueryDefinition,
 } from '@/lib/validations/query-schemas';
 
@@ -34,10 +35,14 @@ export function normalizeQueryReportConfig(
   };
 
   const legacyMetric =
-    typeof config.metric === 'string' &&
-    ['count', 'unique_users', 'avg', 'sum'].includes(config.metric)
-      ? config.metric
+    typeof config.metric === 'string'
+      ? queryAggregationSchema.safeParse(config.metric).data
       : undefined;
+
+  const aggregation =
+    typeof config.aggregation === 'string'
+      ? queryAggregationSchema.safeParse(config.aggregation).data
+      : legacyMetric;
 
   const legacyFilters = Array.isArray(config.filters)
     ? (config.filters as LegacyQueryReportFilter[])
@@ -71,8 +76,7 @@ export function normalizeQueryReportConfig(
         : fallbackDates.startDate,
     endDate:
       typeof config.endDate === 'string' ? config.endDate : fallbackDates.endDate,
-    aggregation:
-      typeof config.aggregation === 'string' ? config.aggregation : legacyMetric,
+    aggregation,
     aggregationField:
       typeof config.aggregationField === 'string'
         ? config.aggregationField

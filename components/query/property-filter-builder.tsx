@@ -10,6 +10,7 @@ import type { PropertyFilter } from '@/lib/validations/query-schemas';
 type EditablePropertyFilter = Omit<PropertyFilter, 'value'> & {
   id: string;
   value?: string | number | boolean | string[] | number[];
+  secondValue?: number;
 };
 
 type PropertyFilterBuilderProps = {

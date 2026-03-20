@@ -52,6 +52,7 @@ export async function GET(req: NextRequest) {
   const start = Date.now();
   try {
     const result = await listUsers(applicationId, {
+      applicationId,
       filters,
       eventFilters: [],
       sortBy,

@@ -28,6 +28,8 @@ export const numberPropertyFilterOperatorSchema = z.enum([
   'lt',
   'lte',
   'between',
+  'in',
+  'not_in',
   'exists',
   'not_exists',
 ]);
@@ -119,17 +121,6 @@ export const propertyFilterSchema = z
         code: z.ZodIssueCode.custom,
         path: ['value'],
         message: 'between requires numeric value and secondValue',
-      });
-    }
-
-    if (
-      filter.valueType !== 'number' &&
-      filter.operator === 'between'
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['operator'],
-        message: 'between is only valid for numeric filters',
       });
     }
 
@@ -239,18 +230,37 @@ export function legacyFiltersToPropertyFilters(
     return undefined;
   }
 
-  return Object.entries(filters).map(([key, value], index) => ({
-    key,
-    valueType:
-      typeof value === 'number'
-        ? 'number'
-        : typeof value === 'boolean'
-          ? 'boolean'
-          : 'string',
-    operator: 'eq',
-    value,
-    ...(index > 0 ? { logic: 'and' as const } : {}),
-  }));
+  return Object.entries(filters).map<PropertyFilter>(([key, value], index) => {
+    const logic = index > 0 ? { logic: 'and' as const } : {};
+
+    if (typeof value === 'number') {
+      return {
+        key,
+        valueType: 'number',
+        operator: 'eq',
+        value,
+        ...logic,
+      };
+    }
+
+    if (typeof value === 'boolean') {
+      return {
+        key,
+        valueType: 'boolean',
+        operator: 'eq',
+        value,
+        ...logic,
+      };
+    }
+
+    return {
+      key,
+      valueType: 'string',
+      operator: 'eq',
+      value,
+      ...logic,
+    };
+  });
 }
 
 export function normalizeQueryDefinition(

@@ -113,7 +113,7 @@ function buildPropertyFilterSql(
         expression = `NOT (properties ? '${key}')`;
         break;
       default:
-        throw new Error(`Unsupported string operator: ${filter.operator}`);
+        throw new Error('Unsupported string operator');
     }
   } else if (filter.valueType === 'number') {
     const numericPrefix = `(jsonb_typeof(${jsonAccessor}) = 'number' AND `;
@@ -158,7 +158,7 @@ function buildPropertyFilterSql(
         expression = `NOT (properties ? '${key}')`;
         break;
       default:
-        throw new Error(`Unsupported number operator: ${filter.operator}`);
+        throw new Error('Unsupported number operator');
     }
   } else {
     switch (filter.operator) {
@@ -175,7 +175,7 @@ function buildPropertyFilterSql(
         expression = `NOT (properties ? '${key}')`;
         break;
       default:
-        throw new Error(`Unsupported boolean operator: ${filter.operator}`);
+        throw new Error('Unsupported boolean operator');
     }
   }
 
