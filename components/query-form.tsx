@@ -41,6 +41,7 @@ interface QueryResult {
 type EditablePropertyFilter = Omit<PropertyFilter, 'value'> & {
   id: string;
   value?: string | number | boolean | string[] | number[];
+  secondValue?: number;
 };
 
 export function QueryForm({
