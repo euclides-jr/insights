@@ -415,7 +415,50 @@ function buildWebUsers(): UserSeed[] {
     },
   );
 
-  return fixed;
+  const acquisitionChannels = [
+    'organic_search',
+    'paid_search',
+    'partner_referral',
+    'product_hunt',
+    'sales_outbound',
+    'community',
+  ];
+  const personas = [
+    'growth_lead',
+    'product_manager',
+    'data_analyst',
+    'engineering_manager',
+    'founder',
+    'ops_lead',
+  ];
+
+  return fixed.map((user, index) => ({
+    ...user,
+    extraAttributes: {
+      acquisition_channel: acquisitionChannels[index % acquisitionChannels.length],
+      persona: personas[index % personas.length],
+      workspace_count:
+        user.plan === 'enterprise'
+          ? 4 + (index % 5)
+          : user.plan === 'pro'
+            ? 2 + (index % 3)
+            : 1 + (index % 2),
+      region:
+        user.country === 'US' || user.country === 'CA' || user.country === 'MX'
+          ? 'north_america'
+          : user.country === 'GB' || user.country === 'DE' || user.country === 'FR'
+            ? 'europe'
+            : 'rest_of_world',
+      beta_opt_in: index % 4 === 0,
+      lead_score:
+        user.plan === 'enterprise'
+          ? 92 - (index % 8)
+          : user.plan === 'pro'
+            ? 74 - (index % 12)
+            : 48 - (index % 10),
+      ...(user.extraAttributes ?? {}),
+    },
+  }));
 }
 
 function pushEvent(
@@ -752,10 +795,22 @@ function buildWebEvents(applicationId: string, users: UserSeed[]) {
   const events: EventRecord[] = [];
   const sequence = { value: 0 };
 
-  const pagePaths = ['/', '/pricing', '/docs', '/features', '/integrations', '/dashboard'];
+  const pagePaths = [
+    '/',
+    '/pricing',
+    '/docs',
+    '/features',
+    '/integrations',
+    '/dashboard',
+    '/onboarding',
+    '/reports',
+  ];
   const referrers = ['https://google.com', 'https://news.ycombinator.com', 'https://x.com', ''];
   const buttonIds = ['cta_start_trial', 'cta_view_demo', 'upgrade_plan', 'invite_teammate'];
   const currencies = ['USD', 'EUR', 'GBP'];
+  const integrationTypes = ['slack', 'shopify', 'stripe', 'hubspot', 'salesforce'];
+  const workspaceTemplates = ['product-analytics', 'growth-team', 'sales-pipeline'];
+  const reportFormats = ['csv', 'json'];
 
   users.forEach((user, index) => {
     if (pushQueryMatrixEvents(events, sequence, applicationId, user)) {
@@ -795,6 +850,61 @@ function buildWebEvents(applicationId: string, users: UserSeed[]) {
           label: 'Complete onboarding',
         },
         `${sessionBase}_signup`,
+      );
+    }
+
+    pushEvent(
+      events,
+      sequence,
+      applicationId,
+      'onboarding_step_completed',
+      user.userId,
+      addMinutes(signupAt, 6),
+      {
+        stepKey: 'profile_completed',
+        stepIndex: 1,
+        channel: user.extraAttributes?.acquisition_channel ?? 'organic_search',
+        completed: true,
+      },
+      `${sessionBase}_onboarding`,
+    );
+
+    if (user.lifecycle !== 'new' || user.plan !== 'free') {
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'workspace_created',
+        user.userId,
+        addMinutes(signupAt, 26),
+        {
+          template: workspaceTemplates[index % workspaceTemplates.length],
+          importedDemoData: index % 3 !== 0,
+          memberCount: Math.min(user.teamSize, 12),
+        },
+        `${sessionBase}_workspace`,
+      );
+    }
+
+    if (
+      user.plan === 'enterprise' ||
+      user.plan === 'pro' ||
+      user.lifecycle === 'power'
+    ) {
+      pushEvent(
+        events,
+        sequence,
+        applicationId,
+        'integration_connected',
+        user.userId,
+        addMinutes(signupAt, 52),
+        {
+          integration: integrationTypes[index % integrationTypes.length],
+          category: index % 2 === 0 ? 'data_source' : 'activation',
+          success: index % 9 !== 0,
+          setupMinutes: 6 + ((index % 5) * 4),
+        },
+        `${sessionBase}_integration`,
       );
     }
 
@@ -838,6 +948,48 @@ function buildWebEvents(applicationId: string, users: UserSeed[]) {
             label: day % 2 === 0 ? 'Upgrade now' : 'Invite teammate',
           },
           `${sessionBase}_${day}`,
+        );
+      }
+
+      if (
+        day <= 28 &&
+        (user.lifecycle === 'active' || user.lifecycle === 'power') &&
+        (index + day) % 8 === 0
+      ) {
+        pushEvent(
+          events,
+          sequence,
+          applicationId,
+          'report_exported',
+          user.userId,
+          dateDaysAgo(day, 17, 10 + ((index + day) % 15)),
+          {
+            format: reportFormats[(index + day) % reportFormats.length],
+            reportType: day % 2 === 0 ? 'query' : 'funnel',
+            rowCount: 120 + ((index + day) % 9) * 35,
+          },
+          `${sessionBase}_export_${day}`,
+        );
+      }
+
+      if (
+        day <= 21 &&
+        user.teamSize >= 20 &&
+        user.role !== 'viewer' &&
+        (index + day) % 11 === 0
+      ) {
+        pushEvent(
+          events,
+          sequence,
+          applicationId,
+          'invite_sent',
+          user.userId,
+          dateDaysAgo(day, 15, (index * 7 + day * 3) % 60),
+          {
+            seatsRequested: 1 + ((index + day) % 4),
+            channel: day % 2 === 0 ? 'email' : 'link',
+          },
+          `${sessionBase}_invite_${day}`,
         );
       }
     }
@@ -1201,6 +1353,72 @@ async function main() {
         isActive: true,
       },
       {
+        applicationId: webApp.id,
+        eventName: 'onboarding_step_completed',
+        version: 1,
+        schemaDefinition: {
+          properties: {
+            stepKey: { type: 'string', required: true },
+            stepIndex: { type: 'number', required: true },
+            channel: { type: 'string', required: false },
+            completed: { type: 'boolean', required: false },
+          },
+        },
+        isActive: true,
+      },
+      {
+        applicationId: webApp.id,
+        eventName: 'workspace_created',
+        version: 1,
+        schemaDefinition: {
+          properties: {
+            template: { type: 'string', required: true },
+            importedDemoData: { type: 'boolean', required: false },
+            memberCount: { type: 'number', required: false },
+          },
+        },
+        isActive: true,
+      },
+      {
+        applicationId: webApp.id,
+        eventName: 'integration_connected',
+        version: 1,
+        schemaDefinition: {
+          properties: {
+            integration: { type: 'string', required: true },
+            category: { type: 'string', required: false },
+            success: { type: 'boolean', required: false },
+            setupMinutes: { type: 'number', required: false },
+          },
+        },
+        isActive: true,
+      },
+      {
+        applicationId: webApp.id,
+        eventName: 'report_exported',
+        version: 1,
+        schemaDefinition: {
+          properties: {
+            format: { type: 'string', required: true },
+            reportType: { type: 'string', required: true },
+            rowCount: { type: 'number', required: false },
+          },
+        },
+        isActive: true,
+      },
+      {
+        applicationId: webApp.id,
+        eventName: 'invite_sent',
+        version: 1,
+        schemaDefinition: {
+          properties: {
+            seatsRequested: { type: 'number', required: true },
+            channel: { type: 'string', required: false },
+          },
+        },
+        isActive: true,
+      },
+      {
         applicationId: mobileApp.id,
         eventName: 'app_open',
         version: 1,
@@ -1377,6 +1595,48 @@ async function main() {
         attributeKey: 'lifecycle_stage',
         valueType: 'STRING',
         description: 'Customer lifecycle segment',
+        isIndexed: false,
+      },
+      {
+        applicationId: webApp.id,
+        attributeKey: 'acquisition_channel',
+        valueType: 'STRING',
+        description: 'Primary acquisition channel',
+        isIndexed: false,
+      },
+      {
+        applicationId: webApp.id,
+        attributeKey: 'persona',
+        valueType: 'STRING',
+        description: 'Primary buyer or operator persona',
+        isIndexed: false,
+      },
+      {
+        applicationId: webApp.id,
+        attributeKey: 'workspace_count',
+        valueType: 'NUMBER',
+        description: 'Number of workspaces associated with the account',
+        isIndexed: false,
+      },
+      {
+        applicationId: webApp.id,
+        attributeKey: 'region',
+        valueType: 'STRING',
+        description: 'Commercial region bucket',
+        isIndexed: false,
+      },
+      {
+        applicationId: webApp.id,
+        attributeKey: 'beta_opt_in',
+        valueType: 'BOOLEAN',
+        description: 'Whether the account opted into beta features',
+        isIndexed: false,
+      },
+      {
+        applicationId: webApp.id,
+        attributeKey: 'lead_score',
+        valueType: 'NUMBER',
+        description: 'Derived product-qualified lead score',
         isIndexed: false,
       },
     ],
@@ -1597,6 +1857,46 @@ async function main() {
         },
       },
     }),
+    prisma.segment.create({
+      data: {
+        applicationId: webApp.id,
+        name: 'Integration-ready accounts',
+        description:
+          'Users who created a workspace and connected an integration in the last 30 days',
+        criteria: {
+          logic: 'AND',
+          eventFilters: [
+            {
+              eventName: 'workspace_created',
+              count: { min: 1 },
+              timeWindow: { value: 30, unit: 'days' },
+            },
+            {
+              eventName: 'integration_connected',
+              count: { min: 1 },
+              timeWindow: { value: 30, unit: 'days' },
+            },
+          ],
+        },
+      },
+    }),
+    prisma.segment.create({
+      data: {
+        applicationId: webApp.id,
+        name: 'Report exporters',
+        description: 'Users exporting analytics reports over the last 14 days',
+        criteria: {
+          logic: 'AND',
+          eventFilters: [
+            {
+              eventName: 'report_exported',
+              count: { min: 2 },
+              timeWindow: { value: 14, unit: 'days' },
+            },
+          ],
+        },
+      },
+    }),
   ]);
 
   for (const segment of segments) {
@@ -1673,6 +1973,23 @@ async function main() {
     },
   });
 
+  await prisma.funnel.create({
+    data: {
+      applicationId: webApp.id,
+      name: 'Workspace Setup',
+      description:
+        'Core onboarding path from signup into workspace creation and integration setup',
+      createdByUserId: editorUser.id,
+      steps: {
+        create: [
+          { position: 1, eventName: 'signup' },
+          { position: 2, eventName: 'workspace_created' },
+          { position: 3, eventName: 'integration_connected' },
+        ],
+      },
+    },
+  });
+
   await prisma.savedReport.createMany({
     data: [
       {
@@ -1711,6 +2028,63 @@ async function main() {
           metric: 'count',
           groupBy: 'eventName',
           filters: [{ key: 'eventName', operator: 'in', value: ['purchase', 'signup'] }],
+        },
+      },
+      {
+        name: 'Weekly Revenue Trend',
+        reportType: SavedReportType.QUERY,
+        applicationId: webApp.id,
+        createdByUserId: adminUser.id,
+        updatedByUserId: adminUser.id,
+        config: {
+          applicationId: webApp.id,
+          eventName: 'purchase',
+          aggregation: 'sum',
+          aggregationField: 'amount',
+          groupBy: { kind: 'time', bucket: 'week' },
+          sort: { field: 'group', direction: 'asc' },
+          startDate: addDays(today, -84).toISOString(),
+          endDate: now.toISOString(),
+        },
+      },
+      {
+        name: 'Integration Success by Type',
+        reportType: SavedReportType.QUERY,
+        applicationId: webApp.id,
+        createdByUserId: editorUser.id,
+        updatedByUserId: editorUser.id,
+        config: {
+          applicationId: webApp.id,
+          eventName: 'integration_connected',
+          aggregation: 'count',
+          groupBy: 'integration',
+          sort: { field: 'value', direction: 'desc' },
+          propertyFilters: [
+            {
+              key: 'success',
+              valueType: 'boolean',
+              operator: 'eq',
+              value: true,
+            },
+          ],
+          startDate: addDays(today, -30).toISOString(),
+          endDate: now.toISOString(),
+        },
+      },
+      {
+        name: 'Report Exports by Format',
+        reportType: SavedReportType.QUERY,
+        applicationId: webApp.id,
+        createdByUserId: viewerUser.id,
+        updatedByUserId: viewerUser.id,
+        config: {
+          applicationId: webApp.id,
+          eventName: 'report_exported',
+          aggregation: 'count',
+          groupBy: 'format',
+          sort: { field: 'value', direction: 'desc' },
+          startDate: addDays(today, -30).toISOString(),
+          endDate: now.toISOString(),
         },
       },
     ],
@@ -1760,8 +2134,8 @@ async function main() {
   console.log(`   Applications: 3`);
   console.log(`   Events: ${events.length}`);
   console.log(`   Web users: ${webUsers.length}`);
-  console.log(`   Funnels: 2`);
-  console.log(`   Saved reports: 3`);
+  console.log(`   Funnels: 3`);
+  console.log(`   Saved reports: 6`);
 }
 
 main()

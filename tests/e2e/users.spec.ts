@@ -669,10 +669,11 @@ test.describe('Users list — pagination', () => {
   test('clicking "← Prev" on page 2 returns to page 1', async ({ page }) => {
     await applyFilter(page);
     // Go forward
-    await page.getByRole('button', { name: 'Next →' }).click();
-    await page.waitForResponse(
+    const nextPageResponse = page.waitForResponse(
       (r) => r.url().includes('/api/users') && r.status() === 200,
     );
+    await page.getByRole('button', { name: 'Next →' }).click();
+    await nextPageResponse;
     // Go back
     const prevResponse = page.waitForResponse(
       (r) => r.url().includes('/api/users') && r.status() === 200,
