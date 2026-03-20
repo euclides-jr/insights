@@ -16,16 +16,50 @@ services:
       timeout: 5s
       retries: 10
 
+  app-init:
+    build:
+      context: .
+      target: builder
+      args:
+        DATABASE_URL: ${DATABASE_URL:-postgresql://insights:insights@db:5432/insights}
+        BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-better-auth-secret-change-me-12345678901234567890}
+        BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+    restart: "no"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://insights:insights@db:5432/insights}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-better-auth-secret-change-me-12345678901234567890}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      AUTH_ADMIN_EMAIL: ${AUTH_ADMIN_EMAIL:-admin@eventpulse.local}
+      AUTH_ADMIN_PASSWORD: ${AUTH_ADMIN_PASSWORD:-changeme12345}
+      AUTH_ADMIN_NAME: ${AUTH_ADMIN_NAME:-EventPulse Admin}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -lc "bunx prisma migrate deploy && bun prisma/seed.ts"
+
   app:
-    build: .
+    build:
+      context: .
+      args:
+        DATABASE_URL: ${DATABASE_URL:-postgresql://insights:insights@db:5432/insights}
+        BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-better-auth-secret-change-me-12345678901234567890}
+        BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://insights:insights@db:5432/insights}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-better-auth-secret-change-me-12345678901234567890}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      AUTH_ADMIN_EMAIL: ${AUTH_ADMIN_EMAIL:-admin@eventpulse.local}
+      AUTH_ADMIN_PASSWORD: ${AUTH_ADMIN_PASSWORD:-changeme12345}
+      AUTH_ADMIN_NAME: ${AUTH_ADMIN_NAME:-EventPulse Admin}
     depends_on:
       db:
         condition: service_healthy
+      app-init:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:

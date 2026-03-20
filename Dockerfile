@@ -12,11 +12,18 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+ARG BETTER_AUTH_SECRET=dev-only-better-auth-secret-change-me-12345678901234567890
+ARG BETTER_AUTH_URL=http://localhost:3000
+ARG DATABASE_URL=postgresql://insights:insights@db:5432/insights
+
 # Generate Prisma client
+ENV DATABASE_URL=$DATABASE_URL
 RUN bunx prisma generate
 
 # Build Next.js app
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+ENV BETTER_AUTH_URL=$BETTER_AUTH_URL
 RUN bun run build
 
 # Stage 3: Production runtime

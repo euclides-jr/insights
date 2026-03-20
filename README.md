@@ -63,6 +63,12 @@ Optionally seed the database with sample data:
 bun run db:seed
 ```
 
+For large-volume Query Explorer benchmarking, use the dedicated performance seed:
+
+```bash
+bun run db:seed:query-perf
+```
+
 The seed creates a dashboard admin account using `AUTH_ADMIN_EMAIL` and
 `AUTH_ADMIN_PASSWORD`. The `/sign-in` page is the only public dashboard route;
 the rest of the Next.js UI now requires an authenticated Better Auth session.
@@ -88,6 +94,7 @@ Open [http://localhost:3000](http://localhost:3000) to access the dashboard.
 | `bun run db:push`     | Push schema changes without migrations      |
 | `bun run db:studio`   | Open Prisma Studio                          |
 | `bun run db:seed`     | Seed the database with sample data          |
+| `bun run db:seed:query-perf` | Seed a large Query Explorer performance dataset |
 | `bun run test`        | Run unit tests with Vitest                  |
 | `bun run test:ui`     | Run unit tests with the Vitest UI           |
 | `bun run test:e2e`    | Run end-to-end tests with Playwright        |

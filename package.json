@@ -12,6 +12,7 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:seed": "bun prisma/seed.ts",
+    "db:seed:query-perf": "bun prisma/seed-query-performance.ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",
