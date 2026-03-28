@@ -60,6 +60,7 @@ type PanelState =
       query: QueryDefinition;
       results: QueryResult;
       explanation: string;
+      recoverySuggestions: string[];
       resolvedDateRange?: ResolvedDateRange;
     }
   | { status: "error"; message: string };
@@ -195,6 +196,7 @@ export function AIAnalyticsPanel({
     });
 
     let explanation = "";
+    let recoverySuggestions: string[] = [];
     try {
       const explainResults = Array.isArray(queryResult.results)
         ? queryResult.results.slice(0, 20)
@@ -212,8 +214,12 @@ export function AIAnalyticsPanel({
       });
 
       if (explainRes.ok) {
-        const explainData: { explanation?: string } = await explainRes.json();
+        const explainData: {
+          explanation?: string;
+          recoverySuggestions?: string[];
+        } = await explainRes.json();
         explanation = explainData.explanation ?? "";
+        recoverySuggestions = explainData.recoverySuggestions ?? [];
       }
     } catch {
       // Explanation failure is non-fatal; results remain visible
@@ -228,6 +234,7 @@ export function AIAnalyticsPanel({
       results: queryResult.results,
       totalCount: queryResult.totalCount,
       explanation,
+      recoverySuggestions,
     };
 
     setHistory((prev) => [entry, ...prev].slice(0, 20));
@@ -236,6 +243,7 @@ export function AIAnalyticsPanel({
       query,
       results: queryResult,
       explanation,
+      recoverySuggestions,
       resolvedDateRange,
     });
   }
@@ -257,6 +265,7 @@ export function AIAnalyticsPanel({
         executionTimeMs: 0,
       },
       explanation: entry.explanation,
+      recoverySuggestions: entry.recoverySuggestions ?? [],
     });
   }
 
@@ -474,7 +483,10 @@ export function AIAnalyticsPanel({
             </div>
           )}
 
-          <AIExplanation explanation={panelState.explanation || null} />
+          <AIExplanation
+            explanation={panelState.explanation || null}
+            recoverySuggestions={panelState.recoverySuggestions}
+          />
 
           <AIQueryInspector
             query={panelState.query}

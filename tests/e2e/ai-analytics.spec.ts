@@ -614,6 +614,78 @@ test.describe("AI Analytics Panel", () => {
     expect(isOpen).toBeNull();
   });
 
+  test("shows zero-result recovery suggestions when the explanation API returns them", async ({
+    page,
+  }) => {
+    const mockQuery = {
+      applicationId: "app-1",
+      eventName: "page_view",
+      startDate: SEVEN_DAYS_AGO,
+      endDate: NOW,
+      aggregation: "count",
+      groupBy: { kind: "property", key: "path" },
+    };
+
+    await page.route("**/api/ai/generate", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          query: mockQuery,
+          resolvedDateRange: {
+            startDate: SEVEN_DAYS_AGO,
+            endDate: NOW,
+            source: "default",
+            confidence: "low",
+          },
+        }),
+      });
+    });
+
+    await page.route("**/api/query", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          results: [],
+          totalCount: 0,
+          executionTimeMs: 3,
+        }),
+      });
+    });
+
+    await page.route("**/api/ai/explain", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          explanation:
+            "No page_view events were found for the selected date range.",
+          recoverySuggestions: [
+            "Broaden the time range beyond the current window to check for older matching events.",
+            "Remove the grouping by path to confirm whether matching page_view events exist at all.",
+          ],
+        }),
+      });
+    });
+
+    const textarea = page.locator("textarea").first();
+    await textarea.fill("How many page views?");
+    await page.getByRole("button", { name: "Generate Query" }).click();
+
+    await expect(page.getByText("Suggested Next Steps")).toBeVisible();
+    await expect(
+      page.getByText(
+        "Broaden the time range beyond the current window to check for older matching events.",
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "Remove the grouping by path to confirm whether matching page_view events exist at all.",
+      ),
+    ).toBeVisible();
+  });
+
   test("expanding query inspector shows event name and aggregation", async ({
     page,
   }) => {

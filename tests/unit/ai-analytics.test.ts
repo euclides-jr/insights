@@ -338,13 +338,15 @@ describe("explainQueryResults", () => {
       totalCount: 2,
     });
 
-    expect(explanation).toBe(
-      "There were 142 signups last week, mostly from the Pro plan.",
-    );
+    expect(explanation).toEqual({
+      explanation:
+        "There were 142 signups last week, mostly from the Pro plan.",
+      recoverySuggestions: [],
+    });
     expect(generateTextMock).toHaveBeenCalledOnce();
   });
 
-  it("produces text referencing no events found for empty results", async () => {
+  it("produces recovery suggestions for empty results", async () => {
     generateTextMock.mockResolvedValue({
       text: "No signup events were found for the selected date range.",
     });
@@ -356,7 +358,11 @@ describe("explainQueryResults", () => {
       totalCount: 0,
     });
 
-    expect(explanation).toContain("No");
+    expect(explanation.explanation).toContain("No signup events");
+    expect(explanation.recoverySuggestions).toEqual([
+      "Try extending the date range to cover a longer period in case this event occurs less frequently.",
+      "Verify that signup is the intended event for this question in the selected application.",
+    ]);
   });
 
   it("propagates errors from generateText", async () => {

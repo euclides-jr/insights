@@ -43,6 +43,11 @@ export interface ExplainResultsParams {
   totalCount: number;
 }
 
+export interface ExplainResultsOutput {
+  explanation: string;
+  recoverySuggestions: string[];
+}
+
 export interface AIAnalyticsHistoryEntry {
   id: string;
   timestamp: Date;
@@ -57,6 +62,7 @@ export interface AIAnalyticsHistoryEntry {
   results: Record<string, unknown>[];
   totalCount: number;
   explanation: string;
+  recoverySuggestions?: string[];
 }
 
 export interface AIClarificationOption {
@@ -682,7 +688,7 @@ export function applyClarificationSelection(
 
 export async function explainQueryResults(
   params: ExplainResultsParams,
-): Promise<string> {
+): Promise<ExplainResultsOutput> {
   const { text } = await generateText({
     model: openai(process.env.AI_MODEL ?? "gpt-4o-mini"),
     messages: [
@@ -692,7 +698,48 @@ export async function explainQueryResults(
     maxOutputTokens: 300, // ~225 words; keeps explanations concise
   });
 
-  return text;
+  return {
+    explanation: text,
+    recoverySuggestions: buildRecoverySuggestions(params),
+  };
+}
+
+function buildRecoverySuggestions(params: ExplainResultsParams): string[] {
+  if (params.totalCount > 0) {
+    return [];
+  }
+
+  const suggestions: string[] = [];
+  const start = new Date(params.query.startDate);
+  const end = new Date(params.query.endDate);
+  const rangeDays = Math.max(
+    1,
+    Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)),
+  );
+
+  if (rangeDays <= 7) {
+    suggestions.push(
+      "Broaden the time range beyond the current window to check for older matching events.",
+    );
+  } else if (rangeDays <= 31) {
+    suggestions.push(
+      "Try extending the date range to cover a longer period in case this event occurs less frequently.",
+    );
+  }
+
+  if (params.query.groupBy?.kind === "property") {
+    suggestions.push(
+      `Remove the grouping by ${params.query.groupBy.key} to confirm whether matching ${params.query.eventName ?? "events"} exist at all.`,
+    );
+  }
+
+  if (params.query.eventName) {
+    suggestions.push(
+      `Verify that ${params.query.eventName} is the intended event for this question in the selected application.`,
+    );
+  }
+
+  return suggestions.slice(0, 3);
 }
 
 export { NoObjectGeneratedError };
