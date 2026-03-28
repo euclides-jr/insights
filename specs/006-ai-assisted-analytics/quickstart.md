@@ -59,7 +59,7 @@ Navigate to [http://localhost:3000/query](http://localhost:3000/query). You will
 
 1. **Select an application** from the dropdown (required — submit is disabled otherwise).
 2. **Type a plain-language question** in the text area, e.g.:  
-   `"How many page_view events happened last week, broken down by path?"`
+   `"How many signups happened last week, broken down by plan?"`
 3. Click **"Generate Query"**.
 4. Watch the three-step progress indicator:
    - *Generating query…* — AI SDK `generateObject` call
@@ -145,15 +145,15 @@ curl -X POST http://localhost:3000/api/ai/explain \
 ### Unit Tests
 
 ```bash
-bun test tests/unit/ai-analytics.test.ts
+bun run vitest --run tests/unit/ai-date-range.test.ts tests/unit/ai-analytics.test.ts
 ```
 
-These tests mock `generateObject` and `generateText` from the `ai` package and verify the service layer in isolation.
+These tests cover prompt date-range inference and mock `generateObject` / `generateText` from the `ai` package to verify the service layer in isolation.
 
 ### API Integration Tests
 
 ```bash
-bun test tests/api/ai.test.ts
+bun run vitest --run --config vitest.api-live.config.ts tests/api/ai.test.ts
 ```
 
 Requires a running dev server and seeded database. Uses `sessionFetch` from the existing test helper.
@@ -161,10 +161,14 @@ Requires a running dev server and seeded database. Uses `sessionFetch` from the 
 ### E2E Tests
 
 ```bash
-bun run test:e2e -- --grep "AI Analytics"
+bun run playwright test tests/e2e/ai-analytics.spec.ts
 ```
 
-Requires a running dev server with a real `OPENAI_API_KEY` (or use a mock server — see below).
+This Playwright spec uses mocked AI route responses and covers the AI panel workflow, query inspector, session history, repeat submissions, and prompt time-range parsing.
+
+### Prompt Examples
+
+See [docs/AI_PROMPT_EXAMPLES.md](/Users/e.dosreissilvajunior/Documents/insights/docs/AI_PROMPT_EXAMPLES.md) for seeded prompt examples by application.
 
 ---
 
@@ -202,4 +206,5 @@ vi.mock('ai', () => ({
 | `{ "error": "no_schemas" }` | Application has no active event schemas | Seed or create event schemas for the test application |
 | `{ "error": "generation_failed" }` | AI returned unparseable output | Try rephrasing the question; check that schema context is non-empty |
 | `{ "error": "validation_error" }` | Request body failed Zod validation | Check `question` ≤ 500 chars; dates are ISO 8601 |
-| AI generates wrong event name | Model hallucinated beyond schema context | Review system prompt; ensure schema context is complete |
+| AI generates wrong event name | Model drift or ambiguous prompt | Review the generated query, clarify the question, and confirm the target application has active event schemas with useful property descriptions |
+| `last month` still behaves like last 7 days | Client date-range inference not applied | Verify the AI panel request is using prompt-derived dates; the current implementation supports `last week`, `last month`, `last N days`, `today`, and `yesterday` |

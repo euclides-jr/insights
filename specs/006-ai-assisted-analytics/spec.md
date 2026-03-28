@@ -2,7 +2,7 @@
 
 **Feature Branch**: `006-ai-assisted-analytics`  
 **Created**: 2026-03-28  
-**Status**: Draft  
+**Status**: Implemented  
 **Input**: User description: "by given a prompt a LLM should generate queries for the query explorer based on the event schemas available, it should run the query and explain the results"
 
 ## Summary
@@ -12,6 +12,17 @@ Users currently need to know the exact event names, property keys, aggregation m
 This feature adds an AI-assisted analytics panel that accepts a plain-language question from the user, automatically translates it into a valid query against the available event schemas for the selected application, executes that query, and then presents a natural-language explanation of the results alongside the data.
 
 This feature intentionally does **not** replace the manual Query Explorer form, add persistent AI conversation history, or support free-form SQL generation. The AI layer is a query generation and explanation surface on top of the existing query engine.
+
+## Implementation Status
+
+- AI analytics panel is mounted on `/query`
+- Query generation is schema-grounded to active event schemas for the selected application
+- Result explanation is implemented and shown after successful runs
+- Generated query inspection and "Open in Query Explorer" are implemented
+- Session history is implemented in-memory for the current browser session
+- Prompt-derived date ranges such as `last week`, `last month`, `last 30 days`, `today`, and `yesterday` are supported in the panel request flow
+- Property descriptions from event schemas are included in grounding and used during query refinement
+- Unit, API, and Playwright coverage exists for the implemented flow
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -114,7 +125,7 @@ A user asks several analytics questions in one session and wants to revisit an e
 
 ### Key Entities
 
-- **AIAnalyticsRequest**: A user's plain-language question paired with the selected application identifier and a default date range, submitted to the AI query generation service.
+- **AIAnalyticsRequest**: A user's plain-language question paired with the selected application identifier and a date range derived from the prompt (falling back to the last 7 days when unspecified), submitted to the AI query generation service.
 - **GeneratedQuery**: The structured query definition produced by the AI, conforming to the existing QueryDefinition schema, traceable back to the originating question.
 - **AIResultExplanation**: A natural-language summary of the query result set, produced by the AI after query execution, contextually tied to the original question and the results returned.
 - **EventSchemaContext**: The set of active event schemas for the selected application, including event names and typed property definitions, provided to the AI as grounding context.

@@ -1,6 +1,6 @@
 # Implementation Plan: AI-Assisted Analytics
 
-**Branch**: `copilot/add-ai-assisted-analytics-spec` | **Date**: 2026-03-28 | **Spec**: [spec.md](./spec.md)  
+**Branch**: `006-ai-assisted-analytics` | **Date**: 2026-03-28 | **Spec**: [spec.md](./spec.md)  
 **Input**: Feature specification from `specs/006-ai-assisted-analytics/spec.md`
 
 ---
@@ -8,6 +8,18 @@
 ## Summary
 
 Add an AI-assisted analytics panel to the existing Query Explorer that translates plain-language questions into executable `QueryDefinition` objects, runs them through the existing query engine, and returns a plain-language explanation of the results. The AI layer is powered by the **Vercel AI SDK** (`ai@^6.0.0` + `@ai-sdk/openai@^3.0.0`), using `generateObject` with the existing `queryDefinitionSchema` (Zod) for structured query generation and `generateText` for result explanation. The feature adds two new API routes, a service module, and a UI panel component that slots into the existing Query Explorer page without replacing it.
+
+## Current Status
+
+Implemented in the application and covered by automated tests.
+
+Notable delivered behavior beyond the original draft:
+
+- prompt-derived date ranges in the client request flow
+- schema-description-aware query refinement
+- schema-grounded correction of misgenerated event names and groupings
+- repeat-submit handling in the AI panel
+- Playwright coverage for session history, repeat generation, and prompt time-range parsing
 
 ---
 
@@ -75,11 +87,14 @@ components/
     └── ai-explanation.tsx        # NEW — result explanation display
 
 lib/
+├── ai/
+│   └── date-range.ts            # NEW — prompt-derived date range inference
 └── services/
     └── ai-analytics.ts           # NEW — generateQueryFromPrompt(), explainQueryResults()
 
 tests/
 ├── unit/
+│   ├── ai-date-range.test.ts    # NEW — prompt date-range inference coverage
 │   └── ai-analytics.test.ts      # NEW — unit tests for ai-analytics service
 └── api/
     └── ai.test.ts                # NEW — integration tests for /api/ai/* routes

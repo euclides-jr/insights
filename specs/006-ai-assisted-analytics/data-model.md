@@ -10,6 +10,8 @@
 
 This feature introduces **no new database tables**. All AI state is ephemeral (per-request on the server, per-session in React state on the client). The feature reads from the existing `EventSchema` Prisma model and reuses the existing `QueryDefinition` Zod type.
 
+The current implementation also derives `startDate` / `endDate` from the user's question for common expressions such as `last week`, `last month`, `last 30 days`, `today`, and `yesterday`, falling back to the last 7 days when no range is specified.
+
 ---
 
 ## Existing Models Read (No Changes)
