@@ -1,14 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { AIExplanation } from '@/components/ai/ai-explanation';
-import { AIQueryInspector } from '@/components/ai/ai-query-inspector';
-import { selectInputClass, selectChevronStyle } from '@/components/ui/select';
-import { getAIErrorMessage } from '@/lib/ai-error-messages';
-import type { QueryDefinition } from '@/lib/validations/query-schemas';
-import type { AIAnalyticsHistoryEntry } from '@/lib/services/ai-analytics';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { AIExplanation } from "@/components/ai/ai-explanation";
+import { AIQueryInspector } from "@/components/ai/ai-query-inspector";
+import { selectInputClass, selectChevronStyle } from "@/components/ui/select";
+import { inferQuestionDateRange } from "@/lib/ai/date-range";
+import { getAIErrorMessage } from "@/lib/ai-error-messages";
+import type { QueryDefinition } from "@/lib/validations/query-schemas";
+import type { AIAnalyticsHistoryEntry } from "@/lib/services/ai-analytics";
 
 interface Application {
   id: string;
@@ -22,17 +23,17 @@ interface QueryResult {
 }
 
 type PanelState =
-  | { status: 'idle' }
-  | { status: 'generating' }
-  | { status: 'executing'; query: QueryDefinition }
-  | { status: 'explaining'; query: QueryDefinition; results: QueryResult }
+  | { status: "idle" }
+  | { status: "generating" }
+  | { status: "executing"; query: QueryDefinition }
+  | { status: "explaining"; query: QueryDefinition; results: QueryResult }
   | {
-      status: 'done';
+      status: "done";
       query: QueryDefinition;
       results: QueryResult;
       explanation: string;
     }
-  | { status: 'error'; message: string };
+  | { status: "error"; message: string };
 
 interface AIAnalyticsPanelProps {
   applications: Application[];
@@ -40,26 +41,27 @@ interface AIAnalyticsPanelProps {
 }
 
 const STATE_LABELS: Record<string, string> = {
-  generating: 'Generating query…',
-  executing: 'Running query…',
-  explaining: 'Explaining results…',
+  generating: "Generating query…",
+  executing: "Running query…",
+  explaining: "Explaining results…",
 };
 
 export function AIAnalyticsPanel({
   applications,
   onLoadQueryIntoForm,
 }: AIAnalyticsPanelProps) {
-  const [applicationId, setApplicationId] = useState(
-    applications[0]?.id ?? '',
-  );
-  const [question, setQuestion] = useState('');
-  const [panelState, setPanelState] = useState<PanelState>({ status: 'idle' });
+  const [applicationId, setApplicationId] = useState(applications[0]?.id ?? "");
+  const [question, setQuestion] = useState("");
+  const [panelState, setPanelState] = useState<PanelState>({ status: "idle" });
   const [history, setHistory] = useState<AIAnalyticsHistoryEntry[]>([]);
 
+  const isLoading =
+    panelState.status === "generating" ||
+    panelState.status === "executing" ||
+    panelState.status === "explaining";
+
   const isSubmitDisabled =
-    !applicationId ||
-    question.trim().length === 0 ||
-    panelState.status !== 'idle';
+    !applicationId || question.trim().length === 0 || isLoading;
 
   async function handleSubmit() {
     if (isSubmitDisabled) return;
@@ -70,16 +72,18 @@ export function AIAnalyticsPanel({
     const selectedApplicationId = applicationId;
     const submittedQuestion = question.trim();
     const now = new Date();
-    const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const endDate = now.toISOString();
+    const { startDate, endDate } = inferQuestionDateRange(
+      submittedQuestion,
+      now,
+    );
 
-    setPanelState({ status: 'generating' });
+    setPanelState({ status: "generating" });
 
     let query: QueryDefinition;
     try {
-      const generateRes = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const generateRes = await fetch("/api/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: submittedQuestion,
           applicationId: selectedApplicationId,
@@ -97,7 +101,7 @@ export function AIAnalyticsPanel({
       if (!generateRes.ok) {
         const errorCode = generateData.error;
         setPanelState({
-          status: 'error',
+          status: "error",
           message: getAIErrorMessage(errorCode),
         });
         return;
@@ -106,27 +110,27 @@ export function AIAnalyticsPanel({
       query = generateData.query!;
     } catch {
       setPanelState({
-        status: 'error',
-        message: getAIErrorMessage('internal_error'),
+        status: "error",
+        message: getAIErrorMessage("internal_error"),
       });
       return;
     }
 
-    setPanelState({ status: 'executing', query });
+    setPanelState({ status: "executing", query });
 
     let queryResult: QueryResult;
     try {
-      const queryRes = await fetch('/api/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const queryRes = await fetch("/api/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(query),
       });
 
       if (!queryRes.ok) {
         const data: { error?: string } = await queryRes.json();
         setPanelState({
-          status: 'error',
-          message: data.error ?? getAIErrorMessage('internal_error'),
+          status: "error",
+          message: data.error ?? getAIErrorMessage("internal_error"),
         });
         return;
       }
@@ -134,23 +138,23 @@ export function AIAnalyticsPanel({
       queryResult = await queryRes.json();
     } catch {
       setPanelState({
-        status: 'error',
-        message: getAIErrorMessage('internal_error'),
+        status: "error",
+        message: getAIErrorMessage("internal_error"),
       });
       return;
     }
 
-    setPanelState({ status: 'explaining', query, results: queryResult });
+    setPanelState({ status: "explaining", query, results: queryResult });
 
-    let explanation = '';
+    let explanation = "";
     try {
       const explainResults = Array.isArray(queryResult.results)
         ? queryResult.results.slice(0, 20)
         : queryResult.results;
 
-      const explainRes = await fetch('/api/ai/explain', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const explainRes = await fetch("/api/ai/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: submittedQuestion,
           query,
@@ -161,7 +165,7 @@ export function AIAnalyticsPanel({
 
       if (explainRes.ok) {
         const explainData: { explanation?: string } = await explainRes.json();
-        explanation = explainData.explanation ?? '';
+        explanation = explainData.explanation ?? "";
       }
     } catch {
       // Explanation failure is non-fatal; results remain visible
@@ -178,18 +182,18 @@ export function AIAnalyticsPanel({
     };
 
     setHistory((prev) => [entry, ...prev].slice(0, 20));
-    setPanelState({ status: 'done', query, results: queryResult, explanation });
+    setPanelState({ status: "done", query, results: queryResult, explanation });
   }
 
   function handleDismissError() {
-    setPanelState({ status: 'idle' });
+    setPanelState({ status: "idle" });
   }
 
   function restoreHistoryEntry(entry: AIAnalyticsHistoryEntry) {
     setApplicationId(entry.query.applicationId);
     setQuestion(entry.question);
     setPanelState({
-      status: 'done',
+      status: "done",
       query: entry.query,
       results: {
         results: entry.results,
@@ -200,13 +204,9 @@ export function AIAnalyticsPanel({
     });
   }
 
-  const isLoading =
-    panelState.status === 'generating' ||
-    panelState.status === 'executing' ||
-    panelState.status === 'explaining';
-
-  const loadingLabel =
-    isLoading ? STATE_LABELS[panelState.status] ?? '' : null;
+  const loadingLabel = isLoading
+    ? (STATE_LABELS[panelState.status] ?? "")
+    : null;
 
   return (
     <div className="space-y-6">
@@ -267,11 +267,8 @@ export function AIAnalyticsPanel({
           </div>
 
           <div className="flex items-center gap-3">
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitDisabled}
-            >
-              {isLoading ? loadingLabel : 'Generate Query'}
+            <Button onClick={handleSubmit} disabled={isSubmitDisabled}>
+              {isLoading ? loadingLabel : "Generate Query"}
             </Button>
 
             {isLoading && (
@@ -284,7 +281,7 @@ export function AIAnalyticsPanel({
       </div>
 
       {/* Error state */}
-      {panelState.status === 'error' && (
+      {panelState.status === "error" && (
         <div className="border border-red-200 bg-red-50 px-6 py-4 flex items-start justify-between gap-4">
           <p className="text-sm text-red-700">{panelState.message}</p>
           <button
@@ -297,7 +294,7 @@ export function AIAnalyticsPanel({
       )}
 
       {/* Done state: results + explanation + query inspector */}
-      {panelState.status === 'done' && (
+      {panelState.status === "done" && (
         <div className="space-y-4">
           {/* Results summary */}
           <div className="border border-[#E8E8E8] bg-white px-6 py-4">
@@ -305,7 +302,7 @@ export function AIAnalyticsPanel({
               Results
               <span className="ml-2 text-xs font-normal text-[#7A7A7A]">
                 {panelState.results.totalCount} row
-                {panelState.results.totalCount !== 1 ? 's' : ''}
+                {panelState.results.totalCount !== 1 ? "s" : ""}
               </span>
             </p>
             {panelState.results.results.length === 0 ? (
@@ -335,7 +332,7 @@ export function AIAnalyticsPanel({
                       >
                         {Object.values(row).map((val, j) => (
                           <td key={j} className="py-2 pr-6 text-[#0D0D0D]">
-                            {String(val ?? '')}
+                            {String(val ?? "")}
                           </td>
                         ))}
                       </tr>
@@ -374,9 +371,9 @@ export function AIAnalyticsPanel({
                     {entry.question}
                   </p>
                   <p className="text-xs text-[#7A7A7A] mt-0.5">
-                    {entry.timestamp.toLocaleTimeString()} ·{' '}
-                    {entry.totalCount} row
-                    {entry.totalCount !== 1 ? 's' : ''}
+                    {entry.timestamp.toLocaleTimeString()} · {entry.totalCount}{" "}
+                    row
+                    {entry.totalCount !== 1 ? "s" : ""}
                   </p>
                 </button>
               </li>

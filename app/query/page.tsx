@@ -1,8 +1,8 @@
-import { DashboardLayout } from '@/components/dashboard-layout';
-import { QueryForm } from '@/components/query-form';
-import { prisma } from '@/lib/db/prisma';
-import { listQueryFieldMetadata } from '@/lib/query/field-metadata';
-import { deserializeQueryStateFromSearchParams } from '@/lib/query/hydration';
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { QueryPageClient } from "@/components/ai/query-page-client";
+import { prisma } from "@/lib/db/prisma";
+import { listQueryFieldMetadata } from "@/lib/query/field-metadata";
+import { deserializeQueryStateFromSearchParams } from "@/lib/query/hydration";
 
 export default async function QueryPage({
   searchParams,
@@ -11,14 +11,14 @@ export default async function QueryPage({
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const applications = await prisma.application.findMany({
-    orderBy: { name: 'asc' },
+    orderBy: { name: "asc" },
     select: { id: true, name: true },
   });
   const fieldMetadataEntries = await Promise.all(
-    applications.map(async (application) => [
-      application.id,
-      await listQueryFieldMetadata(application.id),
-    ] as const),
+    applications.map(
+      async (application) =>
+        [application.id, await listQueryFieldMetadata(application.id)] as const,
+    ),
   );
   const fieldMetadataByApplication = Object.fromEntries(fieldMetadataEntries);
   const initialState = resolvedSearchParams
@@ -45,7 +45,7 @@ export default async function QueryPage({
             No applications found. Create an application first to run queries.
           </div>
         ) : (
-          <QueryForm
+          <QueryPageClient
             applications={applications}
             fieldMetadataByApplication={fieldMetadataByApplication}
             initialState={initialState}

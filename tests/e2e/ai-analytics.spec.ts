@@ -1,100 +1,107 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from "@playwright/test";
 
-const SEVEN_DAYS_AGO = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+const SEVEN_DAYS_AGO = new Date(
+  Date.now() - 7 * 24 * 60 * 60 * 1000,
+).toISOString();
 const NOW = new Date().toISOString();
 
-test.describe('AI Analytics Panel', () => {
+test.describe("AI Analytics Panel", () => {
+  function resultsSummary(page: Page) {
+    return page
+      .locator("p")
+      .filter({ hasText: /^Results/ })
+      .locator("span");
+  }
+
   test.beforeEach(async ({ page }) => {
-    await page.goto('/query');
+    await page.goto("/query");
   });
 
-  test('should show the AI Analytics section on the query page', async ({
+  test("should show the AI Analytics section on the query page", async ({
     page,
   }) => {
     await expect(
-      page.getByRole('heading', { name: 'AI Analytics' }),
+      page.getByRole("heading", { name: "AI Analytics" }),
     ).toBeVisible();
     await expect(
-      page.getByText('Ask a question in plain language'),
+      page.getByText("Ask a question in plain language"),
     ).toBeVisible();
   });
 
-  test('submit button is disabled when no question is entered', async ({
+  test("submit button is disabled when no question is entered", async ({
     page,
   }) => {
-    const submitButton = page.getByRole('button', { name: 'Generate Query' });
+    const submitButton = page.getByRole("button", { name: "Generate Query" });
     await expect(submitButton).toBeDisabled();
   });
 
-  test('submit button is disabled when question is empty and app is selected', async ({
+  test("submit button is disabled when question is empty and app is selected", async ({
     page,
   }) => {
-    const textarea = page.locator('textarea').first();
-    await textarea.fill('');
-    const submitButton = page.getByRole('button', { name: 'Generate Query' });
+    const textarea = page.locator("textarea").first();
+    await textarea.fill("");
+    const submitButton = page.getByRole("button", { name: "Generate Query" });
     await expect(submitButton).toBeDisabled();
   });
 
-  test('submit button becomes enabled when question is typed and app is selected', async ({
+  test("submit button becomes enabled when question is typed and app is selected", async ({
     page,
   }) => {
-    const textarea = page.locator('textarea').first();
-    await textarea.fill('How many signups happened last week?');
-    const submitButton = page.getByRole('button', { name: 'Generate Query' });
+    const textarea = page.locator("textarea").first();
+    await textarea.fill("How many signups happened last week?");
+    const submitButton = page.getByRole("button", { name: "Generate Query" });
     await expect(submitButton).toBeEnabled();
   });
 
-  test('shows no_schemas error message when API returns 422 no_schemas', async ({
+  test("shows no_schemas error message when API returns 422 no_schemas", async ({
     page,
   }) => {
-    await page.route('**/api/ai/generate', async (route) => {
+    await page.route("**/api/ai/generate", async (route) => {
       await route.fulfill({
         status: 422,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({
-          error: 'no_schemas',
+          error: "no_schemas",
           message:
-            'No active event schemas found for this application. Add event schemas before using AI analytics.',
+            "No active event schemas found for this application. Add event schemas before using AI analytics.",
         }),
       });
     });
 
-    const textarea = page.locator('textarea').first();
-    await textarea.fill('How many signups?');
-    await page.getByRole('button', { name: 'Generate Query' }).click();
+    const textarea = page.locator("textarea").first();
+    await textarea.fill("How many signups?");
+    await page.getByRole("button", { name: "Generate Query" }).click();
 
-    await expect(
-      page.getByText('No active event schemas found'),
-    ).toBeVisible();
+    await expect(page.getByText("No active event schemas found")).toBeVisible();
   });
 
-  test('submits question and shows results after mocked AI flow', async ({
+  test("submits question and shows results after mocked AI flow", async ({
     page,
   }) => {
     const mockQuery = {
-      applicationId: 'app-1',
-      eventName: 'signup',
+      applicationId: "app-1",
+      eventName: "signup",
       startDate: SEVEN_DAYS_AGO,
       endDate: NOW,
-      aggregation: 'count',
+      aggregation: "count",
     };
 
-    await page.route('**/api/ai/generate', async (route) => {
+    await page.route("**/api/ai/generate", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({ query: mockQuery }),
       });
     });
 
-    await page.route('**/api/query', async (route) => {
+    await page.route("**/api/query", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({
           results: [
-            { group: 'pro', value: 142 },
-            { group: 'free', value: 89 },
+            { group: "pro", value: 142 },
+            { group: "free", value: 89 },
           ],
           totalCount: 2,
           executionTimeMs: 10,
@@ -102,148 +109,336 @@ test.describe('AI Analytics Panel', () => {
       });
     });
 
-    await page.route('**/api/ai/explain', async (route) => {
+    await page.route("**/api/ai/explain", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({
-          explanation: 'There were 231 signups, mostly from Pro.',
+          explanation: "There were 231 signups, mostly from Pro.",
         }),
       });
     });
 
-    const textarea = page.locator('textarea').first();
-    await textarea.fill('How many signups happened last week, broken down by plan?');
-    await page.getByRole('button', { name: 'Generate Query' }).click();
+    const textarea = page.locator("textarea").first();
+    await textarea.fill(
+      "How many signups happened last week, broken down by plan?",
+    );
+    await page.getByRole("button", { name: "Generate Query" }).click();
 
-    await expect(page.getByText('2 rows')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('pro')).toBeVisible();
-    await expect(page.getByText('142')).toBeVisible();
+    await expect(resultsSummary(page)).toHaveText("2 rows", { timeout: 10000 });
+    await expect(page.getByRole("cell", { name: "pro" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "142" })).toBeVisible();
   });
 
-  test('shows explanation after full flow', async ({ page }) => {
+  test("shows explanation after full flow", async ({ page }) => {
     const mockQuery = {
-      applicationId: 'app-1',
-      eventName: 'signup',
+      applicationId: "app-1",
+      eventName: "signup",
       startDate: SEVEN_DAYS_AGO,
       endDate: NOW,
-      aggregation: 'count',
+      aggregation: "count",
     };
 
-    await page.route('**/api/ai/generate', async (route) => {
+    await page.route("**/api/ai/generate", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({ query: mockQuery }),
       });
     });
 
-    await page.route('**/api/query', async (route) => {
+    await page.route("**/api/query", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({
-          results: [{ group: 'pro', value: 50 }],
+          results: [{ group: "pro", value: 50 }],
           totalCount: 1,
           executionTimeMs: 5,
         }),
       });
     });
 
-    await page.route('**/api/ai/explain', async (route) => {
+    await page.route("**/api/ai/explain", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({
-          explanation: 'There were 50 signups from the Pro plan.',
+          explanation: "There were 50 signups from the Pro plan.",
         }),
       });
     });
 
-    const textarea = page.locator('textarea').first();
-    await textarea.fill('How many signups?');
-    await page.getByRole('button', { name: 'Generate Query' }).click();
+    const textarea = page.locator("textarea").first();
+    await textarea.fill("How many signups?");
+    await page.getByRole("button", { name: "Generate Query" }).click();
 
     await expect(
-      page.getByText('There were 50 signups from the Pro plan.'),
+      page.getByText("There were 50 signups from the Pro plan."),
     ).toBeVisible({ timeout: 10000 });
   });
 
-  test('results remain visible when explanation API fails', async ({
+  test("allows generating a new query after the first run completes", async ({
+    page,
+  }) => {
+    let generateCallCount = 0;
+    let queryCallCount = 0;
+    let explainCallCount = 0;
+
+    await page.route("**/api/ai/generate", async (route) => {
+      generateCallCount += 1;
+
+      const query =
+        generateCallCount === 1
+          ? {
+              applicationId: "app-1",
+              eventName: "signup",
+              startDate: SEVEN_DAYS_AGO,
+              endDate: NOW,
+              aggregation: "count",
+            }
+          : {
+              applicationId: "app-1",
+              eventName: "purchase",
+              startDate: SEVEN_DAYS_AGO,
+              endDate: NOW,
+              aggregation: "count",
+            };
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ query }),
+      });
+    });
+
+    await page.route("**/api/query", async (route) => {
+      queryCallCount += 1;
+
+      const response =
+        queryCallCount === 1
+          ? {
+              results: [{ group: "pro", value: 50 }],
+              totalCount: 1,
+              executionTimeMs: 5,
+            }
+          : {
+              results: [{ group: "prod_pro", value: 12 }],
+              totalCount: 1,
+              executionTimeMs: 7,
+            };
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(response),
+      });
+    });
+
+    await page.route("**/api/ai/explain", async (route) => {
+      explainCallCount += 1;
+
+      const explanation =
+        explainCallCount === 1
+          ? "There were 50 signups from the Pro plan."
+          : "There were 12 purchases of prod_pro.";
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ explanation }),
+      });
+    });
+
+    const textarea = page.locator("textarea").first();
+    const submitButton = page.getByRole("button", { name: "Generate Query" });
+
+    await textarea.fill("How many signups happened last week?");
+    await submitButton.click();
+
+    await expect(
+      page.getByText("There were 50 signups from the Pro plan."),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(submitButton).toBeEnabled();
+
+    await textarea.fill("How many purchases happened last week?");
+    await submitButton.click();
+
+    await expect(
+      page.getByText("There were 12 purchases of prod_pro."),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("cell", { name: "prod_pro" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "12" })).toBeVisible();
+    expect(generateCallCount).toBe(2);
+    expect(queryCallCount).toBe(2);
+    expect(explainCallCount).toBe(2);
+  });
+
+  test("uses the prompt time range instead of always forcing the last 7 days", async ({
+    page,
+  }) => {
+    await page.route("**/api/ai/generate", async (route) => {
+      const body = route.request().postDataJSON() as {
+        question: string;
+        startDate: string;
+        endDate: string;
+      };
+
+      expect(body.question).toContain("last month");
+      expect(body.startDate).toBe("2026-02-26T12:00:00.000Z");
+      expect(body.endDate).toBe("2026-03-28T12:00:00.000Z");
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          query: {
+            applicationId: "app-1",
+            eventName: "subscription_started",
+            startDate: body.startDate,
+            endDate: body.endDate,
+            aggregation: "count",
+            groupBy: { kind: "property", key: "billingPeriod" },
+          },
+        }),
+      });
+    });
+
+    await page.route("**/api/query", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          results: [
+            { group: "annual", value: 3 },
+            { group: "monthly", value: 5 },
+          ],
+          totalCount: 2,
+          executionTimeMs: 5,
+        }),
+      });
+    });
+
+    await page.route("**/api/ai/explain", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          explanation: "There were 8 mobile subscriptions in the last month.",
+        }),
+      });
+    });
+
+    await page.addInitScript(() => {
+      const fixedNow = new Date("2026-03-28T12:00:00.000Z").valueOf();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const RealDate = Date as any;
+      class MockDate extends RealDate {
+        constructor(...args: ConstructorParameters<DateConstructor>) {
+          if (args.length === 0) {
+            super(fixedNow);
+            return;
+          }
+          super(...args);
+        }
+
+        static now() {
+          return fixedNow;
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).Date = MockDate;
+    });
+
+    await page.goto("/query");
+    await page.selectOption("select", { label: "EventPulse iOS" });
+
+    const textarea = page.locator("textarea").first();
+    await textarea.fill(
+      "Show mobile subscriptions by billing period for the last month",
+    );
+    await page.getByRole("button", { name: "Generate Query" }).click();
+
+    await expect(resultsSummary(page)).toHaveText("2 rows", { timeout: 10000 });
+    await expect(page.getByRole("cell", { name: "annual" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "monthly" })).toBeVisible();
+  });
+
+  test("results remain visible when explanation API fails", async ({
     page,
   }) => {
     const mockQuery = {
-      applicationId: 'app-1',
-      eventName: 'signup',
+      applicationId: "app-1",
+      eventName: "signup",
       startDate: SEVEN_DAYS_AGO,
       endDate: NOW,
-      aggregation: 'count',
+      aggregation: "count",
     };
 
-    await page.route('**/api/ai/generate', async (route) => {
+    await page.route("**/api/ai/generate", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({ query: mockQuery }),
       });
     });
 
-    await page.route('**/api/query', async (route) => {
+    await page.route("**/api/query", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({
-          results: [{ group: 'pro', value: 50 }],
+          results: [{ group: "pro", value: 50 }],
           totalCount: 1,
           executionTimeMs: 5,
         }),
       });
     });
 
-    await page.route('**/api/ai/explain', async (route) => {
+    await page.route("**/api/ai/explain", async (route) => {
       await route.fulfill({
         status: 500,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({
-          error: 'internal_error',
-          message: 'Something went wrong generating the explanation.',
+          error: "internal_error",
+          message: "Something went wrong generating the explanation.",
         }),
       });
     });
 
-    const textarea = page.locator('textarea').first();
-    await textarea.fill('How many signups?');
-    await page.getByRole('button', { name: 'Generate Query' }).click();
+    const textarea = page.locator("textarea").first();
+    await textarea.fill("How many signups?");
+    await page.getByRole("button", { name: "Generate Query" }).click();
 
-    await expect(page.getByText('1 row')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('pro')).toBeVisible();
+    await expect(resultsSummary(page)).toHaveText("1 row", { timeout: 10000 });
+    await expect(page.getByRole("cell", { name: "pro" })).toBeVisible();
     // No error state — panel transitions to done without explanation
-    await expect(page.getByText('Generate Query')).toBeEnabled();
+    await expect(page.getByText("Generate Query")).toBeEnabled();
   });
 
-  test('generated query inspector is present and collapsed by default', async ({
+  test("generated query inspector is present and collapsed by default", async ({
     page,
   }) => {
     const mockQuery = {
-      applicationId: 'app-1',
-      eventName: 'page_view',
+      applicationId: "app-1",
+      eventName: "page_view",
       startDate: SEVEN_DAYS_AGO,
       endDate: NOW,
-      aggregation: 'count',
+      aggregation: "count",
     };
 
-    await page.route('**/api/ai/generate', async (route) => {
+    await page.route("**/api/ai/generate", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({ query: mockQuery }),
       });
     });
 
-    await page.route('**/api/query', async (route) => {
+    await page.route("**/api/query", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({
           results: [],
           totalCount: 0,
@@ -252,51 +447,51 @@ test.describe('AI Analytics Panel', () => {
       });
     });
 
-    await page.route('**/api/ai/explain', async (route) => {
+    await page.route("**/api/ai/explain", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ explanation: 'No events found.' }),
+        contentType: "application/json",
+        body: JSON.stringify({ explanation: "No events found." }),
       });
     });
 
-    const textarea = page.locator('textarea').first();
-    await textarea.fill('How many page views?');
-    await page.getByRole('button', { name: 'Generate Query' }).click();
+    const textarea = page.locator("textarea").first();
+    await textarea.fill("How many page views?");
+    await page.getByRole("button", { name: "Generate Query" }).click();
 
-    await expect(page.getByText('Generated Query')).toBeVisible({
+    await expect(page.getByText("Generated Query")).toBeVisible({
       timeout: 10000,
     });
 
     // Inspector is collapsed by default (details element)
-    const details = page.locator('details');
-    const isOpen = await details.getAttribute('open');
+    const details = page.locator("details");
+    const isOpen = await details.getAttribute("open");
     expect(isOpen).toBeNull();
   });
 
-  test('expanding query inspector shows event name and aggregation', async ({
+  test("expanding query inspector shows event name and aggregation", async ({
     page,
   }) => {
     const mockQuery = {
-      applicationId: 'app-1',
-      eventName: 'page_view',
+      applicationId: "app-1",
+      eventName: "page_view",
       startDate: SEVEN_DAYS_AGO,
       endDate: NOW,
-      aggregation: 'count',
+      aggregation: "count",
     };
 
-    await page.route('**/api/ai/generate', async (route) => {
+    await page.route("**/api/ai/generate", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({ query: mockQuery }),
       });
     });
 
-    await page.route('**/api/query', async (route) => {
+    await page.route("**/api/query", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({
           results: [],
           totalCount: 0,
@@ -305,51 +500,54 @@ test.describe('AI Analytics Panel', () => {
       });
     });
 
-    await page.route('**/api/ai/explain', async (route) => {
+    await page.route("**/api/ai/explain", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ explanation: 'No data.' }),
+        contentType: "application/json",
+        body: JSON.stringify({ explanation: "No data." }),
       });
     });
 
-    const textarea = page.locator('textarea').first();
-    await textarea.fill('How many page views?');
-    await page.getByRole('button', { name: 'Generate Query' }).click();
+    const textarea = page.locator("textarea").first();
+    await textarea.fill("How many page views?");
+    await page.getByRole("button", { name: "Generate Query" }).click();
 
-    await expect(page.getByText('Generated Query')).toBeVisible({
+    await expect(page.getByText("Generated Query")).toBeVisible({
       timeout: 10000,
     });
 
-    await page.getByText('Generated Query').click();
+    await page.getByText("Generated Query").click();
 
-    await expect(page.getByText('page_view')).toBeVisible();
-    await expect(page.getByText('count')).toBeVisible();
+    const inspector = page.locator("details");
+    await expect(
+      inspector.getByText("page_view", { exact: true }),
+    ).toBeVisible();
+    await expect(inspector.getByText("count", { exact: true })).toBeVisible();
   });
 
-  test('clicking Open in Query Explorer populates the QueryForm', async ({
+  test("clicking Open in Query Explorer populates the QueryForm", async ({
     page,
   }) => {
     const mockQuery = {
-      applicationId: 'app-1',
-      eventName: 'signup',
+      applicationId: "app-1",
+      eventName: "signup",
       startDate: SEVEN_DAYS_AGO,
       endDate: NOW,
-      aggregation: 'count',
+      aggregation: "count",
     };
 
-    await page.route('**/api/ai/generate', async (route) => {
+    await page.route("**/api/ai/generate", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({ query: mockQuery }),
       });
     });
 
-    await page.route('**/api/query', async (route) => {
+    await page.route("**/api/query", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({
           results: [],
           totalCount: 0,
@@ -358,122 +556,132 @@ test.describe('AI Analytics Panel', () => {
       });
     });
 
-    await page.route('**/api/ai/explain', async (route) => {
+    await page.route("**/api/ai/explain", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ explanation: 'No data.' }),
+        contentType: "application/json",
+        body: JSON.stringify({ explanation: "No data." }),
       });
     });
 
-    const textarea = page.locator('textarea').first();
-    await textarea.fill('How many signups?');
-    await page.getByRole('button', { name: 'Generate Query' }).click();
+    const textarea = page.locator("textarea").first();
+    await textarea.fill("How many signups?");
+    await page.getByRole("button", { name: "Generate Query" }).click();
 
-    await expect(page.getByText('Generated Query')).toBeVisible({
+    await expect(page.getByText("Generated Query")).toBeVisible({
       timeout: 10000,
     });
-    await page.getByText('Generated Query').click();
+    await page.getByText("Generated Query").click();
 
-    await page
-      .getByRole('button', { name: 'Open in Query Explorer' })
-      .click();
+    await page.getByRole("button", { name: "Open in Query Explorer" }).click();
 
     // QueryForm should be repopulated — verify event name field has signup
-    const queryFormEventInput = page.locator('input[placeholder*="event"]').first();
+    const queryFormEventInput = page
+      .locator('input[placeholder*="event"]')
+      .first();
     if (await queryFormEventInput.isVisible()) {
-      await expect(queryFormEventInput).toHaveValue('signup');
+      await expect(queryFormEventInput).toHaveValue("signup");
     } else {
       // Check for event name in a select or other input
-      await expect(page.getByRole('button', { name: 'Run Query' })).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Run Query" }),
+      ).toBeVisible();
     }
   });
 
-  test('session history shows previous questions', async ({ page }) => {
+  test("session history shows previous questions", async ({ page }) => {
     const mockQuery = {
-      applicationId: 'app-1',
-      eventName: 'signup',
+      applicationId: "app-1",
+      eventName: "signup",
       startDate: SEVEN_DAYS_AGO,
       endDate: NOW,
-      aggregation: 'count',
+      aggregation: "count",
     };
 
     let callCount = 0;
     const questions = [
-      'How many signups?',
-      'How many page views?',
-      'How many purchases?',
+      "How many signups?",
+      "How many page views?",
+      "How many purchases?",
     ];
 
-    await page.route('**/api/ai/generate', async (route) => {
+    await page.route("**/api/ai/generate", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({ query: mockQuery }),
       });
     });
 
-    await page.route('**/api/query', async (route) => {
+    await page.route("**/api/query", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({
-          results: [{ group: 'test', value: callCount }],
+          results: [{ group: "test", value: callCount }],
           totalCount: 1,
           executionTimeMs: 3,
         }),
       });
     });
 
-    await page.route('**/api/ai/explain', async (route) => {
+    await page.route("**/api/ai/explain", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ explanation: 'Test explanation.' }),
+        contentType: "application/json",
+        body: JSON.stringify({ explanation: "Test explanation." }),
       });
     });
 
     for (const question of questions) {
       callCount++;
-      const textarea = page.locator('textarea').first();
+      const textarea = page.locator("textarea").first();
       await textarea.fill(question);
-      await page.getByRole('button', { name: 'Generate Query' }).click();
-      await expect(page.getByText('1 row')).toBeVisible({ timeout: 10000 });
+      await page.getByRole("button", { name: "Generate Query" }).click();
+      await expect(resultsSummary(page)).toHaveText("1 row", {
+        timeout: 10000,
+      });
       await page.waitForTimeout(200);
     }
 
-    await expect(page.getByText('Session History')).toBeVisible();
-    await expect(page.getByText('How many signups?')).toBeVisible();
-    await expect(page.getByText('How many page views?')).toBeVisible();
-    await expect(page.getByText('How many purchases?')).toBeVisible();
+    await expect(page.getByText("Session History")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /How many signups\?/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /How many page views\?/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /How many purchases\?/ }),
+    ).toBeVisible();
   });
 
-  test('clicking a history entry restores its question and results', async ({
+  test("clicking a history entry restores its question and results", async ({
     page,
   }) => {
     const mockQuery = {
-      applicationId: 'app-1',
-      eventName: 'signup',
+      applicationId: "app-1",
+      eventName: "signup",
       startDate: SEVEN_DAYS_AGO,
       endDate: NOW,
-      aggregation: 'count',
+      aggregation: "count",
     };
 
     let callCount = 0;
 
-    await page.route('**/api/ai/generate', async (route) => {
+    await page.route("**/api/ai/generate", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({ query: mockQuery }),
       });
     });
 
-    await page.route('**/api/query', async (route) => {
+    await page.route("**/api/query", async (route) => {
       callCount++;
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({
           results: [{ group: `run-${callCount}`, value: callCount * 10 }],
           totalCount: 1,
@@ -482,29 +690,29 @@ test.describe('AI Analytics Panel', () => {
       });
     });
 
-    await page.route('**/api/ai/explain', async (route) => {
+    await page.route("**/api/ai/explain", async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
+        contentType: "application/json",
         body: JSON.stringify({ explanation: `Explanation ${callCount}.` }),
       });
     });
 
-    const textarea = page.locator('textarea').first();
-    await textarea.fill('First question');
-    await page.getByRole('button', { name: 'Generate Query' }).click();
-    await expect(page.getByText('1 row')).toBeVisible({ timeout: 10000 });
+    const textarea = page.locator("textarea").first();
+    await textarea.fill("First question");
+    await page.getByRole("button", { name: "Generate Query" }).click();
+    await expect(resultsSummary(page)).toHaveText("1 row", { timeout: 10000 });
 
     await page.waitForTimeout(200);
 
-    await textarea.fill('Second question');
-    await page.getByRole('button', { name: 'Generate Query' }).click();
-    await expect(page.getByText('1 row')).toBeVisible({ timeout: 10000 });
+    await textarea.fill("Second question");
+    await page.getByRole("button", { name: "Generate Query" }).click();
+    await expect(resultsSummary(page)).toHaveText("1 row", { timeout: 10000 });
 
-    await expect(page.getByText('Session History')).toBeVisible();
-    await page.getByText('First question').first().click();
+    await expect(page.getByText("Session History")).toBeVisible();
+    await page.getByText("First question").first().click();
 
-    const questionTextarea = page.locator('textarea').first();
-    await expect(questionTextarea).toHaveValue('First question');
+    const questionTextarea = page.locator("textarea").first();
+    await expect(questionTextarea).toHaveValue("First question");
   });
 });
