@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from "react";
 import {
   LineChart,
   Line,
@@ -10,23 +10,23 @@ import {
   Tooltip,
   ResponsiveContainer,
   Dot,
-} from 'recharts';
-import { TimeRangeSelector } from '@/components/ui/time-range-selector';
-import { ChartEmptyState } from '@/components/charts/ChartEmptyState';
-import { ChartLoadingSkeleton } from '@/components/charts/ChartLoadingSkeleton';
-import { formatDateLabel, formatRate } from '@/lib/utils/chart-format';
-import { CHART_COLORS } from '@/lib/charts/types';
+} from "recharts";
+import { TimeRangeSelector } from "@/components/ui/time-range-selector";
+import { ChartEmptyState } from "@/components/charts/ChartEmptyState";
+import { ChartLoadingSkeleton } from "@/components/charts/ChartLoadingSkeleton";
+import { formatDateLabel, formatRate } from "@/lib/utils/chart-format";
+import { CHART_COLORS } from "@/lib/charts/types";
 import {
   THRESHOLDS,
   failureRateAlert,
   completenessAlert,
   duplicateRateAlert,
-} from '@/lib/charts/quality-thresholds';
+} from "@/lib/charts/quality-thresholds";
 import type {
   QualityTrendsChartProps,
   QualityTrendPoint,
   TimeRangeOption,
-} from '@/lib/charts/types';
+} from "@/lib/charts/types";
 
 const CHART_HEIGHT = 300;
 
@@ -44,20 +44,19 @@ type MetricKey = keyof typeof LINE_COLORS;
  * otherwise the line's default colour.
  */
 function dotFill(metric: MetricKey, value: number | null): string {
-  if (value === null) return 'transparent';
+  if (value === null) return "transparent";
   let level: ReturnType<typeof failureRateAlert>;
-  if (metric === 'validationFailureRate') level = failureRateAlert(value);
-  else if (metric === 'completenessRate') level = completenessAlert(value);
+  if (metric === "validationFailureRate") level = failureRateAlert(value);
+  else if (metric === "completenessRate") level = completenessAlert(value);
   else level = duplicateRateAlert(value);
 
-  return level === 'error' || level === 'warning'
+  return level === "error" || level === "warning"
     ? CHART_COLORS.alert
     : LINE_COLORS[metric];
 }
 
 /** Custom Dot that skips null values (renders nothing) */
 function ThresholdDot(metric: MetricKey) {
-  // eslint-disable-next-line react/display-name
   return function CustomDot(props: Record<string, unknown>) {
     const { cx, cy, value } = props as {
       cx: number;
@@ -97,18 +96,18 @@ export function QualityTrendsChart({
       setLoading(true);
       try {
         const params = new URLSearchParams({ days: String(newDays) });
-        if (applicationId) params.set('applicationId', applicationId);
+        if (applicationId) params.set("applicationId", applicationId);
 
         const res = await fetch(`/api/charts/quality-trends?${params}`, {
           signal: controller.signal,
         });
-        if (!res.ok) throw new Error('Failed to fetch quality trends');
+        if (!res.ok) throw new Error("Failed to fetch quality trends");
 
         const json = await res.json();
         setData(json.series);
       } catch (err: unknown) {
-        if (err instanceof Error && err.name === 'AbortError') return;
-        console.error('QualityTrendsChart fetch error:', err);
+        if (err instanceof Error && err.name === "AbortError") return;
+        console.error("QualityTrendsChart fetch error:", err);
       } finally {
         setLoading(false);
       }
@@ -154,11 +153,11 @@ export function QualityTrendsChart({
                 className="inline-block h-2 w-4 rounded-full"
                 style={{ backgroundColor: color }}
               />
-              {key === 'validationFailureRate'
-                ? 'Failure Rate'
-                : key === 'completenessRate'
-                  ? 'Completeness'
-                  : 'Duplicate Rate'}
+              {key === "validationFailureRate"
+                ? "Failure Rate"
+                : key === "completenessRate"
+                  ? "Completeness"
+                  : "Duplicate Rate"}
             </span>
           ),
         )}
@@ -207,39 +206,39 @@ export function QualityTrendsChart({
                       {formatDateLabel(point.date)}
                     </p>
                     <p className="text-gray-600">
-                      Failure:{' '}
+                      Failure:{" "}
                       <span
                         className={
                           point.validationFailureRate !== null &&
-                          failureRateAlert(point.validationFailureRate) !== 'ok'
-                            ? 'font-semibold text-red-600'
-                            : ''
+                          failureRateAlert(point.validationFailureRate) !== "ok"
+                            ? "font-semibold text-red-600"
+                            : ""
                         }
                       >
                         {formatRate(point.validationFailureRate)}
                       </span>
                     </p>
                     <p className="text-gray-600">
-                      Completeness:{' '}
+                      Completeness:{" "}
                       <span
                         className={
                           point.completenessRate !== null &&
-                          completenessAlert(point.completenessRate) !== 'ok'
-                            ? 'font-semibold text-red-600'
-                            : ''
+                          completenessAlert(point.completenessRate) !== "ok"
+                            ? "font-semibold text-red-600"
+                            : ""
                         }
                       >
                         {formatRate(point.completenessRate)}
                       </span>
                     </p>
                     <p className="text-gray-600">
-                      Duplicates:{' '}
+                      Duplicates:{" "}
                       <span
                         className={
                           point.duplicateRate !== null &&
-                          duplicateRateAlert(point.duplicateRate) !== 'ok'
-                            ? 'font-semibold text-red-600'
-                            : ''
+                          duplicateRateAlert(point.duplicateRate) !== "ok"
+                            ? "font-semibold text-red-600"
+                            : ""
                         }
                       >
                         {formatRate(point.duplicateRate)}
@@ -255,7 +254,7 @@ export function QualityTrendsChart({
               stroke={LINE_COLORS.validationFailureRate}
               strokeWidth={2}
               connectNulls={false}
-              dot={ThresholdDot('validationFailureRate')}
+              dot={ThresholdDot("validationFailureRate")}
               activeDot={{ r: 4 }}
             />
             <Line
@@ -264,7 +263,7 @@ export function QualityTrendsChart({
               stroke={LINE_COLORS.completenessRate}
               strokeWidth={2}
               connectNulls={false}
-              dot={ThresholdDot('completenessRate')}
+              dot={ThresholdDot("completenessRate")}
               activeDot={{ r: 4 }}
             />
             <Line
@@ -273,7 +272,7 @@ export function QualityTrendsChart({
               stroke={LINE_COLORS.duplicateRate}
               strokeWidth={2}
               connectNulls={false}
-              dot={ThresholdDot('duplicateRate')}
+              dot={ThresholdDot("duplicateRate")}
               activeDot={{ r: 4 }}
             />
           </LineChart>

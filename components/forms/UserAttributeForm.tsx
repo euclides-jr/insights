@@ -1,8 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useTransition } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/button";
 
 interface AttributeRow {
   id: string;
@@ -29,16 +28,16 @@ function attrsToRows(attrs: Record<string, unknown>): AttributeRow[] {
     id: uid(),
     key,
     value:
-      typeof value === 'object' ? JSON.stringify(value) : String(value ?? ''),
+      typeof value === "object" ? JSON.stringify(value) : String(value ?? ""),
   }));
 }
 
 function parseValue(raw: string): unknown {
   const trimmed = raw.trim();
-  if (trimmed === 'true') return true;
-  if (trimmed === 'false') return false;
+  if (trimmed === "true") return true;
+  if (trimmed === "false") return false;
   const num = Number(trimmed);
-  if (!isNaN(num) && trimmed !== '') return num;
+  if (!isNaN(num) && trimmed !== "") return num;
   return trimmed;
 }
 
@@ -52,7 +51,7 @@ export function UserAttributeForm({
   const [rows, setRows] = useState<AttributeRow[]>(
     Object.keys(defaultAttributes).length > 0
       ? attrsToRows(defaultAttributes)
-      : [{ id: uid(), key: '', value: '', error: undefined }],
+      : [{ id: uid(), key: "", value: "", error: undefined }],
   );
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -60,7 +59,7 @@ export function UserAttributeForm({
   function addRow() {
     setRows((prev) => [
       ...prev,
-      { id: uid(), key: '', value: '', error: undefined },
+      { id: uid(), key: "", value: "", error: undefined },
     ]);
   }
 
@@ -84,13 +83,13 @@ export function UserAttributeForm({
     const updated = rows.map((row) => {
       if (!row.key.trim()) {
         valid = false;
-        return { ...row, error: 'Key is required' };
+        return { ...row, error: "Key is required" };
       }
       if (!/^[a-z0-9_]{1,128}$/.test(row.key.trim())) {
         valid = false;
         return {
           ...row,
-          error: 'Key must match [a-z0-9_] (1–128 chars, lowercase)',
+          error: "Key must match [a-z0-9_] (1–128 chars, lowercase)",
         };
       }
       return { ...row, error: undefined };
@@ -107,11 +106,11 @@ export function UserAttributeForm({
 
     startTransition(async () => {
       try {
-        const res = await fetch('/api/users/identify', {
-          method: 'POST',
+        const res = await fetch("/api/users/identify", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'X-API-Key': apiKey,
+            "Content-Type": "application/json",
+            "X-API-Key": apiKey,
           },
           body: JSON.stringify({ userId, attributes }),
         });
@@ -123,7 +122,7 @@ export function UserAttributeForm({
         setSuccess(true);
         onSuccess?.();
       } catch {
-        setGlobalError('Network error — please try again');
+        setGlobalError("Network error — please try again");
       }
     });
   }
@@ -149,7 +148,7 @@ export function UserAttributeForm({
                 className={`
                   h-9 w-full rounded-none border border-[#E8E8E8] bg-white px-3 py-2 text-sm
                   placeholder:text-[#A3A3A3] focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]
-                  ${row.error ? 'border-red-500' : ''}
+                  ${row.error ? "border-red-500" : ""}
                 `}
                 placeholder="plan_type"
                 value={row.key}
@@ -209,7 +208,7 @@ export function UserAttributeForm({
 
       <div className="flex justify-end">
         <Button type="submit" disabled={isPending}>
-          {isPending ? 'Saving…' : 'Save attributes'}
+          {isPending ? "Saving…" : "Save attributes"}
         </Button>
       </div>
     </form>

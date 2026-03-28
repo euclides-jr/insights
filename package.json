@@ -15,12 +15,15 @@
     "db:seed:query-perf": "bun prisma/seed-query-performance.ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
+    "test:api-live": "vitest --run --config vitest.api-live.config.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.48",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
+    "ai": "^6.0.141",
     "better-auth": "^1.5.5",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
