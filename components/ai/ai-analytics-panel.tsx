@@ -21,16 +21,33 @@ interface QueryResult {
   executionTimeMs: number;
 }
 
+interface ResolvedDateRange {
+  startDate: string;
+  endDate: string;
+  source: "provided" | "deterministic" | "llm" | "default";
+  confidence: "high" | "medium" | "low";
+}
+
 type PanelState =
   | { status: "idle" }
   | { status: "generating" }
-  | { status: "executing"; query: QueryDefinition }
-  | { status: "explaining"; query: QueryDefinition; results: QueryResult }
+  | {
+      status: "executing";
+      query: QueryDefinition;
+      resolvedDateRange?: ResolvedDateRange;
+    }
+  | {
+      status: "explaining";
+      query: QueryDefinition;
+      results: QueryResult;
+      resolvedDateRange?: ResolvedDateRange;
+    }
   | {
       status: "done";
       query: QueryDefinition;
       results: QueryResult;
       explanation: string;
+      resolvedDateRange?: ResolvedDateRange;
     }
   | { status: "error"; message: string };
 
@@ -75,6 +92,7 @@ export function AIAnalyticsPanel({
     setPanelState({ status: "generating" });
 
     let query: QueryDefinition;
+    let resolvedDateRange: ResolvedDateRange | undefined;
     try {
       const generateRes = await fetch("/api/ai/generate", {
         method: "POST",
@@ -87,6 +105,7 @@ export function AIAnalyticsPanel({
 
       const generateData: {
         query?: QueryDefinition;
+        resolvedDateRange?: ResolvedDateRange;
         error?: string;
         message?: string;
       } = await generateRes.json();
@@ -101,6 +120,7 @@ export function AIAnalyticsPanel({
       }
 
       query = generateData.query!;
+      resolvedDateRange = generateData.resolvedDateRange;
     } catch {
       setPanelState({
         status: "error",
@@ -109,7 +129,7 @@ export function AIAnalyticsPanel({
       return;
     }
 
-    setPanelState({ status: "executing", query });
+    setPanelState({ status: "executing", query, resolvedDateRange });
 
     let queryResult: QueryResult;
     try {
@@ -137,7 +157,12 @@ export function AIAnalyticsPanel({
       return;
     }
 
-    setPanelState({ status: "explaining", query, results: queryResult });
+    setPanelState({
+      status: "explaining",
+      query,
+      results: queryResult,
+      resolvedDateRange,
+    });
 
     let explanation = "";
     try {
@@ -169,13 +194,20 @@ export function AIAnalyticsPanel({
       timestamp: now,
       question: submittedQuestion,
       query,
+      resolvedDateRange,
       results: queryResult.results,
       totalCount: queryResult.totalCount,
       explanation,
     };
 
     setHistory((prev) => [entry, ...prev].slice(0, 20));
-    setPanelState({ status: "done", query, results: queryResult, explanation });
+    setPanelState({
+      status: "done",
+      query,
+      results: queryResult,
+      explanation,
+      resolvedDateRange,
+    });
   }
 
   function handleDismissError() {
@@ -188,6 +220,7 @@ export function AIAnalyticsPanel({
     setPanelState({
       status: "done",
       query: entry.query,
+      resolvedDateRange: entry.resolvedDateRange,
       results: {
         results: entry.results,
         totalCount: entry.totalCount,
@@ -336,10 +369,38 @@ export function AIAnalyticsPanel({
             )}
           </div>
 
+          {panelState.resolvedDateRange && (
+            <div className="border border-[#E8E8E8] bg-[#FAFAFA] px-6 py-4">
+              <p className="text-sm font-medium text-[#0D0D0D] mb-1">
+                Execution Summary
+              </p>
+              <p className="text-sm text-[#3D3D3D] leading-relaxed">
+                Date range interpreted as{" "}
+                {new Date(
+                  panelState.resolvedDateRange.startDate,
+                ).toLocaleDateString()}{" "}
+                →{" "}
+                {new Date(
+                  panelState.resolvedDateRange.endDate,
+                ).toLocaleDateString()}
+                . Source:{" "}
+                {panelState.resolvedDateRange.source === "provided"
+                  ? "provided directly"
+                  : panelState.resolvedDateRange.source === "deterministic"
+                    ? "interpreted from the prompt"
+                    : panelState.resolvedDateRange.source === "llm"
+                      ? "resolved with AI fallback"
+                      : "defaulted to the last 7 days"}
+                .
+              </p>
+            </div>
+          )}
+
           <AIExplanation explanation={panelState.explanation || null} />
 
           <AIQueryInspector
             query={panelState.query}
+            resolvedDateRange={panelState.resolvedDateRange}
             onOpenInExplorer={onLoadQueryIntoForm}
           />
         </div>

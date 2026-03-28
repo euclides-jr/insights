@@ -48,6 +48,12 @@ export interface AIAnalyticsHistoryEntry {
   timestamp: Date;
   question: string;
   query: QueryDefinition;
+  resolvedDateRange?: {
+    startDate: string;
+    endDate: string;
+    source: "provided" | "deterministic" | "llm" | "default";
+    confidence: "high" | "medium" | "low";
+  };
   results: Record<string, unknown>[];
   totalCount: number;
   explanation: string;

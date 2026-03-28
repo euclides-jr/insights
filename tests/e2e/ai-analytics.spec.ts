@@ -90,7 +90,15 @@ test.describe("AI Analytics Panel", () => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ query: mockQuery }),
+        body: JSON.stringify({
+          query: mockQuery,
+          resolvedDateRange: {
+            startDate: SEVEN_DAYS_AGO,
+            endDate: NOW,
+            source: "deterministic",
+            confidence: "high",
+          },
+        }),
       });
     });
 
@@ -143,7 +151,15 @@ test.describe("AI Analytics Panel", () => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ query: mockQuery }),
+        body: JSON.stringify({
+          query: mockQuery,
+          resolvedDateRange: {
+            startDate: SEVEN_DAYS_AGO,
+            endDate: NOW,
+            source: "default",
+            confidence: "low",
+          },
+        }),
       });
     });
 
@@ -208,7 +224,15 @@ test.describe("AI Analytics Panel", () => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({
+          query,
+          resolvedDateRange: {
+            startDate: query.startDate,
+            endDate: query.endDate,
+            source: "deterministic",
+            confidence: "high",
+          },
+        }),
       });
     });
 
@@ -280,13 +304,12 @@ test.describe("AI Analytics Panel", () => {
     await page.route("**/api/ai/generate", async (route) => {
       const body = route.request().postDataJSON() as {
         question: string;
-        startDate: string;
-        endDate: string;
+        applicationId: string;
       };
 
       expect(body.question).toContain("last month");
-      expect(body.startDate).toBe("2026-02-26T12:00:00.000Z");
-      expect(body.endDate).toBe("2026-03-28T12:00:00.000Z");
+      expect("startDate" in body).toBe(false);
+      expect("endDate" in body).toBe(false);
 
       await route.fulfill({
         status: 200,
@@ -295,10 +318,16 @@ test.describe("AI Analytics Panel", () => {
           query: {
             applicationId: "app-1",
             eventName: "subscription_started",
-            startDate: body.startDate,
-            endDate: body.endDate,
+            startDate: "2026-02-26T12:00:00.000Z",
+            endDate: "2026-03-28T12:00:00.000Z",
             aggregation: "count",
             groupBy: { kind: "property", key: "billingPeriod" },
+          },
+          resolvedDateRange: {
+            startDate: "2026-02-26T12:00:00.000Z",
+            endDate: "2026-03-28T12:00:00.000Z",
+            source: "deterministic",
+            confidence: "high",
           },
         }),
       });
@@ -329,28 +358,6 @@ test.describe("AI Analytics Panel", () => {
       });
     });
 
-    await page.addInitScript(() => {
-      const fixedNow = new Date("2026-03-28T12:00:00.000Z").valueOf();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const RealDate = Date as any;
-      class MockDate extends RealDate {
-        constructor(...args: ConstructorParameters<DateConstructor>) {
-          if (args.length === 0) {
-            super(fixedNow);
-            return;
-          }
-          super(...args);
-        }
-
-        static now() {
-          return fixedNow;
-        }
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).Date = MockDate;
-    });
-
-    await page.goto("/query");
     await page.selectOption("select", { label: "EventPulse iOS" });
 
     const textarea = page.locator("textarea").first();
@@ -362,6 +369,36 @@ test.describe("AI Analytics Panel", () => {
     await expect(resultsSummary(page)).toHaveText("2 rows", { timeout: 10000 });
     await expect(page.getByRole("cell", { name: "annual" })).toBeVisible();
     await expect(page.getByRole("cell", { name: "monthly" })).toBeVisible();
+    await expect(page.getByText("Execution Summary")).toBeVisible();
+    await expect(
+      page.getByText(/Source: interpreted from the prompt\./),
+    ).toBeVisible();
+  });
+
+  test("shows a clarification_required message when the date range cannot be resolved safely", async ({
+    page,
+  }) => {
+    await page.route("**/api/ai/generate", async (route) => {
+      await route.fulfill({
+        status: 422,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: "clarification_required",
+          message:
+            "I couldn't confidently resolve the time range in that question. Try specifying the date window more explicitly.",
+        }),
+      });
+    });
+
+    const textarea = page.locator("textarea").first();
+    await textarea.fill("Show revenue from the early part of launch season");
+    await page.getByRole("button", { name: "Generate Query" }).click();
+
+    await expect(
+      page.getByText(
+        "I couldn't confidently resolve the requested time range.",
+      ),
+    ).toBeVisible();
   });
 
   test("results remain visible when explanation API fails", async ({
