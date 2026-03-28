@@ -28,7 +28,9 @@ vi.mock("@ai-sdk/openai", () => ({
 import { generateObject, generateText } from "ai";
 import { prisma } from "@/lib/db/prisma";
 import {
+  applyClarificationSelection,
   buildEventSchemaContext,
+  buildClarificationOptions,
   generateQueryFromPrompt,
   explainQueryResults,
   NoObjectGeneratedError,
@@ -240,6 +242,83 @@ describe("generateQueryFromPrompt", () => {
         },
       }),
     ).rejects.toThrow("AI failed to produce object");
+  });
+});
+
+describe("buildClarificationOptions", () => {
+  it("returns clarification choices when multiple schema matches are similarly plausible", () => {
+    const options = buildClarificationOptions(
+      "Show conversions by source",
+      {
+        applicationId: "app-1",
+        schemas: [
+          {
+            eventName: "signup_completed",
+            properties: {
+              source: {
+                type: "string",
+                description: "Signup acquisition source",
+              },
+              campaign: { type: "string" },
+            },
+          },
+          {
+            eventName: "purchase_completed",
+            properties: {
+              source: {
+                type: "string",
+                description: "Purchase acquisition source",
+              },
+              amount: { type: "number" },
+            },
+          },
+        ],
+      },
+      {
+        applicationId: "app-1",
+        eventName: "signup_completed",
+        startDate: "2026-03-21T00:00:00.000Z",
+        endDate: "2026-03-28T23:59:59.000Z",
+        aggregation: "count",
+      },
+    );
+
+    expect(options).toHaveLength(2);
+    expect(options[0]?.eventName).toBe("signup_completed");
+    expect(options[1]?.eventName).toBe("purchase_completed");
+  });
+});
+
+describe("applyClarificationSelection", () => {
+  it("overrides the selected event and preserves a valid grouped property", () => {
+    const clarified = applyClarificationSelection(
+      {
+        applicationId: "app-1",
+        eventName: "page_view",
+        startDate: "2026-03-21T00:00:00.000Z",
+        endDate: "2026-03-28T23:59:59.000Z",
+        aggregation: "count",
+      },
+      {
+        applicationId: "app-1",
+        schemas: [
+          {
+            eventName: "signup_completed",
+            properties: {
+              source: { type: "string" },
+              plan: { type: "string" },
+            },
+          },
+        ],
+      },
+      {
+        eventName: "signup_completed",
+        groupByProperty: "source",
+      },
+    );
+
+    expect(clarified.eventName).toBe("signup_completed");
+    expect(clarified.groupBy).toEqual({ kind: "property", key: "source" });
   });
 });
 

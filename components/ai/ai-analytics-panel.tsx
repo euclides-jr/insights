@@ -28,9 +28,22 @@ interface ResolvedDateRange {
   confidence: "high" | "medium" | "low";
 }
 
+interface ClarificationOption {
+  eventName: string;
+  label: string;
+  description: string;
+  groupByProperty?: string;
+}
+
 type PanelState =
   | { status: "idle" }
   | { status: "generating" }
+  | {
+      status: "clarification";
+      reason: string;
+      options: ClarificationOption[];
+      resolvedDateRange?: ResolvedDateRange;
+    }
   | {
       status: "executing";
       query: QueryDefinition;
@@ -79,7 +92,9 @@ export function AIAnalyticsPanel({
   const isSubmitDisabled =
     !applicationId || question.trim().length === 0 || isLoading;
 
-  async function handleSubmit() {
+  async function handleSubmit(
+    clarification?: Pick<ClarificationOption, "eventName" | "groupByProperty">,
+  ) {
     if (isSubmitDisabled) return;
 
     const app = applications.find((a) => a.id === applicationId);
@@ -100,11 +115,16 @@ export function AIAnalyticsPanel({
         body: JSON.stringify({
           question: submittedQuestion,
           applicationId: selectedApplicationId,
+          clarification,
         }),
       });
 
       const generateData: {
         query?: QueryDefinition;
+        clarification?: {
+          reason: string;
+          options: ClarificationOption[];
+        };
         resolvedDateRange?: ResolvedDateRange;
         error?: string;
         message?: string;
@@ -115,6 +135,16 @@ export function AIAnalyticsPanel({
         setPanelState({
           status: "error",
           message: getAIErrorMessage(errorCode),
+        });
+        return;
+      }
+
+      if (generateData.clarification) {
+        setPanelState({
+          status: "clarification",
+          reason: generateData.clarification.reason,
+          options: generateData.clarification.options,
+          resolvedDateRange: generateData.resolvedDateRange,
         });
         return;
       }
@@ -293,7 +323,10 @@ export function AIAnalyticsPanel({
           </div>
 
           <div className="flex items-center gap-3">
-            <Button onClick={handleSubmit} disabled={isSubmitDisabled}>
+            <Button
+              onClick={() => void handleSubmit()}
+              disabled={isSubmitDisabled}
+            >
               {isLoading ? loadingLabel : "Generate Query"}
             </Button>
 
@@ -316,6 +349,51 @@ export function AIAnalyticsPanel({
           >
             Dismiss
           </button>
+        </div>
+      )}
+
+      {panelState.status === "clarification" && (
+        <div className="border border-[#E8E8E8] bg-white px-6 py-5 space-y-4">
+          <div>
+            <p className="text-sm font-medium text-[#0D0D0D]">
+              Clarification needed
+            </p>
+            <p className="text-sm text-[#3D3D3D] mt-1">{panelState.reason}</p>
+            {panelState.resolvedDateRange && (
+              <p className="text-xs text-[#7A7A7A] mt-2">
+                Time range:{" "}
+                {new Date(
+                  panelState.resolvedDateRange.startDate,
+                ).toLocaleDateString()}{" "}
+                →{" "}
+                {new Date(
+                  panelState.resolvedDateRange.endDate,
+                ).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+          <div className="grid gap-3">
+            {panelState.options.map((option) => (
+              <button
+                key={option.eventName}
+                type="button"
+                onClick={() =>
+                  handleSubmit({
+                    eventName: option.eventName,
+                    groupByProperty: option.groupByProperty,
+                  })
+                }
+                className="w-full text-left border border-[#E8E8E8] px-4 py-3 hover:bg-[#FAFAFA] transition-colors"
+              >
+                <p className="text-sm font-medium text-[#0D0D0D]">
+                  {option.label}
+                </p>
+                <p className="text-sm text-[#3D3D3D] mt-1">
+                  {option.description}
+                </p>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

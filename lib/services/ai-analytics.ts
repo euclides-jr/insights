@@ -59,6 +59,18 @@ export interface AIAnalyticsHistoryEntry {
   explanation: string;
 }
 
+export interface AIClarificationOption {
+  eventName: string;
+  label: string;
+  description: string;
+  groupByProperty?: string;
+}
+
+export interface AIClarificationSelection {
+  eventName: string;
+  groupByProperty?: string;
+}
+
 const MAX_SCHEMAS = 20;
 const MAX_PROPERTIES_PER_SCHEMA = 30;
 const MAX_DESCRIPTION_LENGTH = 200;
@@ -249,58 +261,91 @@ function scoreTokenOverlap(
   );
 }
 
+function questionExplicitlyMentionsEvent(
+  question: string,
+  eventName: string,
+): boolean {
+  const questionTokens = new Set(tokenizeSearchText(question));
+  const eventTokens = tokenizeSearchText(eventName);
+
+  return (
+    eventTokens.length > 0 &&
+    eventTokens.every((token) => questionTokens.has(token))
+  );
+}
+
+function summarizeRelevantProperties(schema: EventSchemaEntry): string {
+  const properties = Object.keys(schema.properties).slice(0, 3);
+  if (properties.length === 0) {
+    return "No schema properties available.";
+  }
+
+  return `Properties include ${properties.join(", ")}.`;
+}
+
+function rankSchemaMatches(
+  question: string,
+  schemaContext: EventSchemaContext,
+  query: QueryDefinition,
+): Array<{
+  schema: EventSchemaEntry;
+  score: number;
+  inferredGroupBy?: string;
+}> {
+  const questionTokens = new Set(tokenizeSearchText(question));
+  const requestedGroupKey =
+    query.groupBy?.kind === "property" ? query.groupBy.key : undefined;
+
+  return schemaContext.schemas
+    .map((schema) => {
+      let score = 0;
+      score += scoreTokenOverlap(schema.eventName, questionTokens) * 8;
+
+      for (const [propertyKey, definition] of Object.entries(
+        schema.properties,
+      )) {
+        score += scoreTokenOverlap(propertyKey, questionTokens) * 3;
+        if (definition.description) {
+          score += scoreTokenOverlap(definition.description, questionTokens);
+        }
+      }
+
+      if (query.eventName === schema.eventName) {
+        score += 2;
+      }
+
+      if (requestedGroupKey && requestedGroupKey in schema.properties) {
+        score += 4;
+      }
+
+      if (
+        query.aggregationField &&
+        query.aggregationField in schema.properties
+      ) {
+        score += 3;
+      }
+
+      for (const filter of query.propertyFilters ?? []) {
+        if (filter.key in schema.properties) {
+          score += 2;
+        }
+      }
+
+      return {
+        schema,
+        score,
+        inferredGroupBy: inferGroupByProperty(question, schema),
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+}
+
 function findBestSchemaMatch(
   question: string,
   schemaContext: EventSchemaContext,
   query: QueryDefinition,
 ): EventSchemaEntry | null {
-  if (schemaContext.schemas.length === 0) {
-    return null;
-  }
-
-  const questionTokens = new Set(tokenizeSearchText(question));
-  const requestedGroupKey =
-    query.groupBy?.kind === "property" ? query.groupBy.key : undefined;
-
-  let bestSchema: EventSchemaEntry | null = null;
-  let bestScore = Number.NEGATIVE_INFINITY;
-
-  for (const schema of schemaContext.schemas) {
-    let score = 0;
-    score += scoreTokenOverlap(schema.eventName, questionTokens) * 8;
-
-    for (const [propertyKey, definition] of Object.entries(schema.properties)) {
-      score += scoreTokenOverlap(propertyKey, questionTokens) * 3;
-      if (definition.description) {
-        score += scoreTokenOverlap(definition.description, questionTokens);
-      }
-    }
-
-    if (query.eventName === schema.eventName) {
-      score += 2;
-    }
-
-    if (requestedGroupKey && requestedGroupKey in schema.properties) {
-      score += 4;
-    }
-
-    if (query.aggregationField && query.aggregationField in schema.properties) {
-      score += 3;
-    }
-
-    for (const filter of query.propertyFilters ?? []) {
-      if (filter.key in schema.properties) {
-        score += 2;
-      }
-    }
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestSchema = schema;
-    }
-  }
-
-  return bestSchema;
+  return rankSchemaMatches(question, schemaContext, query)[0]?.schema ?? null;
 }
 
 function extractGroupingPhrase(question: string): string | null {
@@ -557,6 +602,82 @@ export async function generateQueryFromPrompt(
     normalizeAIQuery(object),
     params.schemaContext,
   );
+}
+
+export function buildClarificationOptions(
+  question: string,
+  schemaContext: EventSchemaContext,
+  query: QueryDefinition,
+): AIClarificationOption[] {
+  const ranked = rankSchemaMatches(question, schemaContext, query);
+  const [top, second] = ranked;
+
+  if (!top || !second) {
+    return [];
+  }
+
+  if (questionExplicitlyMentionsEvent(question, top.schema.eventName)) {
+    return [];
+  }
+
+  if (top.score < 3 || second.score < 3) {
+    return [];
+  }
+
+  if (top.score - second.score > 3) {
+    return [];
+  }
+
+  return ranked.slice(0, 3).map((candidate) => ({
+    eventName: candidate.schema.eventName,
+    label: candidate.schema.eventName,
+    description: candidate.inferredGroupBy
+      ? `Use event ${candidate.schema.eventName} and group by ${candidate.inferredGroupBy}.`
+      : summarizeRelevantProperties(candidate.schema),
+    groupByProperty: candidate.inferredGroupBy,
+  }));
+}
+
+export function applyClarificationSelection(
+  query: QueryDefinition,
+  schemaContext: EventSchemaContext,
+  selection: AIClarificationSelection,
+): QueryDefinition {
+  const selectedSchema = schemaContext.schemas.find(
+    (schema) => schema.eventName === selection.eventName,
+  );
+
+  if (!selectedSchema) {
+    return query;
+  }
+
+  const knownProperties = new Set(Object.keys(selectedSchema.properties));
+  const propertyFilters = query.propertyFilters?.filter((filter) =>
+    knownProperties.has(filter.key),
+  );
+
+  return queryDefinitionSchema.parse({
+    ...query,
+    eventName: selectedSchema.eventName,
+    propertyFilters:
+      propertyFilters && propertyFilters.length > 0
+        ? propertyFilters
+        : undefined,
+    aggregationField:
+      query.aggregationField && knownProperties.has(query.aggregationField)
+        ? query.aggregationField
+        : undefined,
+    groupBy:
+      selection.groupByProperty &&
+      knownProperties.has(selection.groupByProperty)
+        ? { kind: "property", key: selection.groupByProperty }
+        : query.groupBy?.kind === "property" &&
+            knownProperties.has(query.groupBy.key)
+          ? query.groupBy
+          : query.groupBy?.kind === "time"
+            ? query.groupBy
+            : undefined,
+  });
 }
 
 export async function explainQueryResults(

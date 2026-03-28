@@ -7,8 +7,11 @@ import {
 } from "@/lib/ai/date-range";
 import { resolveQuestionDateRangeWithAI } from "@/lib/ai/date-range-server";
 import {
+  applyClarificationSelection,
   buildEventSchemaContext,
+  buildClarificationOptions,
   generateQueryFromPrompt,
+  type AIClarificationSelection,
   type EventSchemaContext,
 } from "@/lib/services/ai-analytics";
 import type { QueryDefinition } from "@/lib/validations/query-schemas";
@@ -17,6 +20,12 @@ const generateRequestSchema = z
   .object({
     question: z.string().min(1).max(500),
     applicationId: z.string().min(1),
+    clarification: z
+      .object({
+        eventName: z.string().min(1),
+        groupByProperty: z.string().min(1).optional(),
+      })
+      .optional(),
     startDate: z
       .string()
       .datetime({ message: "startDate must be ISO 8601" })
@@ -170,7 +179,37 @@ export async function POST(request: NextRequest) {
       schemaContext,
     });
 
-    const groundingError = validateSchemaGrounding(query, schemaContext);
+    const clarifiedQuery = parsed.clarification
+      ? applyClarificationSelection(
+          query,
+          schemaContext,
+          parsed.clarification as AIClarificationSelection,
+        )
+      : query;
+
+    if (!parsed.clarification) {
+      const clarificationOptions = buildClarificationOptions(
+        parsed.question,
+        schemaContext,
+        clarifiedQuery,
+      );
+
+      if (clarificationOptions.length > 0) {
+        return NextResponse.json({
+          clarification: {
+            reason:
+              "I found multiple events that could match this question. Pick the one you mean.",
+            options: clarificationOptions,
+          },
+          resolvedDateRange,
+        });
+      }
+    }
+
+    const groundingError = validateSchemaGrounding(
+      clarifiedQuery,
+      schemaContext,
+    );
     if (groundingError) {
       console.error("Schema grounding violation:", groundingError);
       return NextResponse.json(
@@ -183,7 +222,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ query, resolvedDateRange });
+    return NextResponse.json({ query: clarifiedQuery, resolvedDateRange });
   } catch (error: unknown) {
     if (error instanceof NoObjectGeneratedError) {
       console.error("AI generation failed:", error);

@@ -401,6 +401,114 @@ test.describe("AI Analytics Panel", () => {
     ).toBeVisible();
   });
 
+  test("continues after the user chooses a clarification option", async ({
+    page,
+  }) => {
+    let generateCallCount = 0;
+
+    await page.route("**/api/ai/generate", async (route) => {
+      generateCallCount += 1;
+
+      if (generateCallCount === 1) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            clarification: {
+              reason:
+                "I found multiple events that could match this question. Pick the one you mean.",
+              options: [
+                {
+                  eventName: "signup_completed",
+                  label: "signup_completed",
+                  description:
+                    "Use event signup_completed and group by source.",
+                  groupByProperty: "source",
+                },
+                {
+                  eventName: "purchase_completed",
+                  label: "purchase_completed",
+                  description:
+                    "Use event purchase_completed and group by source.",
+                  groupByProperty: "source",
+                },
+              ],
+            },
+            resolvedDateRange: {
+              startDate: SEVEN_DAYS_AGO,
+              endDate: NOW,
+              source: "deterministic",
+              confidence: "high",
+            },
+          }),
+        });
+        return;
+      }
+
+      const body = route.request().postDataJSON() as {
+        clarification?: { eventName: string; groupByProperty?: string };
+      };
+
+      expect(body.clarification?.eventName).toBe("signup_completed");
+      expect(body.clarification?.groupByProperty).toBe("source");
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          query: {
+            applicationId: "app-1",
+            eventName: "signup_completed",
+            startDate: SEVEN_DAYS_AGO,
+            endDate: NOW,
+            aggregation: "count",
+            groupBy: { kind: "property", key: "source" },
+          },
+          resolvedDateRange: {
+            startDate: SEVEN_DAYS_AGO,
+            endDate: NOW,
+            source: "deterministic",
+            confidence: "high",
+          },
+        }),
+      });
+    });
+
+    await page.route("**/api/query", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          results: [{ group: "ad_campaign", value: 12 }],
+          totalCount: 1,
+          executionTimeMs: 6,
+        }),
+      });
+    });
+
+    await page.route("**/api/ai/explain", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          explanation: "There were 12 signup conversions from ad_campaign.",
+        }),
+      });
+    });
+
+    const textarea = page.locator("textarea").first();
+    await textarea.fill("Show conversions by source");
+    await page.getByRole("button", { name: "Generate Query" }).click();
+
+    await expect(page.getByText("Clarification needed")).toBeVisible();
+    await page.getByRole("button", { name: "signup_completed" }).click();
+
+    await expect(resultsSummary(page)).toHaveText("1 row", { timeout: 10000 });
+    await expect(
+      page.getByText("There were 12 signup conversions from ad_campaign."),
+    ).toBeVisible();
+  });
+
   test("results remain visible when explanation API fails", async ({
     page,
   }) => {
