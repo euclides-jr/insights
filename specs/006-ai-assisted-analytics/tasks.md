@@ -15,8 +15,8 @@
 
 **Purpose**: Install new AI SDK dependencies and configure required environment variables before any service or UI code is written.
 
-- [ ] T001 Install `ai@^6.0.0` and `@ai-sdk/openai@^3.0.0` via `bun add ai@^6.0.0 @ai-sdk/openai@^3.0.0` and verify both packages appear in `package.json` dependencies
-- [ ] T002 [P] Add `OPENAI_API_KEY` (required) and `AI_MODEL` (optional, default `gpt-4o-mini`) entries to `.env.example` with inline comments explaining each variable's purpose; use `specs/006-ai-assisted-analytics/quickstart.md` as the source of truth for comment wording
+- [X] T001 Install `ai@^6.0.0` and `@ai-sdk/openai@^3.0.0` via `bun add ai@^6.0.0 @ai-sdk/openai@^3.0.0` and verify both packages appear in `package.json` dependencies
+- [X] T002 [P] Add `OPENAI_API_KEY` (required) and `AI_MODEL` (optional, default `gpt-4o-mini`) entries to `.env.example` with inline comments explaining each variable's purpose; use `specs/006-ai-assisted-analytics/quickstart.md` as the source of truth for comment wording
 
 **Checkpoint**: `ai` and `@ai-sdk/openai` are installed; `.env.example` documents the two new variables.
 
@@ -28,17 +28,17 @@
 
 **⚠️ CRITICAL**: No user story UI work can begin until this phase is complete.
 
-- [ ] T003 Create `lib/services/ai-analytics.ts` — define and export all TypeScript interfaces: `EventPropertyDefinition`, `EventSchemaEntry`, `EventSchemaContext`, `GenerateQueryParams`, `ExplainResultsParams`, and `AIAnalyticsHistoryEntry` exactly as specified in `specs/006-ai-assisted-analytics/data-model.md`; export function stubs for `buildEventSchemaContext`, `generateQueryFromPrompt`, and `explainQueryResults`
-- [ ] T004 Implement `buildEventSchemaContext(applicationId: string): Promise<EventSchemaContext>` in `lib/services/ai-analytics.ts` — call `prisma.eventSchema.findMany({ where: { applicationId, isActive: true } })`, map rows to `EventSchemaEntry[]`, and return `{ applicationId, schemas }`; return an empty schemas array (not an error) when no records exist; allow Prisma errors (connection timeout, query failure) to propagate unmodified so the calling API route can catch them as `internal_error` — do NOT swallow DB exceptions as an empty context
-- [ ] T005 Implement `generateQueryFromPrompt(params: GenerateQueryParams): Promise<QueryDefinition>` in `lib/services/ai-analytics.ts` — call `generateObject` from `ai` using the `openai` provider (model from `process.env.AI_MODEL ?? 'gpt-4o-mini'`), pass `queryDefinitionSchema` from `lib/validations/query-schemas.ts` as the schema, build the system prompt from `params.schemaContext` following the structure in `specs/006-ai-assisted-analytics/contracts/ai-generate.md`, and return the Zod-validated `QueryDefinition`
-- [ ] T006 Implement `explainQueryResults(params: ExplainResultsParams): Promise<string>` in `lib/services/ai-analytics.ts` — call `generateText` from `ai` using the `openai` provider, build the explanation prompt per `specs/006-ai-assisted-analytics/contracts/ai-explain.md` (include question, query summary, totalCount, truncated results up to 20 rows), set `maxTokens: 300`, and return the text
-- [ ] T007 [P] Create `app/api/ai/generate/route.ts` — implement `POST /api/ai/generate` per `specs/006-ai-assisted-analytics/contracts/ai-generate.md`:
+- [X] T003 Create `lib/services/ai-analytics.ts` — define and export all TypeScript interfaces: `EventPropertyDefinition`, `EventSchemaEntry`, `EventSchemaContext`, `GenerateQueryParams`, `ExplainResultsParams`, and `AIAnalyticsHistoryEntry` exactly as specified in `specs/006-ai-assisted-analytics/data-model.md`; export function stubs for `buildEventSchemaContext`, `generateQueryFromPrompt`, and `explainQueryResults`
+- [X] T004 Implement `buildEventSchemaContext(applicationId: string): Promise<EventSchemaContext>` in `lib/services/ai-analytics.ts` — call `prisma.eventSchema.findMany({ where: { applicationId, isActive: true } })`, map rows to `EventSchemaEntry[]`, and return `{ applicationId, schemas }`; return an empty schemas array (not an error) when no records exist; allow Prisma errors (connection timeout, query failure) to propagate unmodified so the calling API route can catch them as `internal_error` — do NOT swallow DB exceptions as an empty context
+- [X] T005 Implement `generateQueryFromPrompt(params: GenerateQueryParams): Promise<QueryDefinition>` in `lib/services/ai-analytics.ts` — call `generateObject` from `ai` using the `openai` provider (model from `process.env.AI_MODEL ?? 'gpt-4o-mini'`), pass `queryDefinitionSchema` from `lib/validations/query-schemas.ts` as the schema, build the system prompt from `params.schemaContext` following the structure in `specs/006-ai-assisted-analytics/contracts/ai-generate.md`, and return the Zod-validated `QueryDefinition`
+- [X] T006 Implement `explainQueryResults(params: ExplainResultsParams): Promise<string>` in `lib/services/ai-analytics.ts` — call `generateText` from `ai` using the `openai` provider, build the explanation prompt per `specs/006-ai-assisted-analytics/contracts/ai-explain.md` (include question, query summary, totalCount, truncated results up to 20 rows), set `maxTokens: 300`, and return the text
+- [X] T007 [P] Create `app/api/ai/generate/route.ts` — implement `POST /api/ai/generate` per `specs/006-ai-assisted-analytics/contracts/ai-generate.md`:
   - Validate request body with Zod: `question` (string, 1–500 chars), `applicationId` (string, min 1), `startDate` / `endDate` (ISO 8601 datetime); return 400 `validation_error` on failure
   - Call `buildEventSchemaContext`; return 422 `no_schemas` if `schemas.length === 0` (skip AI call)
   - Call `generateQueryFromPrompt`; return `{ query: QueryDefinition }` HTTP 200 on success
   - Error mapping: `NoObjectGeneratedError` → 422 `generation_failed`; `APICallError` status 429 → 429 `rate_limited`; `APICallError` any other status (401, 403, 5xx) → 500 `internal_error`; Prisma errors and all other exceptions → 500 `internal_error`
   - Log all server errors with `console.error`; never expose raw error messages or stack traces to the client (FR-010)
-- [ ] T008 [P] Create `app/api/ai/explain/route.ts` — implement `POST /api/ai/explain` per `specs/006-ai-assisted-analytics/contracts/ai-explain.md`:
+- [X] T008 [P] Create `app/api/ai/explain/route.ts` — implement `POST /api/ai/explain` per `specs/006-ai-assisted-analytics/contracts/ai-explain.md`:
   - Validate request body with Zod: `question` (string, 1–500 chars), `query` (via `queryDefinitionSchema`), `results` (array of records), `totalCount` (integer ≥ 0); return 400 `validation_error` on failure
   - Call `explainQueryResults`; return `{ explanation: string }` HTTP 200 on success
   - Error mapping: `APICallError` status 429 → 429 `rate_limited`; `APICallError` any other status (401, 403, 5xx) or any other error → 500 `internal_error` with message `"Something went wrong generating the explanation. Your results are still shown above."`
@@ -56,14 +56,14 @@
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Create `tests/unit/ai-analytics.test.ts` — write unit tests for `buildEventSchemaContext` (mock Prisma: returns schemas, returns empty array when no rows) and `generateQueryFromPrompt` (mock `generateObject`: returns valid QueryDefinition, throws `NoObjectGeneratedError`); assert correct return types and error propagation
-- [ ] T010 [P] [US1] Create `tests/api/ai.test.ts` — write API integration tests for `POST /api/ai/generate`: (a) valid body with seeded app and schemas returns `{ query: QueryDefinition }` HTTP 200; (b) missing `question` field returns 400 `validation_error`; (c) `question` exceeding 500 chars returns 400; (d) application with no schemas returns 422 `no_schemas`; (e) AI generation failure returns 422 `generation_failed`
+- [X] T009 [P] [US1] Create `tests/unit/ai-analytics.test.ts` — write unit tests for `buildEventSchemaContext` (mock Prisma: returns schemas, returns empty array when no rows) and `generateQueryFromPrompt` (mock `generateObject`: returns valid QueryDefinition, throws `NoObjectGeneratedError`); assert correct return types and error propagation
+- [X] T010 [P] [US1] Create `tests/api/ai.test.ts` — write API integration tests for `POST /api/ai/generate`: (a) valid body with seeded app and schemas returns `{ query: QueryDefinition }` HTTP 200; (b) missing `question` field returns 400 `validation_error`; (c) `question` exceeding 500 chars returns 400; (d) application with no schemas returns 422 `no_schemas`; (e) AI generation failure returns 422 `generation_failed`
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Create `components/ai/ai-analytics-panel.tsx` — `'use client'` component accepting `applications: { id: string; name: string }[]` and `onLoadQueryIntoForm: (q: QueryDefinition) => void` props; implement the full `PanelState` type (`idle | generating | executing | explaining | done | error`) from `data-model.md`; render: application `<select>` (required), `<textarea>` with `maxLength={500}` and character counter, submit `<button>` disabled when no application selected or state is not `idle`; show loading label per state ("Generating query…" / "Running query…" / "Explaining results…"); on submit, call `POST /api/ai/generate` → `POST /api/query` → `POST /api/ai/explain` in sequence, transitioning state at each step; show `error.message` on failure with a dismiss/retry affordance
-- [ ] T012 [US1] Modify `app/query/page.tsx` — import `AIAnalyticsPanel` from `components/ai/ai-analytics-panel.tsx`; render `<AIAnalyticsPanel applications={applications} onLoadQueryIntoForm={...} />` above the `<QueryForm>` block inside the existing `<DashboardLayout>` wrapper; pass a no-op `onLoadQueryIntoForm` callback for now (wired properly in T021)
-- [ ] T013 [P] [US1] Create `tests/e2e/ai-analytics.spec.ts` — Playwright tests: (a) navigate to `/query`, verify AI analytics panel is present; (b) verify submit button disabled until application selected; (c) with mocked `POST /api/ai/generate` and `POST /api/query` responses, submit a question and verify results panel receives data; (d) with mocked no-schemas 422, verify the user-facing "no schemas" message is shown
+- [X] T011 [US1] Create `components/ai/ai-analytics-panel.tsx` — `'use client'` component accepting `applications: { id: string; name: string }[]` and `onLoadQueryIntoForm: (q: QueryDefinition) => void` props; implement the full `PanelState` type (`idle | generating | executing | explaining | done | error`) from `data-model.md`; render: application `<select>` (required), `<textarea>` with `maxLength={500}` and character counter, submit `<button>` disabled when no application selected or state is not `idle`; show loading label per state ("Generating query…" / "Running query…" / "Explaining results…"); on submit, call `POST /api/ai/generate` → `POST /api/query` → `POST /api/ai/explain` in sequence, transitioning state at each step; show `error.message` on failure with a dismiss/retry affordance
+- [X] T012 [US1] Modify `app/query/page.tsx` — import `AIAnalyticsPanel` from `components/ai/ai-analytics-panel.tsx`; render `<AIAnalyticsPanel applications={applications} onLoadQueryIntoForm={...} />` above the `<QueryForm>` block inside the existing `<DashboardLayout>` wrapper; pass a no-op `onLoadQueryIntoForm` callback for now (wired properly in T021)
+- [X] T013 [P] [US1] Create `tests/e2e/ai-analytics.spec.ts` — Playwright tests: (a) navigate to `/query`, verify AI analytics panel is present; (b) verify submit button disabled until application selected; (c) with mocked `POST /api/ai/generate` and `POST /api/query` responses, submit a question and verify results panel receives data; (d) with mocked no-schemas 422, verify the user-facing "no schemas" message is shown
 
 **Checkpoint**: A user can ask a plain-language question in the UI and receive query results. User Story 1 is independently testable and functional.
 
@@ -77,14 +77,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T014 [P] [US2] Extend `tests/unit/ai-analytics.test.ts` — add unit tests for `explainQueryResults`: (a) non-empty results produces explanation text; (b) empty results array produces text referencing "no events found"; (c) mock `generateText` throwing → error propagates correctly
-- [ ] T015 [P] [US2] Extend `tests/api/ai.test.ts` — add API integration tests for `POST /api/ai/explain`: (a) valid body with results returns `{ explanation: string }` HTTP 200; (b) empty `results` array returns 200 with explanation that addresses zero results; (c) invalid `totalCount` (negative) returns 400; (d) rate-limit mock returns 429 `rate_limited`
+- [X] T014 [P] [US2] Extend `tests/unit/ai-analytics.test.ts` — add unit tests for `explainQueryResults`: (a) non-empty results produces explanation text; (b) empty results array produces text referencing "no events found"; (c) mock `generateText` throwing → error propagates correctly
+- [X] T015 [P] [US2] Extend `tests/api/ai.test.ts` — add API integration tests for `POST /api/ai/explain`: (a) valid body with results returns `{ explanation: string }` HTTP 200; (b) empty `results` array returns 200 with explanation that addresses zero results; (c) invalid `totalCount` (negative) returns 400; (d) rate-limit mock returns 429 `rate_limited`
 
 ### Implementation for User Story 2
 
-- [ ] T016 [P] [US2] Create `components/ai/ai-explanation.tsx` — `'use client'` component accepting `explanation: string | null` prop; renders explanation text in a styled prose paragraph when non-null; renders nothing (not an error state) when `null` so that explanation failures never hide query results (per contract `ai-explain.md` note on 500 behaviour)
-- [ ] T017 [US2] Integrate `AIExplanation` into `components/ai/ai-analytics-panel.tsx` — import and render `<AIExplanation explanation={...} />` in the `done` state below the results display; if the `POST /api/ai/explain` call fails, set `explanation` to `null` and transition to `done` (not `error`) so results remain visible
-- [ ] T018 [P] [US2] Extend `tests/e2e/ai-analytics.spec.ts` — add tests: (a) verify explanation paragraph is visible after full flow with mocked AI responses; (b) verify zero-results explanation message contains appropriate language; (c) verify that a mocked explain-API failure leaves results visible with no explanation block
+- [X] T016 [P] [US2] Create `components/ai/ai-explanation.tsx` — `'use client'` component accepting `explanation: string | null` prop; renders explanation text in a styled prose paragraph when non-null; renders nothing (not an error state) when `null` so that explanation failures never hide query results (per contract `ai-explain.md` note on 500 behaviour)
+- [X] T017 [US2] Integrate `AIExplanation` into `components/ai/ai-analytics-panel.tsx` — import and render `<AIExplanation explanation={...} />` in the `done` state below the results display; if the `POST /api/ai/explain` call fails, set `explanation` to `null` and transition to `done` (not `error`) so results remain visible
+- [X] T018 [P] [US2] Extend `tests/e2e/ai-analytics.spec.ts` — add tests: (a) verify explanation paragraph is visible after full flow with mocked AI responses; (b) verify zero-results explanation message contains appropriate language; (c) verify that a mocked explain-API failure leaves results visible with no explanation block
 
 **Checkpoint**: Every successful query run shows an explanation. Explanation failures degrade gracefully without hiding results. User Story 2 is independently testable alongside User Story 1.
 
@@ -98,11 +98,11 @@
 
 ### Tests for User Story 3
 
-- [ ] T019 [P] [US3] Create `components/ai/ai-query-inspector.tsx` — `'use client'` component accepting `query: QueryDefinition` and `onOpenInExplorer: (q: QueryDefinition) => void` props; renders a collapsible `<details>` / accordion section labelled "Generated Query"; inside, display event name, date range, aggregation mode, aggregation field (if set), groupBy (if set), and any property filters in a human-readable structured format; render an "Open in Query Explorer" `<button>` that calls `onOpenInExplorer(query)`
+- [X] T019 [P] [US3] Create `components/ai/ai-query-inspector.tsx` — `'use client'` component accepting `query: QueryDefinition` and `onOpenInExplorer: (q: QueryDefinition) => void` props; renders a collapsible `<details>` / accordion section labelled "Generated Query"; inside, display event name, date range, aggregation mode, aggregation field (if set), groupBy (if set), and any property filters in a human-readable structured format; render an "Open in Query Explorer" `<button>` that calls `onOpenInExplorer(query)`
 
-- [ ] T020 [US3] Wire `AIQueryInspector` into `components/ai/ai-analytics-panel.tsx` — import and render `<AIQueryInspector query={state.query} onOpenInExplorer={onLoadQueryIntoForm} />` in the `done` state; the `onLoadQueryIntoForm` prop is already threaded through from the parent page
-- [ ] T021 [US3] Implement `onLoadQueryIntoForm` callback in `app/query/page.tsx` — when `AIAnalyticsPanel` calls `onLoadQueryIntoForm(query)`, serialize the `QueryDefinition` to URL search params using the existing `lib/query/hydration.ts` serializer and either update `router.push` / `router.replace` so `<QueryForm>` hydrates from `searchParams`, or pass the query as `initialState` directly to `<QueryForm>` (follow the existing hydration pattern used by saved reports in 005)
-- [ ] T022 [P] [US3] Extend `tests/e2e/ai-analytics.spec.ts` — add tests: (a) generated query inspector section is present and collapsed by default after a query runs; (b) expanding it shows the correct event name and aggregation from the mocked query; (c) clicking "Open in Query Explorer" populates the `<QueryForm>` with the expected field values
+- [X] T020 [US3] Wire `AIQueryInspector` into `components/ai/ai-analytics-panel.tsx` — import and render `<AIQueryInspector query={state.query} onOpenInExplorer={onLoadQueryIntoForm} />` in the `done` state; the `onLoadQueryIntoForm` prop is already threaded through from the parent page
+- [X] T021 [US3] Implement `onLoadQueryIntoForm` callback in `app/query/page.tsx` — when `AIAnalyticsPanel` calls `onLoadQueryIntoForm(query)`, serialize the `QueryDefinition` to URL search params using the existing `lib/query/hydration.ts` serializer and either update `router.push` / `router.replace` so `<QueryForm>` hydrates from `searchParams`, or pass the query as `initialState` directly to `<QueryForm>` (follow the existing hydration pattern used by saved reports in 005)
+- [X] T022 [P] [US3] Extend `tests/e2e/ai-analytics.spec.ts` — add tests: (a) generated query inspector section is present and collapsed by default after a query runs; (b) expanding it shows the correct event name and aggregation from the mocked query; (c) clicking "Open in Query Explorer" populates the `<QueryForm>` with the expected field values
 
 **Checkpoint**: Power users can inspect and trust the AI's query and load it into the manual form. User Story 3 is independently testable.
 
@@ -116,11 +116,11 @@
 
 ### Tests for User Story 4
 
-- [ ] T023 [P] [US4] Extend `tests/e2e/ai-analytics.spec.ts` — add tests: (a) after three mocked question submissions, verify the history panel lists all three entries in reverse-chronological order; (b) clicking an earlier history entry restores its question text and results; (c) submitting a new question adds it at the top of the history list
+- [X] T023 [P] [US4] Extend `tests/e2e/ai-analytics.spec.ts` — add tests: (a) after three mocked question submissions, verify the history panel lists all three entries in reverse-chronological order; (b) clicking an earlier history entry restores its question text and results; (c) submitting a new question adds it at the top of the history list
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Add session history state and panel to `components/ai/ai-analytics-panel.tsx`:
+- [X] T024 [US4] Add session history state and panel to `components/ai/ai-analytics-panel.tsx`:
   - Import `AIAnalyticsHistoryEntry` type; add `useState<AIAnalyticsHistoryEntry[]>([])`
   - On each transition to `done`, build a new entry (with `crypto.randomUUID()` id and current timestamp) and update state via `setHistory(prev => [newEntry, ...prev].slice(0, 20))` — prepend newest, cap at 20
   - Render a history section listing entries in reverse-chronological order (newest first) showing question text and timestamp
@@ -134,9 +134,9 @@
 
 **Purpose**: Verify edge-case handling, input bounds, and error isolation that span all user stories; validate the feature end-to-end.
 
-- [ ] T025 [P] Audit `components/ai/ai-analytics-panel.tsx` for FR-010 and FR-011 compliance — confirm the `<textarea>` has `maxLength={500}` rendered in the DOM; confirm each API error code (`no_schemas`, `generation_failed`, `rate_limited`, `validation_error`, `internal_error`) maps to a distinct user-friendly message string with no raw stack trace or internal field names exposed; add error-message constants to a `lib/ai-error-messages.ts` helper if inline strings are duplicated
-- [ ] T026 [P] Review `app/api/ai/generate/route.ts` and `app/api/ai/explain/route.ts` for complete error branch coverage — confirm `console.error` / `console.warn` calls are present for server-side logging, that `APICallError` 429 is distinguished from 5xx errors, and that Zod validation errors in request bodies return `details` arrays per the contract spec
-- [ ] T027 Validate `specs/006-ai-assisted-analytics/quickstart.md` end-to-end against the local seeded environment — run `bun run dev`, follow the quickstart steps (select app, submit question, inspect query, load into explorer), confirm results, explanation, inspector, and load-into-form all work as described
+- [X] T025 [P] Audit `components/ai/ai-analytics-panel.tsx` for FR-010 and FR-011 compliance — confirm the `<textarea>` has `maxLength={500}` rendered in the DOM; confirm each API error code (`no_schemas`, `generation_failed`, `rate_limited`, `validation_error`, `internal_error`) maps to a distinct user-friendly message string with no raw stack trace or internal field names exposed; add error-message constants to a `lib/ai-error-messages.ts` helper if inline strings are duplicated
+- [X] T026 [P] Review `app/api/ai/generate/route.ts` and `app/api/ai/explain/route.ts` for complete error branch coverage — confirm `console.error` / `console.warn` calls are present for server-side logging, that `APICallError` 429 is distinguished from 5xx errors, and that Zod validation errors in request bodies return `details` arrays per the contract spec
+- [X] T027 Validate `specs/006-ai-assisted-analytics/quickstart.md` end-to-end against the local seeded environment — run `bun run dev`, follow the quickstart steps (select app, submit question, inspect query, load into explorer), confirm results, explanation, inspector, and load-into-form all work as described
 
 ---
 
