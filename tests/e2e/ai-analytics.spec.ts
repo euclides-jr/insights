@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
 
+const SEVEN_DAYS_AGO = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+const NOW = new Date().toISOString();
+
 test.describe('AI Analytics Panel', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/query');
@@ -71,8 +74,8 @@ test.describe('AI Analytics Panel', () => {
     const mockQuery = {
       applicationId: 'app-1',
       eventName: 'signup',
-      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      endDate: new Date().toISOString(),
+      startDate: SEVEN_DAYS_AGO,
+      endDate: NOW,
       aggregation: 'count',
     };
 
@@ -122,8 +125,8 @@ test.describe('AI Analytics Panel', () => {
     const mockQuery = {
       applicationId: 'app-1',
       eventName: 'signup',
-      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      endDate: new Date().toISOString(),
+      startDate: SEVEN_DAYS_AGO,
+      endDate: NOW,
       aggregation: 'count',
     };
 
@@ -172,8 +175,8 @@ test.describe('AI Analytics Panel', () => {
     const mockQuery = {
       applicationId: 'app-1',
       eventName: 'signup',
-      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      endDate: new Date().toISOString(),
+      startDate: SEVEN_DAYS_AGO,
+      endDate: NOW,
       aggregation: 'count',
     };
 
@@ -224,8 +227,8 @@ test.describe('AI Analytics Panel', () => {
     const mockQuery = {
       applicationId: 'app-1',
       eventName: 'page_view',
-      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      endDate: new Date().toISOString(),
+      startDate: SEVEN_DAYS_AGO,
+      endDate: NOW,
       aggregation: 'count',
     };
 
@@ -277,8 +280,8 @@ test.describe('AI Analytics Panel', () => {
     const mockQuery = {
       applicationId: 'app-1',
       eventName: 'page_view',
-      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      endDate: new Date().toISOString(),
+      startDate: SEVEN_DAYS_AGO,
+      endDate: NOW,
       aggregation: 'count',
     };
 
@@ -330,8 +333,8 @@ test.describe('AI Analytics Panel', () => {
     const mockQuery = {
       applicationId: 'app-1',
       eventName: 'signup',
-      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      endDate: new Date().toISOString(),
+      startDate: SEVEN_DAYS_AGO,
+      endDate: NOW,
       aggregation: 'count',
     };
 
@@ -390,8 +393,8 @@ test.describe('AI Analytics Panel', () => {
     const mockQuery = {
       applicationId: 'app-1',
       eventName: 'signup',
-      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      endDate: new Date().toISOString(),
+      startDate: SEVEN_DAYS_AGO,
+      endDate: NOW,
       aggregation: 'count',
     };
 
@@ -451,8 +454,8 @@ test.describe('AI Analytics Panel', () => {
     const mockQuery = {
       applicationId: 'app-1',
       eventName: 'signup',
-      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      endDate: new Date().toISOString(),
+      startDate: SEVEN_DAYS_AGO,
+      endDate: NOW,
       aggregation: 'count',
     };
 

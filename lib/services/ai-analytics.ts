@@ -182,7 +182,7 @@ export async function explainQueryResults(
       { role: 'system', content: EXPLANATION_SYSTEM_PROMPT },
       { role: 'user', content: buildExplainUserMessage(params) },
     ],
-    maxOutputTokens: 300,
+    maxOutputTokens: 300, // ~225 words; keeps explanations concise
   });
 
   return text;
