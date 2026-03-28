@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { AIExplanation } from "@/components/ai/ai-explanation";
 import { AIQueryInspector } from "@/components/ai/ai-query-inspector";
 import { selectInputClass, selectChevronStyle } from "@/components/ui/select";
-import { inferQuestionDateRange } from "@/lib/ai/date-range";
 import { getAIErrorMessage } from "@/lib/ai-error-messages";
 import type { QueryDefinition } from "@/lib/validations/query-schemas";
 import type { AIAnalyticsHistoryEntry } from "@/lib/services/ai-analytics";
@@ -72,10 +71,6 @@ export function AIAnalyticsPanel({
     const selectedApplicationId = applicationId;
     const submittedQuestion = question.trim();
     const now = new Date();
-    const { startDate, endDate } = inferQuestionDateRange(
-      submittedQuestion,
-      now,
-    );
 
     setPanelState({ status: "generating" });
 
@@ -87,8 +82,6 @@ export function AIAnalyticsPanel({
         body: JSON.stringify({
           question: submittedQuestion,
           applicationId: selectedApplicationId,
-          startDate,
-          endDate,
         }),
       });
 

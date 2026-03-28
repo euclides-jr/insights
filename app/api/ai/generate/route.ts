@@ -1,23 +1,55 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { z, ZodError } from 'zod';
-import { APICallError, NoObjectGeneratedError } from 'ai';
+import { NextRequest, NextResponse } from "next/server";
+import { z, ZodError } from "zod";
+import { APICallError, NoObjectGeneratedError } from "ai";
+import {
+  resolveQuestionDateRange,
+  type DateRangeParseResult,
+} from "@/lib/ai/date-range";
+import { resolveQuestionDateRangeWithAI } from "@/lib/ai/date-range-server";
 import {
   buildEventSchemaContext,
   generateQueryFromPrompt,
   type EventSchemaContext,
-} from '@/lib/services/ai-analytics';
-import type { QueryDefinition } from '@/lib/validations/query-schemas';
+} from "@/lib/services/ai-analytics";
+import type { QueryDefinition } from "@/lib/validations/query-schemas";
 
 const generateRequestSchema = z
   .object({
     question: z.string().min(1).max(500),
     applicationId: z.string().min(1),
-    startDate: z.string().datetime({ message: 'startDate must be ISO 8601' }),
-    endDate: z.string().datetime({ message: 'endDate must be ISO 8601' }),
+    startDate: z
+      .string()
+      .datetime({ message: "startDate must be ISO 8601" })
+      .optional(),
+    endDate: z
+      .string()
+      .datetime({ message: "endDate must be ISO 8601" })
+      .optional(),
   })
-  .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
-    message: 'endDate must be after startDate',
-    path: ['endDate'],
+  .superRefine((data, ctx) => {
+    const hasStartDate = Boolean(data.startDate);
+    const hasEndDate = Boolean(data.endDate);
+
+    if (hasStartDate !== hasEndDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "startDate and endDate must be provided together",
+        path: hasStartDate ? ["endDate"] : ["startDate"],
+      });
+      return;
+    }
+
+    if (
+      data.startDate &&
+      data.endDate &&
+      new Date(data.endDate) <= new Date(data.startDate)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "endDate must be after startDate",
+        path: ["endDate"],
+      });
+    }
   });
 
 function validateSchemaGrounding(
@@ -38,7 +70,7 @@ function validateSchemaGrounding(
     const knownProps = new Set(Object.keys(matchingSchema.properties));
 
     if (
-      query.groupBy?.kind === 'property' &&
+      query.groupBy?.kind === "property" &&
       !knownProps.has(query.groupBy.key)
     ) {
       return `Generated query groups by unknown property "${query.groupBy.key}".`;
@@ -64,7 +96,7 @@ export async function POST(request: NextRequest) {
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: 'validation_error', message: 'Validation failed', details: [] },
+      { error: "validation_error", message: "Validation failed", details: [] },
       { status: 400 },
     );
   }
@@ -76,8 +108,8 @@ export async function POST(request: NextRequest) {
     if (error instanceof ZodError) {
       return NextResponse.json(
         {
-          error: 'validation_error',
-          message: 'Validation failed',
+          error: "validation_error",
+          message: "Validation failed",
           details: error.errors.map((e) => ({
             path: e.path,
             message: e.message,
@@ -95,9 +127,36 @@ export async function POST(request: NextRequest) {
     if (schemaContext.schemas.length === 0) {
       return NextResponse.json(
         {
-          error: 'no_schemas',
+          error: "no_schemas",
           message:
-            'No active event schemas found for this application. Add event schemas before using AI analytics.',
+            "No active event schemas found for this application. Add event schemas before using AI analytics.",
+        },
+        { status: 422 },
+      );
+    }
+
+    let resolvedDateRange: DateRangeParseResult;
+    if (parsed.startDate && parsed.endDate) {
+      resolvedDateRange = {
+        startDate: parsed.startDate,
+        endDate: parsed.endDate,
+        source: "provided",
+        confidence: "high",
+        needsClarification: false,
+      };
+    } else {
+      resolvedDateRange = await resolveQuestionDateRange(parsed.question, {
+        now: new Date(),
+        fallbackParser: resolveQuestionDateRangeWithAI,
+      });
+    }
+
+    if (resolvedDateRange.needsClarification) {
+      return NextResponse.json(
+        {
+          error: "clarification_required",
+          message:
+            "I couldn't confidently resolve the time range in that question. Try specifying the date window more explicitly.",
         },
         { status: 422 },
       );
@@ -106,17 +165,17 @@ export async function POST(request: NextRequest) {
     const query = await generateQueryFromPrompt({
       question: parsed.question,
       applicationId: parsed.applicationId,
-      startDate: parsed.startDate,
-      endDate: parsed.endDate,
+      startDate: resolvedDateRange.startDate,
+      endDate: resolvedDateRange.endDate,
       schemaContext,
     });
 
     const groundingError = validateSchemaGrounding(query, schemaContext);
     if (groundingError) {
-      console.error('Schema grounding violation:', groundingError);
+      console.error("Schema grounding violation:", groundingError);
       return NextResponse.json(
         {
-          error: 'generation_failed',
+          error: "generation_failed",
           message:
             "I couldn't generate a valid query for that question. Try rephrasing or being more specific.",
         },
@@ -124,13 +183,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ query });
+    return NextResponse.json({ query, resolvedDateRange });
   } catch (error: unknown) {
     if (error instanceof NoObjectGeneratedError) {
-      console.error('AI generation failed:', error);
+      console.error("AI generation failed:", error);
       return NextResponse.json(
         {
-          error: 'generation_failed',
+          error: "generation_failed",
           message:
             "I couldn't generate a valid query for that question. Try rephrasing or being more specific.",
         },
@@ -140,32 +199,32 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof APICallError) {
       if (error.statusCode === 429) {
-        console.warn('AI rate limited:', error);
+        console.warn("AI rate limited:", error);
         return NextResponse.json(
           {
-            error: 'rate_limited',
+            error: "rate_limited",
             message:
-              'The AI service is busy right now. Please try again in a moment.',
+              "The AI service is busy right now. Please try again in a moment.",
           },
           { status: 429 },
         );
       }
 
-      console.error('AI API call error:', error);
+      console.error("AI API call error:", error);
       return NextResponse.json(
         {
-          error: 'internal_error',
-          message: 'Something went wrong. Please try again.',
+          error: "internal_error",
+          message: "Something went wrong. Please try again.",
         },
         { status: 500 },
       );
     }
 
-    console.error('Unexpected error in /api/ai/generate:', error);
+    console.error("Unexpected error in /api/ai/generate:", error);
     return NextResponse.json(
       {
-        error: 'internal_error',
-        message: 'Something went wrong. Please try again.',
+        error: "internal_error",
+        message: "Something went wrong. Please try again.",
       },
       { status: 500 },
     );
