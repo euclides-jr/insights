@@ -59,6 +59,9 @@ jobs:
       - name: Seed database
         run: bun run db:seed
 
+      - name: Run unit and route tests
+        run: bun run test --run
+
       - name: Build application
         run: bun run build
 
@@ -80,5 +83,5 @@ jobs:
           echo "Server failed to start within 60 seconds"
           exit 1
 
-      - name: Run unit & API tests
-        run: bun run test --run
+      - name: Run live API tests
+        run: bun run test:api-live
