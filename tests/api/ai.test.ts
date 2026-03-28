@@ -19,7 +19,7 @@ const START_DATE = '2026-03-21T00:00:00.000Z';
 const END_DATE = '2026-03-28T23:59:59.000Z';
 
 let applicationId: string;
-let noSchemasApplicationId: string | undefined;
+let noSchemasApplicationId: string;
 
 beforeAll(async () => {
   const res = await sessionFetch(`${API_BASE_URL}/api/applications`);
@@ -30,9 +30,23 @@ beforeAll(async () => {
   expect(demo).toBeDefined();
   applicationId = demo!.id;
 
-  noSchemasApplicationId = body.applications.find(
-    (a) => a.apiKey !== TEST_API_KEY,
-  )?.id;
+  // Create (or reuse) a fresh application guaranteed to have no event schemas
+  const TEST_NO_SCHEMAS_APP_NAME = 'ai-test-no-schemas-fixture';
+  const existingApp = body.applications.find(
+    (a) => a.name === TEST_NO_SCHEMAS_APP_NAME,
+  );
+  if (existingApp) {
+    noSchemasApplicationId = existingApp.id;
+  } else {
+    const createRes = await sessionFetch(`${API_BASE_URL}/api/applications`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: TEST_NO_SCHEMAS_APP_NAME }),
+    });
+    expect(createRes.status).toBe(201);
+    const created: { application: { id: string } } = await createRes.json();
+    noSchemasApplicationId = created.application.id;
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -104,11 +118,6 @@ describe('POST /api/ai/generate', () => {
   });
 
   it('returns 422 no_schemas for an application with no active schemas', async () => {
-    if (!noSchemasApplicationId) {
-      console.warn('No application without schemas found — skipping test');
-      return;
-    }
-
     const res = await postGenerate({
       question: 'How many events?',
       applicationId: noSchemasApplicationId,
@@ -116,14 +125,10 @@ describe('POST /api/ai/generate', () => {
       endDate: END_DATE,
     });
 
-    if (res.status === 422) {
-      const data: { error: string; message: string } = await res.json();
-      expect(data.error).toBe('no_schemas');
-      expect(data.message).toBeTruthy();
-    } else {
-      // Application has schemas — test is inconclusive, not a failure
-      expect([200, 422]).toContain(res.status);
-    }
+    expect(res.status).toBe(422);
+    const data: { error: string; message: string } = await res.json();
+    expect(data.error).toBe('no_schemas');
+    expect(data.message).toBeTruthy();
   });
 
   it('returns 401 when no session is present', async () => {
@@ -145,8 +150,7 @@ describe('POST /api/ai/generate', () => {
 // POST /api/ai/explain
 // ---------------------------------------------------------------------------
 
-const mockQuery = {
-  applicationId,
+const MOCK_QUERY_BASE = {
   eventName: 'signup',
   startDate: START_DATE,
   endDate: END_DATE,
@@ -161,7 +165,7 @@ const mockResults = [
 describe('POST /api/ai/explain', () => {
   it('returns 400 when question field is missing', async () => {
     const res = await postExplain({
-      query: { ...mockQuery, applicationId },
+      query: { ...MOCK_QUERY_BASE, applicationId },
       results: mockResults,
       totalCount: 2,
     });
@@ -173,7 +177,7 @@ describe('POST /api/ai/explain', () => {
   it('returns 400 when totalCount is negative', async () => {
     const res = await postExplain({
       question: 'How many signups?',
-      query: { ...mockQuery, applicationId },
+      query: { ...MOCK_QUERY_BASE, applicationId },
       results: mockResults,
       totalCount: -1,
     });
@@ -200,7 +204,7 @@ describe('POST /api/ai/explain', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         question: 'test',
-        query: { ...mockQuery, applicationId },
+        query: { ...MOCK_QUERY_BASE, applicationId },
         results: mockResults,
         totalCount: 2,
       }),

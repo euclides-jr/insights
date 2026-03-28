@@ -47,23 +47,51 @@ export interface AIAnalyticsHistoryEntry {
   explanation: string;
 }
 
+const MAX_SCHEMAS = 20;
+const MAX_PROPERTIES_PER_SCHEMA = 30;
+const MAX_DESCRIPTION_LENGTH = 200;
+
 function formatSchemaContext(context: EventSchemaContext): string {
   if (context.schemas.length === 0) {
     return 'No event schemas available.';
   }
 
-  return context.schemas
-    .map((schema) => {
-      const props = Object.entries(schema.properties)
-        .map(([key, def]) => {
-          const required = def.required ? ' (required)' : '';
-          const description = def.description ? ` — ${def.description}` : '';
-          return `    - ${key}: ${def.type}${required}${description}`;
-        })
-        .join('\n');
-      return `Event: ${schema.eventName}\n  Properties:\n${props || '    (none)'}`;
-    })
-    .join('\n\n');
+  const limitedSchemas = context.schemas.slice(0, MAX_SCHEMAS);
+
+  const schemaTexts = limitedSchemas.map((schema) => {
+    const allPropsEntries = Object.entries(schema.properties);
+    const limitedPropsEntries = allPropsEntries.slice(0, MAX_PROPERTIES_PER_SCHEMA);
+
+    const props = limitedPropsEntries
+      .map(([key, def]) => {
+        const required = def.required ? ' (required)' : '';
+        let description = '';
+        if (def.description) {
+          const raw = def.description;
+          const truncated =
+            raw.length > MAX_DESCRIPTION_LENGTH
+              ? raw.slice(0, MAX_DESCRIPTION_LENGTH) + '…'
+              : raw;
+          description = ` — ${truncated}`;
+        }
+        return `    - ${key}: ${def.type}${required}${description}`;
+      })
+      .join('\n');
+
+    let schemaText = `Event: ${schema.eventName}\n  Properties:\n${props || '    (none)'}`;
+    if (allPropsEntries.length > limitedPropsEntries.length) {
+      const omitted = allPropsEntries.length - limitedPropsEntries.length;
+      schemaText += `\n    ... (${omitted} more properties omitted)`;
+    }
+    return schemaText;
+  });
+
+  let result = schemaTexts.join('\n\n');
+  if (context.schemas.length > limitedSchemas.length) {
+    const omitted = context.schemas.length - limitedSchemas.length;
+    result += `\n\n... (${omitted} more events omitted)`;
+  }
+  return result;
 }
 
 function buildGeneratePrompt(params: GenerateQueryParams): string {

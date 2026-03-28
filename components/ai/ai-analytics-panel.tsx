@@ -144,13 +144,17 @@ export function AIAnalyticsPanel({
 
     let explanation = '';
     try {
+      const explainResults = Array.isArray(queryResult.results)
+        ? queryResult.results.slice(0, 20)
+        : queryResult.results;
+
       const explainRes = await fetch('/api/ai/explain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           question: submittedQuestion,
           query,
-          results: queryResult.results,
+          results: explainResults,
           totalCount: queryResult.totalCount,
         }),
       });
@@ -182,6 +186,7 @@ export function AIAnalyticsPanel({
   }
 
   function restoreHistoryEntry(entry: AIAnalyticsHistoryEntry) {
+    setApplicationId(entry.query.applicationId);
     setQuestion(entry.question);
     setPanelState({
       status: 'done',

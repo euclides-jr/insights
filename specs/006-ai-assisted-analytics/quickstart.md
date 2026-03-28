@@ -60,7 +60,7 @@ Navigate to [http://localhost:3000/query](http://localhost:3000/query). You will
 1. **Select an application** from the dropdown (required — submit is disabled otherwise).
 2. **Type a plain-language question** in the text area, e.g.:  
    `"How many page_view events happened last week, broken down by path?"`
-3. Click **"Ask"**.
+3. Click **"Generate Query"**.
 4. Watch the three-step progress indicator:
    - *Generating query…* — AI SDK `generateObject` call
    - *Running query…* — existing `POST /api/query`

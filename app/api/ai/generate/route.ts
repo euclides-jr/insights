@@ -4,14 +4,59 @@ import { APICallError, NoObjectGeneratedError } from 'ai';
 import {
   buildEventSchemaContext,
   generateQueryFromPrompt,
+  type EventSchemaContext,
 } from '@/lib/services/ai-analytics';
+import type { QueryDefinition } from '@/lib/validations/query-schemas';
 
-const generateRequestSchema = z.object({
-  question: z.string().min(1).max(500),
-  applicationId: z.string().min(1),
-  startDate: z.string().datetime({ message: 'startDate must be ISO 8601' }),
-  endDate: z.string().datetime({ message: 'endDate must be ISO 8601' }),
-});
+const generateRequestSchema = z
+  .object({
+    question: z.string().min(1).max(500),
+    applicationId: z.string().min(1),
+    startDate: z.string().datetime({ message: 'startDate must be ISO 8601' }),
+    endDate: z.string().datetime({ message: 'endDate must be ISO 8601' }),
+  })
+  .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
+    message: 'endDate must be after startDate',
+    path: ['endDate'],
+  });
+
+function validateSchemaGrounding(
+  query: QueryDefinition,
+  schemaContext: EventSchemaContext,
+): string | null {
+  const eventNames = new Set(schemaContext.schemas.map((s) => s.eventName));
+
+  if (query.eventName && !eventNames.has(query.eventName)) {
+    return `Generated query references unknown event "${query.eventName}".`;
+  }
+
+  const matchingSchema = query.eventName
+    ? schemaContext.schemas.find((s) => s.eventName === query.eventName)
+    : null;
+
+  if (matchingSchema) {
+    const knownProps = new Set(Object.keys(matchingSchema.properties));
+
+    if (
+      query.groupBy?.kind === 'property' &&
+      !knownProps.has(query.groupBy.key)
+    ) {
+      return `Generated query groups by unknown property "${query.groupBy.key}".`;
+    }
+
+    if (query.aggregationField && !knownProps.has(query.aggregationField)) {
+      return `Generated query references unknown aggregation field "${query.aggregationField}".`;
+    }
+
+    for (const filter of query.propertyFilters ?? []) {
+      if (!knownProps.has(filter.key)) {
+        return `Generated query filters on unknown property "${filter.key}".`;
+      }
+    }
+  }
+
+  return null;
+}
 
 export async function POST(request: NextRequest) {
   let body: unknown;
@@ -65,6 +110,19 @@ export async function POST(request: NextRequest) {
       endDate: parsed.endDate,
       schemaContext,
     });
+
+    const groundingError = validateSchemaGrounding(query, schemaContext);
+    if (groundingError) {
+      console.error('Schema grounding violation:', groundingError);
+      return NextResponse.json(
+        {
+          error: 'generation_failed',
+          message:
+            "I couldn't generate a valid query for that question. Try rephrasing or being more specific.",
+        },
+        { status: 422 },
+      );
+    }
 
     return NextResponse.json({ query });
   } catch (error: unknown) {
