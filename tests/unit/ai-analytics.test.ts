@@ -223,10 +223,9 @@ describe("generateQueryFromPrompt", () => {
   });
 
   it("propagates NoObjectGeneratedError", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const error = new NoObjectGeneratedError({
       message: "AI failed to produce object",
-    } as any);
+    });
     generateObjectMock.mockRejectedValue(error);
 
     await expect(
