@@ -1,5 +1,5 @@
 import { DashboardLayout } from '@/components/dashboard-layout';
-import { QueryPageClient } from '@/components/ai/query-page-client';
+import { QueryForm } from '@/components/query-form';
 import { prisma } from '@/lib/db/prisma';
 import { listQueryFieldMetadata } from '@/lib/query/field-metadata';
 import { deserializeQueryStateFromSearchParams } from '@/lib/query/hydration';
@@ -45,7 +45,7 @@ export default async function QueryPage({
             No applications found. Create an application first to run queries.
           </div>
         ) : (
-          <QueryPageClient
+          <QueryForm
             applications={applications}
             fieldMetadataByApplication={fieldMetadataByApplication}
             initialState={initialState}
