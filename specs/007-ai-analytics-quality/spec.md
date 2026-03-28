@@ -2,7 +2,7 @@
 
 **Feature Branch**: `007-ai-analytics-quality`  
 **Created**: 2026-03-28  
-**Status**: Draft  
+**Status**: Implemented  
 **Input**: Follow-up improvement request for AI analytics accuracy, transparency, and seeded-demo usefulness
 
 ## Summary
@@ -31,17 +31,28 @@ Implemented today:
 1. AI analytics panel on `/query`
 2. Schema-grounded query generation against active event schemas
 3. Property-description-aware query refinement
-4. Prompt-derived date ranges for a small set of phrases (`last week`, `last month`, `last N days`, `today`, `yesterday`)
-5. Result explanation, query inspector, and in-session history
-6. Prompt examples and enriched seeded schemas
+4. Hybrid date-range resolution with deterministic parsing first and structured LLM fallback second
+5. Prompt-derived date ranges for quantified windows, `today`, `yesterday`, `last month`, `year to date`, `between X and Y`, `since X`, named months, and quarters
+6. Clarification flow for ambiguous event matches and unresolved time windows
+7. Execution summary, query inspector, and in-session history
+8. Deterministic zero-result recovery suggestions rendered in the UI
+9. Prompt examples and live-seed verification for one documented prompt per seeded application
 
 Known gaps:
 
-1. Richer date phrases such as `March`, `Q1`, `year to date`, `between X and Y`, and `since January` are not interpreted
-2. Ambiguous prompts still produce a best-effort query instead of requesting clarification
-3. The UI does not show why a specific event/property/date range was chosen
-4. Empty results are explained, but not always diagnosed in a way that helps the user recover quickly
-5. Seeded mobile subscription data is not recent enough for common default demo prompts
+1. The date parser still handles a targeted analytics phrase set, not arbitrary calendar language like fiscal periods or highly implicit ranges
+2. Clarification currently focuses on ambiguous event selection and unresolved date windows, not yet ambiguous property/filter selection
+3. Recovery suggestions are rule-based and useful, but they do not yet propose neighboring schema-backed events automatically
+
+## Implementation Status
+
+Delivered in the current repo state:
+
+- US1 Rich natural-language time ranges: implemented
+- US2 Clarification instead of unsafe guessing: implemented for low-confidence event matches and unresolved date windows
+- US3 Query assumption transparency: implemented through execution summary and query inspector date-source metadata
+- US4 Better empty-result recovery: implemented through deterministic recovery suggestions in the AI summary panel
+- US5 Better seeded demo coverage: implemented through prompt-doc alignment and Playwright verification against the live seeded database
 
 ## User Story 1 - Rich Natural-Language Time Ranges (Priority: P1)
 

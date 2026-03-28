@@ -15,6 +15,8 @@ The date-range work in this plan uses a hybrid parser strategy:
 - a bounded structured LLM fallback only when deterministic parsing cannot safely resolve the range
 - clarification when neither path can produce a trustworthy result
 
+Current status: implemented in the repo. The shipped work covers hybrid date parsing, clarification for ambiguous prompt/event matches, execution-summary transparency, deterministic zero-result recovery suggestions, and live-seed verification for the documented prompt set.
+
 ---
 
 ## Technical Context
@@ -104,6 +106,16 @@ tests/
 - improve zero-result explanations and recovery hints
 - add non-empty seeded coverage for key prompt examples
 
+### Delivered Outcome
+
+- `lib/ai/date-range.ts` and `lib/ai/date-range-server.ts` now provide the hybrid parser path
+- `/api/ai/generate` resolves dates server-side, returns resolved-range metadata, and can return clarification options
+- `components/ai/ai-analytics-panel.tsx` renders clarification, execution summary, and seeded-run results
+- `components/ai/ai-query-inspector.tsx` shows date source and confidence
+- `components/ai/ai-explanation.tsx` renders deterministic recovery suggestions for zero-result runs
+- `tests/unit/ai-date-range.test.ts`, `tests/unit/ai-analytics.test.ts`, and `tests/e2e/ai-analytics.spec.ts` cover the delivered flows
+- `docs/AI_PROMPT_EXAMPLES.md` is aligned with the verified seeded prompt windows
+
 ---
 
 ## Story-to-Implementation Mapping
@@ -136,4 +148,10 @@ tests/
   - clarification flow
   - execution summary visibility
   - empty-result recovery guidance
-- Fresh-seed manual verification against the documented prompt examples
+- live-seed Playwright verification against the documented prompt examples for all seeded applications
+
+## Residual Gaps
+
+- no dedicated clarification flow yet for ambiguous property filters or aggregation field selection
+- recovery suggestions are deterministic and generic rather than ranked against neighboring schemas
+- manual reseed walkthrough notes are still lightweight compared with the automated seeded verification now in place
