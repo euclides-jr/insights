@@ -3,6 +3,12 @@ import { test, expect, type Page } from "@playwright/test";
 const SEVEN_DAYS_AGO = new Date(
   Date.now() - 7 * 24 * 60 * 60 * 1000,
 ).toISOString();
+const FOURTEEN_DAYS_AGO = new Date(
+  Date.now() - 14 * 24 * 60 * 60 * 1000,
+).toISOString();
+const THIRTY_DAYS_AGO = new Date(
+  Date.now() - 30 * 24 * 60 * 60 * 1000,
+).toISOString();
 const NOW = new Date().toISOString();
 
 test.describe("AI Analytics Panel", () => {
@@ -684,6 +690,161 @@ test.describe("AI Analytics Panel", () => {
         "Remove the grouping by path to confirm whether matching page_view events exist at all.",
       ),
     ).toBeVisible();
+  });
+
+  test("fresh seed supports the documented Demo Web App signup prompt", async ({
+    page,
+  }) => {
+    await page.selectOption("select", { label: "Demo Web App" });
+
+    await page.route("**/api/ai/generate", async (route) => {
+      const body = route.request().postDataJSON() as { applicationId: string };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          query: {
+            applicationId: body.applicationId,
+            eventName: "signup",
+            startDate: THIRTY_DAYS_AGO,
+            endDate: NOW,
+            aggregation: "count",
+            groupBy: { kind: "property", key: "plan" },
+          },
+          resolvedDateRange: {
+            startDate: THIRTY_DAYS_AGO,
+            endDate: NOW,
+            source: "deterministic",
+            confidence: "high",
+          },
+        }),
+      });
+    });
+
+    await page.route("**/api/ai/explain", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          explanation: "Seeded signup results are available by plan.",
+        }),
+      });
+    });
+
+    const textarea = page.locator("textarea").first();
+    await textarea.fill(
+      "How many signups happened in the last 30 days, broken down by plan?",
+    );
+    await page.getByRole("button", { name: "Generate Query" }).click();
+
+    await expect(resultsSummary(page)).not.toHaveText("0 rows", {
+      timeout: 10000,
+    });
+    await expect(page.getByRole("cell", { name: "pro" })).toBeVisible();
+  });
+
+  test("fresh seed supports the documented EventPulse iOS subscription prompt", async ({
+    page,
+  }) => {
+    await page.selectOption("select", { label: "EventPulse iOS" });
+
+    await page.route("**/api/ai/generate", async (route) => {
+      const body = route.request().postDataJSON() as { applicationId: string };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          query: {
+            applicationId: body.applicationId,
+            eventName: "subscription_started",
+            startDate: THIRTY_DAYS_AGO,
+            endDate: NOW,
+            aggregation: "count",
+            groupBy: { kind: "property", key: "billingPeriod" },
+          },
+          resolvedDateRange: {
+            startDate: THIRTY_DAYS_AGO,
+            endDate: NOW,
+            source: "deterministic",
+            confidence: "high",
+          },
+        }),
+      });
+    });
+
+    await page.route("**/api/ai/explain", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          explanation:
+            "Seeded mobile subscription results are available by billing period.",
+        }),
+      });
+    });
+
+    const textarea = page.locator("textarea").first();
+    await textarea.fill(
+      "How many subscriptions started in the last 30 days, grouped by billing period?",
+    );
+    await page.getByRole("button", { name: "Generate Query" }).click();
+
+    await expect(resultsSummary(page)).not.toHaveText("0 rows", {
+      timeout: 10000,
+    });
+    await expect(page.getByRole("cell", { name: "annual" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "monthly" })).toBeVisible();
+  });
+
+  test("fresh seed supports the documented Admin Dashboard export prompt", async ({
+    page,
+  }) => {
+    await page.selectOption("select", { label: "Admin Dashboard" });
+
+    await page.route("**/api/ai/generate", async (route) => {
+      const body = route.request().postDataJSON() as { applicationId: string };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          query: {
+            applicationId: body.applicationId,
+            eventName: "report_exported",
+            startDate: FOURTEEN_DAYS_AGO,
+            endDate: NOW,
+            aggregation: "count",
+            groupBy: { kind: "property", key: "format" },
+          },
+          resolvedDateRange: {
+            startDate: FOURTEEN_DAYS_AGO,
+            endDate: NOW,
+            source: "deterministic",
+            confidence: "high",
+          },
+        }),
+      });
+    });
+
+    await page.route("**/api/ai/explain", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          explanation: "Seeded admin export results are available by format.",
+        }),
+      });
+    });
+
+    const textarea = page.locator("textarea").first();
+    await textarea.fill(
+      "How many admin report exports happened in the last 14 days, grouped by format?",
+    );
+    await page.getByRole("button", { name: "Generate Query" }).click();
+
+    await expect(resultsSummary(page)).not.toHaveText("0 rows", {
+      timeout: 10000,
+    });
+    await expect(page.getByRole("cell", { name: "csv" })).toBeVisible();
   });
 
   test("expanding query inspector shows event name and aggregation", async ({

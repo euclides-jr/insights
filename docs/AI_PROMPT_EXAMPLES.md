@@ -53,6 +53,7 @@ Useful prompt examples:
 Good seed-aware natural-language variants:
 
 - Show signups by subscription tier from the past week.
+- Show signups by subscription tier in the last 30 days.
 - Break down recent purchases by billing period.
 - Group onboarding completions by acquisition channel.
 - Compare page views by device category over the past week.
@@ -81,7 +82,7 @@ Useful prompt examples:
 
 Good seed-aware natural-language variants:
 
-- Show mobile subscriptions by billing period.
+- Show mobile subscriptions by billing period in the last 30 days.
 - Break down push taps by campaign.
 - Group recent app opens by mobile platform.
 
@@ -102,7 +103,7 @@ Useful prompt examples:
 
 Good seed-aware natural-language variants:
 
-- Show admin exports by file format.
+- Show admin exports by file format in the last 14 days.
 - Break down admin page views by route.
 - Which admin reports were exported most often recently?
 
@@ -121,4 +122,8 @@ These are useful for testing schema grounding beyond exact property names:
 
 - The AI query generator is grounded to the available seeded event schemas, so prompts work best when they clearly imply one seeded event and one seeded property.
 - Relative windows like `last 7 days`, `last 14 days`, and `last 30 days` are good matches for the seeded distributions.
+- The strongest seeded demo prompts are the ones verified in Playwright against the live seed:
+  - `How many signups happened in the last 30 days, broken down by plan?`
+  - `How many subscriptions started in the last 30 days, grouped by billing period?`
+  - `How many admin report exports happened in the last 14 days, grouped by format?`
 - If you reseed and change the schema or event mix, update this file to keep the examples aligned.
