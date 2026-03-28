@@ -1,14 +1,14 @@
-import 'dotenv/config';
+import "dotenv/config";
 import {
   Prisma,
   PrismaClient,
   SavedReportType,
   WorkspaceRole,
-} from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { createHash } from 'crypto';
-import { auth } from '../lib/auth';
-import { refreshSegmentCount } from '../lib/services/segment-engine';
+} from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { createHash } from "crypto";
+import { auth } from "../lib/auth";
+import { refreshSegmentCount } from "../lib/services/segment-engine";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -17,7 +17,7 @@ const DAY_MS = 86_400_000;
 const now = new Date();
 const today = startOfDay(now);
 
-type Tier = 'enterprise' | 'pro' | 'starter' | 'free';
+type Tier = "enterprise" | "pro" | "starter" | "free";
 type JsonMap = Record<string, Prisma.InputJsonValue>;
 
 type UserSeed = {
@@ -30,14 +30,14 @@ type UserSeed = {
   isTrial: boolean;
   industry: string;
   teamSize: number;
-  lifecycle: 'new' | 'active' | 'power' | 'at_risk';
+  lifecycle: "new" | "active" | "power" | "at_risk";
   extraAttributes?: JsonMap;
   eventPattern?:
-    | 'power_buyer'
-    | 'trial_explorer'
-    | 'trial_buyer'
-    | 'canada_reader'
-    | 'inactive_enterprise';
+    | "power_buyer"
+    | "trial_explorer"
+    | "trial_buyer"
+    | "canada_reader"
+    | "inactive_enterprise";
   changes?: Array<{
     key: string;
     oldValue: Prisma.InputJsonValue;
@@ -81,7 +81,7 @@ function jsonValue(value: unknown): Prisma.InputJsonValue {
 }
 
 function hashToken(value: string) {
-  return createHash('sha256').update(value).digest('hex');
+  return createHash("sha256").update(value).digest("hex");
 }
 
 async function resetDatabase() {
@@ -113,119 +113,119 @@ async function resetDatabase() {
 function buildWebUsers(): UserSeed[] {
   const fixed: UserSeed[] = [
     {
-      userId: 'web_user_1',
-      plan: 'enterprise',
-      country: 'US',
-      company: 'Acme Corp',
-      role: 'admin',
+      userId: "web_user_1",
+      plan: "enterprise",
+      country: "US",
+      company: "Acme Corp",
+      role: "admin",
       accountAgeDays: 720,
       isTrial: false,
-      industry: 'Fintech',
+      industry: "Fintech",
       teamSize: 420,
-      lifecycle: 'power',
+      lifecycle: "power",
       changes: [
         {
-          key: 'plan',
-          oldValue: 'pro',
-          newValue: 'enterprise',
+          key: "plan",
+          oldValue: "pro",
+          newValue: "enterprise",
           changedAt: dateDaysAgo(120, 11),
         },
       ],
     },
     {
-      userId: 'web_user_2',
-      plan: 'enterprise',
-      country: 'GB',
-      company: 'Sterling Cooper',
-      role: 'editor',
+      userId: "web_user_2",
+      plan: "enterprise",
+      country: "GB",
+      company: "Sterling Cooper",
+      role: "editor",
       accountAgeDays: 540,
       isTrial: false,
-      industry: 'Media',
+      industry: "Media",
       teamSize: 260,
-      lifecycle: 'power',
+      lifecycle: "power",
     },
     {
-      userId: 'web_user_3',
-      plan: 'enterprise',
-      country: 'DE',
-      company: 'Globex',
-      role: 'developer',
+      userId: "web_user_3",
+      plan: "enterprise",
+      country: "DE",
+      company: "Globex",
+      role: "developer",
       accountAgeDays: 365,
       isTrial: false,
-      industry: 'Manufacturing',
+      industry: "Manufacturing",
       teamSize: 310,
-      lifecycle: 'active',
+      lifecycle: "active",
     },
     {
-      userId: 'web_user_4',
-      plan: 'pro',
-      country: 'US',
-      company: 'Hooli',
-      role: 'admin',
+      userId: "web_user_4",
+      plan: "pro",
+      country: "US",
+      company: "Hooli",
+      role: "admin",
       accountAgeDays: 180,
       isTrial: false,
-      industry: 'SaaS',
+      industry: "SaaS",
       teamSize: 90,
-      lifecycle: 'power',
+      lifecycle: "power",
       changes: [
         {
-          key: 'plan',
-          oldValue: 'starter',
-          newValue: 'pro',
+          key: "plan",
+          oldValue: "starter",
+          newValue: "pro",
           changedAt: dateDaysAgo(60, 10),
         },
       ],
     },
     {
-      userId: 'web_user_5',
-      plan: 'pro',
-      country: 'CA',
-      company: 'Pied Piper',
-      role: 'developer',
+      userId: "web_user_5",
+      plan: "pro",
+      country: "CA",
+      company: "Pied Piper",
+      role: "developer",
       accountAgeDays: 120,
       isTrial: false,
-      industry: 'Developer Tools',
+      industry: "Developer Tools",
       teamSize: 42,
-      lifecycle: 'active',
+      lifecycle: "active",
     },
     {
-      userId: 'web_user_6',
-      plan: 'pro',
-      country: 'AU',
-      company: 'Bluth Company',
-      role: 'analyst',
+      userId: "web_user_6",
+      plan: "pro",
+      country: "AU",
+      company: "Bluth Company",
+      role: "analyst",
       accountAgeDays: 90,
       isTrial: false,
-      industry: 'E-commerce',
+      industry: "E-commerce",
       teamSize: 75,
-      lifecycle: 'active',
+      lifecycle: "active",
     },
     {
-      userId: 'web_user_7',
-      plan: 'starter',
-      country: 'FR',
-      company: 'Initech',
-      role: 'editor',
+      userId: "web_user_7",
+      plan: "starter",
+      country: "FR",
+      company: "Initech",
+      role: "editor",
       accountAgeDays: 60,
       isTrial: false,
-      industry: 'SaaS',
+      industry: "SaaS",
       teamSize: 26,
-      lifecycle: 'active',
+      lifecycle: "active",
     },
     {
-      userId: 'web_user_8',
-      plan: 'starter',
-      country: 'JP',
-      company: 'Umbrella',
-      role: 'viewer',
+      userId: "web_user_8",
+      plan: "starter",
+      country: "JP",
+      company: "Umbrella",
+      role: "viewer",
       accountAgeDays: 45,
       isTrial: true,
-      industry: 'Healthcare',
+      industry: "Healthcare",
       teamSize: 58,
-      lifecycle: 'at_risk',
+      lifecycle: "at_risk",
       changes: [
         {
-          key: 'is_trial',
+          key: "is_trial",
           oldValue: false,
           newValue: true,
           changedAt: dateDaysAgo(7, 9),
@@ -233,55 +233,55 @@ function buildWebUsers(): UserSeed[] {
       ],
     },
     {
-      userId: 'web_user_9',
-      plan: 'starter',
-      country: 'IN',
-      company: 'Dunder Mifflin',
-      role: 'analyst',
+      userId: "web_user_9",
+      plan: "starter",
+      country: "IN",
+      company: "Dunder Mifflin",
+      role: "analyst",
       accountAgeDays: 30,
       isTrial: true,
-      industry: 'Logistics',
+      industry: "Logistics",
       teamSize: 18,
-      lifecycle: 'active',
+      lifecycle: "active",
     },
     {
-      userId: 'web_user_10',
-      plan: 'free',
-      country: 'BR',
-      company: 'Vandelay Industries',
-      role: 'viewer',
+      userId: "web_user_10",
+      plan: "free",
+      country: "BR",
+      company: "Vandelay Industries",
+      role: "viewer",
       accountAgeDays: 6,
       isTrial: false,
-      industry: 'Retail',
+      industry: "Retail",
       teamSize: 8,
-      lifecycle: 'new',
+      lifecycle: "new",
     },
     {
-      userId: 'web_user_11',
-      plan: 'free',
-      country: 'MX',
-      company: 'Acme Corp',
-      role: 'viewer',
+      userId: "web_user_11",
+      plan: "free",
+      country: "MX",
+      company: "Acme Corp",
+      role: "viewer",
       accountAgeDays: 4,
       isTrial: false,
-      industry: 'Consulting',
+      industry: "Consulting",
       teamSize: 11,
-      lifecycle: 'new',
+      lifecycle: "new",
     },
     {
-      userId: 'web_user_12',
-      plan: 'free',
-      country: 'US',
-      company: 'Initech',
-      role: 'viewer',
+      userId: "web_user_12",
+      plan: "free",
+      country: "US",
+      company: "Initech",
+      role: "viewer",
       accountAgeDays: 2,
       isTrial: true,
-      industry: 'Education',
+      industry: "Education",
       teamSize: 5,
-      lifecycle: 'new',
+      lifecycle: "new",
       changes: [
         {
-          key: 'is_trial',
+          key: "is_trial",
           oldValue: false,
           newValue: true,
           changedAt: dateDaysAgo(1, 16),
@@ -290,26 +290,42 @@ function buildWebUsers(): UserSeed[] {
     },
   ];
 
-  const countries = ['US', 'DE', 'GB', 'CA', 'AU', 'FR', 'JP', 'BR', 'IN', 'MX'];
+  const countries = [
+    "US",
+    "DE",
+    "GB",
+    "CA",
+    "AU",
+    "FR",
+    "JP",
+    "BR",
+    "IN",
+    "MX",
+  ];
   const companies = [
-    'Northwind',
-    'Soylent',
-    'Wayne Enterprises',
-    'Wonka Industries',
-    'Stark Labs',
-    'Initrode',
+    "Northwind",
+    "Soylent",
+    "Wayne Enterprises",
+    "Wonka Industries",
+    "Stark Labs",
+    "Initrode",
   ];
-  const roles = ['viewer', 'analyst', 'editor', 'developer', 'admin'];
+  const roles = ["viewer", "analyst", "editor", "developer", "admin"];
   const industries = [
-    'SaaS',
-    'E-commerce',
-    'Fintech',
-    'Healthcare',
-    'Education',
-    'Media',
+    "SaaS",
+    "E-commerce",
+    "Fintech",
+    "Healthcare",
+    "Education",
+    "Media",
   ];
-  const plans: Tier[] = ['enterprise', 'pro', 'starter', 'free'];
-  const lifecycles: UserSeed['lifecycle'][] = ['active', 'active', 'power', 'at_risk'];
+  const plans: Tier[] = ["enterprise", "pro", "starter", "free"];
+  const lifecycles: UserSeed["lifecycle"][] = [
+    "active",
+    "active",
+    "power",
+    "at_risk",
+  ];
 
   for (let index = 13; index <= 30; index += 1) {
     const plan = plans[(index - 13) % plans.length];
@@ -319,8 +335,8 @@ function buildWebUsers(): UserSeed[] {
       country: countries[index % countries.length],
       company: companies[index % companies.length],
       role: roles[index % roles.length],
-      accountAgeDays: 10 + ((index - 13) * 2),
-      isTrial: plan === 'free' || index % 5 === 0,
+      accountAgeDays: 10 + (index - 13) * 2,
+      isTrial: plan === "free" || index % 5 === 0,
       industry: industries[index % industries.length],
       teamSize: 6 + index * 3,
       lifecycle: lifecycles[index % lifecycles.length],
@@ -329,131 +345,134 @@ function buildWebUsers(): UserSeed[] {
 
   fixed.push(
     {
-      userId: 'seed_combo_power_buyer',
-      plan: 'pro',
-      country: 'US',
-      company: 'Query Matrix Labs',
-      role: 'admin',
+      userId: "seed_combo_power_buyer",
+      plan: "pro",
+      country: "US",
+      company: "Query Matrix Labs",
+      role: "admin",
       accountAgeDays: 14,
       isTrial: false,
-      industry: 'SaaS',
+      industry: "SaaS",
       teamSize: 120,
-      lifecycle: 'power',
+      lifecycle: "power",
       extraAttributes: {
-        query_matrix_group: 'combo',
-        persona: 'buyer',
+        query_matrix_group: "combo",
+        persona: "buyer",
       },
-      eventPattern: 'power_buyer',
+      eventPattern: "power_buyer",
     },
     {
-      userId: 'seed_combo_trial_explorer',
-      plan: 'starter',
-      country: 'FR',
-      company: 'Query Matrix Labs',
-      role: 'analyst',
+      userId: "seed_combo_trial_explorer",
+      plan: "starter",
+      country: "FR",
+      company: "Query Matrix Labs",
+      role: "analyst",
       accountAgeDays: 10,
       isTrial: true,
-      industry: 'Education',
+      industry: "Education",
       teamSize: 16,
-      lifecycle: 'active',
+      lifecycle: "active",
       extraAttributes: {
-        query_matrix_group: 'combo',
-        persona: 'explorer',
+        query_matrix_group: "combo",
+        persona: "explorer",
       },
-      eventPattern: 'trial_explorer',
+      eventPattern: "trial_explorer",
     },
     {
-      userId: 'seed_combo_trial_buyer',
-      plan: 'starter',
-      country: 'GB',
-      company: 'Query Matrix Labs',
-      role: 'editor',
+      userId: "seed_combo_trial_buyer",
+      plan: "starter",
+      country: "GB",
+      company: "Query Matrix Labs",
+      role: "editor",
       accountAgeDays: 9,
       isTrial: false,
-      industry: 'SaaS',
+      industry: "SaaS",
       teamSize: 22,
-      lifecycle: 'active',
+      lifecycle: "active",
       extraAttributes: {
-        query_matrix_group: 'combo',
-        persona: 'trial_buyer',
+        query_matrix_group: "combo",
+        persona: "trial_buyer",
       },
-      eventPattern: 'trial_buyer',
+      eventPattern: "trial_buyer",
     },
     {
-      userId: 'seed_combo_canada_reader',
-      plan: 'pro',
-      country: 'CA',
-      company: 'Matrix North',
-      role: 'editor',
+      userId: "seed_combo_canada_reader",
+      plan: "pro",
+      country: "CA",
+      company: "Matrix North",
+      role: "editor",
       accountAgeDays: 12,
       isTrial: false,
-      industry: 'Media',
+      industry: "Media",
       teamSize: 34,
-      lifecycle: 'active',
+      lifecycle: "active",
       extraAttributes: {
-        query_matrix_group: 'combo',
-        persona: 'reader',
+        query_matrix_group: "combo",
+        persona: "reader",
       },
-      eventPattern: 'canada_reader',
+      eventPattern: "canada_reader",
     },
     {
-      userId: 'seed_combo_inactive_enterprise',
-      plan: 'enterprise',
-      country: 'DE',
-      company: 'Legacy Matrix GmbH',
-      role: 'viewer',
+      userId: "seed_combo_inactive_enterprise",
+      plan: "enterprise",
+      country: "DE",
+      company: "Legacy Matrix GmbH",
+      role: "viewer",
       accountAgeDays: 35,
       isTrial: false,
-      industry: 'Manufacturing',
+      industry: "Manufacturing",
       teamSize: 240,
-      lifecycle: 'at_risk',
+      lifecycle: "at_risk",
       extraAttributes: {
-        query_matrix_group: 'combo',
-        persona: 'inactive',
+        query_matrix_group: "combo",
+        persona: "inactive",
       },
-      eventPattern: 'inactive_enterprise',
+      eventPattern: "inactive_enterprise",
     },
   );
 
   const acquisitionChannels = [
-    'organic_search',
-    'paid_search',
-    'partner_referral',
-    'product_hunt',
-    'sales_outbound',
-    'community',
+    "organic_search",
+    "paid_search",
+    "partner_referral",
+    "product_hunt",
+    "sales_outbound",
+    "community",
   ];
   const personas = [
-    'growth_lead',
-    'product_manager',
-    'data_analyst',
-    'engineering_manager',
-    'founder',
-    'ops_lead',
+    "growth_lead",
+    "product_manager",
+    "data_analyst",
+    "engineering_manager",
+    "founder",
+    "ops_lead",
   ];
 
   return fixed.map((user, index) => ({
     ...user,
     extraAttributes: {
-      acquisition_channel: acquisitionChannels[index % acquisitionChannels.length],
+      acquisition_channel:
+        acquisitionChannels[index % acquisitionChannels.length],
       persona: personas[index % personas.length],
       workspace_count:
-        user.plan === 'enterprise'
+        user.plan === "enterprise"
           ? 4 + (index % 5)
-          : user.plan === 'pro'
+          : user.plan === "pro"
             ? 2 + (index % 3)
             : 1 + (index % 2),
       region:
-        user.country === 'US' || user.country === 'CA' || user.country === 'MX'
-          ? 'north_america'
-          : user.country === 'GB' || user.country === 'DE' || user.country === 'FR'
-            ? 'europe'
-            : 'rest_of_world',
+        user.country === "US" || user.country === "CA" || user.country === "MX"
+          ? "north_america"
+          : user.country === "GB" ||
+              user.country === "DE" ||
+              user.country === "FR"
+            ? "europe"
+            : "rest_of_world",
       beta_opt_in: index % 4 === 0,
       lead_score:
-        user.plan === 'enterprise'
+        user.plan === "enterprise"
           ? 92 - (index % 8)
-          : user.plan === 'pro'
+          : user.plan === "pro"
             ? 74 - (index % 12)
             : 48 - (index % 10),
       ...(user.extraAttributes ?? {}),
@@ -473,7 +492,7 @@ function pushEvent(
 ) {
   sequence.value += 1;
   events.push({
-    eventId: `seed_${sequence.value.toString().padStart(6, '0')}`,
+    eventId: `seed_${sequence.value.toString().padStart(6, "0")}`,
     applicationId,
     eventName,
     userId,
@@ -492,19 +511,21 @@ function pushQueryMatrixEvents(
   const sessionBase = `matrix_${user.userId}`;
 
   switch (user.eventPattern) {
-    case 'power_buyer': {
+    case "power_buyer": {
       const signupAt = dateDaysAgo(14, 9, 15);
       pushEvent(
         events,
         sequence,
         applicationId,
-        'signup',
+        "signup",
         user.userId,
         signupAt,
         {
           plan: user.plan,
-          source: 'query_matrix',
+          source: "query_matrix",
           invited: false,
+          campaign: "query_matrix_buyer",
+          region: "north_america",
         },
         `${sessionBase}_signup`,
       );
@@ -512,13 +533,14 @@ function pushQueryMatrixEvents(
         events,
         sequence,
         applicationId,
-        'button_click',
+        "button_click",
         user.userId,
         dateDaysAgo(6, 10, 5),
         {
-          buttonId: 'upgrade_plan',
-          page: '/pricing',
-          label: 'Upgrade now',
+          buttonId: "upgrade_plan",
+          page: "/pricing",
+          label: "Upgrade now",
+          ctaVariant: "primary",
         },
         `${sessionBase}_recent`,
       );
@@ -526,15 +548,17 @@ function pushQueryMatrixEvents(
         events,
         sequence,
         applicationId,
-        'purchase',
+        "purchase",
         user.userId,
         dateDaysAgo(6, 10, 15),
         {
           amount: 149,
-          currency: 'USD',
-          productId: 'prod_pro',
+          currency: "USD",
+          productId: "prod_pro",
           quantity: 1,
-          coupon: '',
+          coupon: "",
+          billingCycle: "monthly",
+          paymentMethod: "card",
         },
         `${sessionBase}_purchase_1`,
       );
@@ -542,13 +566,15 @@ function pushQueryMatrixEvents(
         events,
         sequence,
         applicationId,
-        'page_view',
+        "page_view",
         user.userId,
         dateDaysAgo(2, 14, 10),
         {
-          path: '/dashboard',
-          referrer: 'https://google.com',
+          path: "/dashboard",
+          referrer: "https://google.com",
           duration: 180,
+          pageType: "workspace",
+          device: "desktop",
         },
         `${sessionBase}_recent`,
       );
@@ -556,33 +582,37 @@ function pushQueryMatrixEvents(
         events,
         sequence,
         applicationId,
-        'purchase',
+        "purchase",
         user.userId,
         dateDaysAgo(1, 16, 20),
         {
           amount: 189,
-          currency: 'USD',
-          productId: 'prod_pro',
+          currency: "USD",
+          productId: "prod_pro",
           quantity: 1,
-          coupon: 'MATRIX20',
+          coupon: "MATRIX20",
+          billingCycle: "annual",
+          paymentMethod: "card",
         },
         `${sessionBase}_purchase_2`,
       );
       return true;
     }
-    case 'trial_explorer': {
+    case "trial_explorer": {
       const signupAt = dateDaysAgo(10, 8, 40);
       pushEvent(
         events,
         sequence,
         applicationId,
-        'signup',
+        "signup",
         user.userId,
         signupAt,
         {
           plan: user.plan,
-          source: 'query_matrix',
+          source: "community",
           invited: true,
+          campaign: "query_matrix_explorer",
+          region: "europe",
         },
         `${sessionBase}_signup`,
       );
@@ -590,13 +620,15 @@ function pushQueryMatrixEvents(
         events,
         sequence,
         applicationId,
-        'page_view',
+        "page_view",
         user.userId,
         dateDaysAgo(3, 11, 0),
         {
-          path: '/features',
-          referrer: 'https://x.com',
+          path: "/features",
+          referrer: "https://x.com",
           duration: 90,
+          pageType: "landing",
+          device: "mobile_web",
         },
         `${sessionBase}_engagement`,
       );
@@ -604,13 +636,14 @@ function pushQueryMatrixEvents(
         events,
         sequence,
         applicationId,
-        'button_click',
+        "button_click",
         user.userId,
         dateDaysAgo(2, 13, 15),
         {
-          buttonId: 'cta_view_demo',
-          page: '/features',
-          label: 'View demo',
+          buttonId: "cta_view_demo",
+          page: "/features",
+          label: "View demo",
+          ctaVariant: "secondary",
         },
         `${sessionBase}_engagement`,
       );
@@ -618,31 +651,35 @@ function pushQueryMatrixEvents(
         events,
         sequence,
         applicationId,
-        'page_view',
+        "page_view",
         user.userId,
         dateDaysAgo(1, 9, 30),
         {
-          path: '/pricing',
-          referrer: 'https://google.com',
+          path: "/pricing",
+          referrer: "https://google.com",
           duration: 70,
+          pageType: "pricing",
+          device: "mobile_web",
         },
         `${sessionBase}_engagement`,
       );
       return true;
     }
-    case 'trial_buyer': {
+    case "trial_buyer": {
       const signupAt = dateDaysAgo(9, 9, 0);
       pushEvent(
         events,
         sequence,
         applicationId,
-        'signup',
+        "signup",
         user.userId,
         signupAt,
         {
           plan: user.plan,
-          source: 'query_matrix',
+          source: "partner_referral",
           invited: true,
+          campaign: "query_matrix_trial_buyer",
+          region: "europe",
         },
         `${sessionBase}_signup`,
       );
@@ -650,13 +687,14 @@ function pushQueryMatrixEvents(
         events,
         sequence,
         applicationId,
-        'button_click',
+        "button_click",
         user.userId,
         dateDaysAgo(5, 11, 10),
         {
-          buttonId: 'upgrade_plan',
-          page: '/pricing',
-          label: 'Upgrade now',
+          buttonId: "upgrade_plan",
+          page: "/pricing",
+          label: "Upgrade now",
+          ctaVariant: "primary",
         },
         `${sessionBase}_purchase`,
       );
@@ -664,33 +702,37 @@ function pushQueryMatrixEvents(
         events,
         sequence,
         applicationId,
-        'purchase',
+        "purchase",
         user.userId,
         dateDaysAgo(4, 15, 25),
         {
           amount: 59,
-          currency: 'USD',
-          productId: 'prod_starter',
+          currency: "USD",
+          productId: "prod_starter",
           quantity: 1,
-          coupon: 'START10',
+          coupon: "START10",
+          billingCycle: "monthly",
+          paymentMethod: "card",
         },
         `${sessionBase}_purchase`,
       );
       return true;
     }
-    case 'canada_reader': {
+    case "canada_reader": {
       const signupAt = dateDaysAgo(12, 9, 5);
       pushEvent(
         events,
         sequence,
         applicationId,
-        'signup',
+        "signup",
         user.userId,
         signupAt,
         {
           plan: user.plan,
-          source: 'query_matrix',
+          source: "organic_search",
           invited: false,
+          campaign: "query_matrix_reader",
+          region: "north_america",
         },
         `${sessionBase}_signup`,
       );
@@ -698,13 +740,15 @@ function pushQueryMatrixEvents(
         events,
         sequence,
         applicationId,
-        'page_view',
+        "page_view",
         user.userId,
         dateDaysAgo(4, 10, 10),
         {
-          path: '/docs',
-          referrer: 'https://news.ycombinator.com',
+          path: "/docs",
+          referrer: "https://news.ycombinator.com",
           duration: 120,
+          pageType: "docs",
+          device: "desktop",
         },
         `${sessionBase}_reading`,
       );
@@ -712,13 +756,15 @@ function pushQueryMatrixEvents(
         events,
         sequence,
         applicationId,
-        'page_view',
+        "page_view",
         user.userId,
         dateDaysAgo(2, 15, 5),
         {
-          path: '/integrations',
-          referrer: '',
+          path: "/integrations",
+          referrer: "",
           duration: 140,
+          pageType: "workspace",
+          device: "desktop",
         },
         `${sessionBase}_reading`,
       );
@@ -726,31 +772,34 @@ function pushQueryMatrixEvents(
         events,
         sequence,
         applicationId,
-        'button_click',
+        "button_click",
         user.userId,
         dateDaysAgo(1, 11, 45),
         {
-          buttonId: 'invite_teammate',
-          page: '/settings/members',
-          label: 'Invite teammate',
+          buttonId: "invite_teammate",
+          page: "/settings/members",
+          label: "Invite teammate",
+          ctaVariant: "inline",
         },
         `${sessionBase}_reading`,
       );
       return true;
     }
-    case 'inactive_enterprise': {
+    case "inactive_enterprise": {
       const signupAt = dateDaysAgo(35, 8, 20);
       pushEvent(
         events,
         sequence,
         applicationId,
-        'signup',
+        "signup",
         user.userId,
         signupAt,
         {
           plan: user.plan,
-          source: 'query_matrix',
+          source: "sales_outbound",
           invited: false,
+          campaign: "query_matrix_enterprise",
+          region: "europe",
         },
         `${sessionBase}_signup`,
       );
@@ -758,15 +807,17 @@ function pushQueryMatrixEvents(
         events,
         sequence,
         applicationId,
-        'purchase',
+        "purchase",
         user.userId,
         dateDaysAgo(22, 15, 0),
         {
           amount: 349,
-          currency: 'USD',
-          productId: 'prod_enterprise',
+          currency: "USD",
+          productId: "prod_enterprise",
           quantity: 1,
-          coupon: '',
+          coupon: "",
+          billingCycle: "annual",
+          paymentMethod: "invoice",
         },
         `${sessionBase}_legacy`,
       );
@@ -774,13 +825,15 @@ function pushQueryMatrixEvents(
         events,
         sequence,
         applicationId,
-        'page_view',
+        "page_view",
         user.userId,
         dateDaysAgo(18, 12, 10),
         {
-          path: '/dashboard',
-          referrer: 'https://google.com',
+          path: "/dashboard",
+          referrer: "https://google.com",
           duration: 210,
+          pageType: "workspace",
+          device: "desktop",
         },
         `${sessionBase}_legacy`,
       );
@@ -796,21 +849,62 @@ function buildWebEvents(applicationId: string, users: UserSeed[]) {
   const sequence = { value: 0 };
 
   const pagePaths = [
-    '/',
-    '/pricing',
-    '/docs',
-    '/features',
-    '/integrations',
-    '/dashboard',
-    '/onboarding',
-    '/reports',
+    "/",
+    "/pricing",
+    "/docs",
+    "/features",
+    "/integrations",
+    "/dashboard",
+    "/onboarding",
+    "/reports",
   ];
-  const referrers = ['https://google.com', 'https://news.ycombinator.com', 'https://x.com', ''];
-  const buttonIds = ['cta_start_trial', 'cta_view_demo', 'upgrade_plan', 'invite_teammate'];
-  const currencies = ['USD', 'EUR', 'GBP'];
-  const integrationTypes = ['slack', 'shopify', 'stripe', 'hubspot', 'salesforce'];
-  const workspaceTemplates = ['product-analytics', 'growth-team', 'sales-pipeline'];
-  const reportFormats = ['csv', 'json'];
+  const referrers = [
+    "https://google.com",
+    "https://news.ycombinator.com",
+    "https://x.com",
+    "",
+  ];
+  const buttonIds = [
+    "cta_start_trial",
+    "cta_view_demo",
+    "upgrade_plan",
+    "invite_teammate",
+  ];
+  const currencies = ["USD", "EUR", "GBP"];
+  const integrationTypes = [
+    "slack",
+    "shopify",
+    "stripe",
+    "hubspot",
+    "salesforce",
+  ];
+  const workspaceTemplates = [
+    "product-analytics",
+    "growth-team",
+    "sales-pipeline",
+  ];
+  const reportFormats = ["csv", "json"];
+  const pageTypes = ["landing", "pricing", "docs", "workspace", "settings"];
+  const devices = ["desktop", "mobile_web", "tablet"];
+  const signupCampaigns = [
+    "spring_launch",
+    "founder_story",
+    "partner_webinar",
+    "comparison_guide",
+    "roi_calculator",
+    "templates_week",
+  ];
+  const ctaVariants = ["primary", "secondary", "inline"];
+  const stepGroups = ["activation", "workspace_setup", "team_invites"];
+  const workspaceUseCases = [
+    "product_analytics",
+    "growth_reporting",
+    "exec_reporting",
+  ];
+  const integrationProviders = ["oauth", "api_key", "manual_csv"];
+  const exportDestinations = ["download", "email", "slack"];
+  const inviteRoles = ["viewer", "analyst", "editor"];
+  const paymentMethods = ["card", "invoice", "paypal"];
 
   users.forEach((user, index) => {
     if (pushQueryMatrixEvents(events, sequence, applicationId, user)) {
@@ -818,20 +912,36 @@ function buildWebEvents(applicationId: string, users: UserSeed[]) {
     }
 
     const signupAt = dateDaysAgo(user.accountAgeDays, 9 + (index % 4), 10);
-    const signedUpDaysAgo = Math.max(0, Math.floor((today.getTime() - signupAt.getTime()) / DAY_MS));
+    const signedUpDaysAgo = Math.max(
+      0,
+      Math.floor((today.getTime() - signupAt.getTime()) / DAY_MS),
+    );
     const sessionBase = `websess_${user.userId}`;
 
     pushEvent(
       events,
       sequence,
       applicationId,
-      'signup',
+      "signup",
       user.userId,
       signupAt,
       {
         plan: user.plan,
-        source: index % 4 === 0 ? 'organic' : index % 4 === 1 ? 'google_ads' : index % 4 === 2 ? 'referral' : 'email',
+        source:
+          index % 6 === 0
+            ? "organic_search"
+            : index % 6 === 1
+              ? "paid_search"
+              : index % 6 === 2
+                ? "partner_referral"
+                : index % 6 === 3
+                  ? "product_hunt"
+                  : index % 6 === 4
+                    ? "sales_outbound"
+                    : "community",
         invited: jsonValue(index % 6 === 0),
+        campaign: signupCampaigns[index % signupCampaigns.length],
+        region: String(user.extraAttributes?.region ?? "rest_of_world"),
       },
       `${sessionBase}_signup`,
     );
@@ -841,13 +951,14 @@ function buildWebEvents(applicationId: string, users: UserSeed[]) {
         events,
         sequence,
         applicationId,
-        'button_click',
+        "button_click",
         user.userId,
         addMinutes(signupAt, 15),
         {
           buttonId: buttonIds[index % buttonIds.length],
-          page: '/signup',
-          label: 'Complete onboarding',
+          page: "/signup",
+          label: "Complete onboarding",
+          ctaVariant: ctaVariants[index % ctaVariants.length],
         },
         `${sessionBase}_signup`,
       );
@@ -857,61 +968,76 @@ function buildWebEvents(applicationId: string, users: UserSeed[]) {
       events,
       sequence,
       applicationId,
-      'onboarding_step_completed',
+      "onboarding_step_completed",
       user.userId,
       addMinutes(signupAt, 6),
       {
-        stepKey: 'profile_completed',
+        stepKey: "profile_completed",
         stepIndex: 1,
-        channel: user.extraAttributes?.acquisition_channel ?? 'organic_search',
+        channel: user.extraAttributes?.acquisition_channel ?? "organic_search",
         completed: true,
+        stepGroup: stepGroups[index % stepGroups.length],
       },
       `${sessionBase}_onboarding`,
     );
 
-    if (user.lifecycle !== 'new' || user.plan !== 'free') {
+    if (user.lifecycle !== "new" || user.plan !== "free") {
       pushEvent(
         events,
         sequence,
         applicationId,
-        'workspace_created',
+        "workspace_created",
         user.userId,
         addMinutes(signupAt, 26),
         {
           template: workspaceTemplates[index % workspaceTemplates.length],
           importedDemoData: index % 3 !== 0,
           memberCount: Math.min(user.teamSize, 12),
+          useCase: workspaceUseCases[index % workspaceUseCases.length],
         },
         `${sessionBase}_workspace`,
       );
     }
 
     if (
-      user.plan === 'enterprise' ||
-      user.plan === 'pro' ||
-      user.lifecycle === 'power'
+      user.plan === "enterprise" ||
+      user.plan === "pro" ||
+      user.lifecycle === "power"
     ) {
       pushEvent(
         events,
         sequence,
         applicationId,
-        'integration_connected',
+        "integration_connected",
         user.userId,
         addMinutes(signupAt, 52),
         {
           integration: integrationTypes[index % integrationTypes.length],
-          category: index % 2 === 0 ? 'data_source' : 'activation',
+          category: index % 2 === 0 ? "data_source" : "activation",
           success: index % 9 !== 0,
-          setupMinutes: 6 + ((index % 5) * 4),
+          setupMinutes: 6 + (index % 5) * 4,
+          provider: integrationProviders[index % integrationProviders.length],
         },
         `${sessionBase}_integration`,
       );
     }
 
     const pageViewBase =
-      user.plan === 'enterprise' ? 4 : user.plan === 'pro' ? 3 : user.plan === 'starter' ? 2 : 1;
+      user.plan === "enterprise"
+        ? 4
+        : user.plan === "pro"
+          ? 3
+          : user.plan === "starter"
+            ? 2
+            : 1;
     const purchaseBase =
-      user.plan === 'enterprise' ? 4 : user.plan === 'pro' ? 3 : user.plan === 'starter' ? 1 : 0;
+      user.plan === "enterprise"
+        ? 4
+        : user.plan === "pro"
+          ? 3
+          : user.plan === "starter"
+            ? 1
+            : 0;
 
     for (let day = 0; day <= 34; day += 1) {
       if (day > signedUpDaysAgo) continue;
@@ -922,13 +1048,19 @@ function buildWebEvents(applicationId: string, users: UserSeed[]) {
           events,
           sequence,
           applicationId,
-          'page_view',
+          "page_view",
           user.userId,
-          dateDaysAgo(day, 8 + ((index + viewIndex) % 10), (viewIndex * 11) % 60),
+          dateDaysAgo(
+            day,
+            8 + ((index + viewIndex) % 10),
+            (viewIndex * 11) % 60,
+          ),
           {
             path: pagePaths[(index + day + viewIndex) % pagePaths.length],
             referrer: referrers[(index + viewIndex) % referrers.length],
             duration: 20 + ((index + day + viewIndex) % 18) * 18,
+            pageType: pageTypes[(index + day + viewIndex) % pageTypes.length],
+            device: devices[(index + viewIndex + day) % devices.length],
           },
           `${sessionBase}_${day}`,
         );
@@ -939,13 +1071,14 @@ function buildWebEvents(applicationId: string, users: UserSeed[]) {
           events,
           sequence,
           applicationId,
-          'button_click',
+          "button_click",
           user.userId,
           dateDaysAgo(day, 14, 5 + ((index + day) % 30)),
           {
-            buttonId: day % 2 === 0 ? 'upgrade_plan' : 'invite_teammate',
-            page: day % 2 === 0 ? '/pricing' : '/settings/members',
-            label: day % 2 === 0 ? 'Upgrade now' : 'Invite teammate',
+            buttonId: day % 2 === 0 ? "upgrade_plan" : "invite_teammate",
+            page: day % 2 === 0 ? "/pricing" : "/settings/members",
+            label: day % 2 === 0 ? "Upgrade now" : "Invite teammate",
+            ctaVariant: ctaVariants[(index + day) % ctaVariants.length],
           },
           `${sessionBase}_${day}`,
         );
@@ -953,20 +1086,22 @@ function buildWebEvents(applicationId: string, users: UserSeed[]) {
 
       if (
         day <= 28 &&
-        (user.lifecycle === 'active' || user.lifecycle === 'power') &&
+        (user.lifecycle === "active" || user.lifecycle === "power") &&
         (index + day) % 8 === 0
       ) {
         pushEvent(
           events,
           sequence,
           applicationId,
-          'report_exported',
+          "report_exported",
           user.userId,
           dateDaysAgo(day, 17, 10 + ((index + day) % 15)),
           {
             format: reportFormats[(index + day) % reportFormats.length],
-            reportType: day % 2 === 0 ? 'query' : 'funnel',
+            reportType: day % 2 === 0 ? "query" : "funnel",
             rowCount: 120 + ((index + day) % 9) * 35,
+            destination:
+              exportDestinations[(index + day) % exportDestinations.length],
           },
           `${sessionBase}_export_${day}`,
         );
@@ -975,26 +1110,31 @@ function buildWebEvents(applicationId: string, users: UserSeed[]) {
       if (
         day <= 21 &&
         user.teamSize >= 20 &&
-        user.role !== 'viewer' &&
+        user.role !== "viewer" &&
         (index + day) % 11 === 0
       ) {
         pushEvent(
           events,
           sequence,
           applicationId,
-          'invite_sent',
+          "invite_sent",
           user.userId,
           dateDaysAgo(day, 15, (index * 7 + day * 3) % 60),
           {
             seatsRequested: 1 + ((index + day) % 4),
-            channel: day % 2 === 0 ? 'email' : 'link',
+            channel: day % 2 === 0 ? "email" : "link",
+            role: inviteRoles[(index + day) % inviteRoles.length],
           },
           `${sessionBase}_invite_${day}`,
         );
       }
     }
 
-    for (let purchaseIndex = 0; purchaseIndex < purchaseBase; purchaseIndex += 1) {
+    for (
+      let purchaseIndex = 0;
+      purchaseIndex < purchaseBase;
+      purchaseIndex += 1
+    ) {
       const purchaseDay = 3 + purchaseIndex * 6 + (index % 4);
       if (purchaseDay > 34 || purchaseDay > signedUpDaysAgo) continue;
 
@@ -1003,25 +1143,34 @@ function buildWebEvents(applicationId: string, users: UserSeed[]) {
         events,
         sequence,
         applicationId,
-        'purchase',
+        "purchase",
         user.userId,
         eventTime,
         {
           amount:
-            user.plan === 'enterprise'
+            user.plan === "enterprise"
               ? 299 + purchaseIndex * 40
-              : user.plan === 'pro'
+              : user.plan === "pro"
                 ? 129 + purchaseIndex * 20
                 : 49 + purchaseIndex * 5,
           currency: currencies[purchaseIndex % currencies.length],
           productId:
-            user.plan === 'enterprise'
-              ? 'prod_enterprise'
-              : user.plan === 'pro'
-                ? 'prod_pro'
-                : 'prod_starter',
+            user.plan === "enterprise"
+              ? "prod_enterprise"
+              : user.plan === "pro"
+                ? "prod_pro"
+                : "prod_starter",
           quantity: 1 + (purchaseIndex % 2),
-          coupon: purchaseIndex === 0 && user.plan === 'starter' ? 'START10' : '',
+          coupon:
+            purchaseIndex === 0 && user.plan === "starter" ? "START10" : "",
+          billingCycle:
+            user.plan === "enterprise" || (index + purchaseIndex) % 3 === 0
+              ? "annual"
+              : "monthly",
+          paymentMethod:
+            user.plan === "enterprise"
+              ? "invoice"
+              : paymentMethods[(index + purchaseIndex) % paymentMethods.length],
         },
         `${sessionBase}_purchase_${purchaseDay}`,
       );
@@ -1034,10 +1183,13 @@ function buildWebEvents(applicationId: string, users: UserSeed[]) {
 function buildMobileEvents(applicationId: string) {
   const events: EventRecord[] = [];
   const sequence = { value: 20_000 };
-  const users = Array.from({ length: 20 }, (_, index) => `mob_user_${index + 1}`);
-  const versions = ['3.2.1', '3.2.0', '3.1.8'];
-  const platforms = ['iOS 17', 'iOS 16'];
-  const campaigns = ['welcome_back', 'feature_launch', 'upgrade_prompt'];
+  const users = Array.from(
+    { length: 20 },
+    (_, index) => `mob_user_${index + 1}`,
+  );
+  const versions = ["3.2.1", "3.2.0", "3.1.8"];
+  const platforms = ["iOS 17", "iOS 16"];
+  const campaigns = ["welcome_back", "feature_launch", "upgrade_prompt"];
 
   users.forEach((userId, index) => {
     const firstOpenDay = 2 + (index % 18);
@@ -1047,7 +1199,7 @@ function buildMobileEvents(applicationId: string) {
       events,
       sequence,
       applicationId,
-      'app_open',
+      "app_open",
       userId,
       firstOpenAt,
       {
@@ -1061,15 +1213,19 @@ function buildMobileEvents(applicationId: string) {
     for (let day = 0; day <= 34; day += 1) {
       if (day > firstOpenDay) continue;
 
-      const openCount = 1 + (((index * 2) + day) % 3);
+      const openCount = 1 + ((index * 2 + day) % 3);
       for (let openIndex = 0; openIndex < openCount; openIndex += 1) {
         pushEvent(
           events,
           sequence,
           applicationId,
-          'app_open',
+          "app_open",
           userId,
-          dateDaysAgo(day, 8 + openIndex * 4, (index * 7 + openIndex * 10) % 60),
+          dateDaysAgo(
+            day,
+            8 + openIndex * 4,
+            (index * 7 + openIndex * 10) % 60,
+          ),
           {
             version: versions[(index + day) % versions.length],
             platform: platforms[index % platforms.length],
@@ -1084,12 +1240,12 @@ function buildMobileEvents(applicationId: string) {
           events,
           sequence,
           applicationId,
-          'push_notification_tapped',
+          "push_notification_tapped",
           userId,
           dateDaysAgo(day, 12, (index * 9) % 60),
           {
             campaignId: campaigns[(index + day) % campaigns.length],
-            action: day % 2 === 0 ? 'open_app' : 'view_offer',
+            action: day % 2 === 0 ? "open_app" : "view_offer",
           },
           `mobile_${userId}_${day}`,
         );
@@ -1101,12 +1257,12 @@ function buildMobileEvents(applicationId: string) {
         events,
         sequence,
         applicationId,
-        'subscription_started',
+        "subscription_started",
         userId,
         dateDaysAgo(14 + (index % 5), 18, 0),
         {
-          plan: index % 2 === 0 ? 'starter' : 'pro',
-          billingPeriod: index % 3 === 0 ? 'annual' : 'monthly',
+          plan: index % 2 === 0 ? "starter" : "pro",
+          billingPeriod: index % 3 === 0 ? "annual" : "monthly",
         },
         `mobile_${userId}_subscription`,
       );
@@ -1119,8 +1275,16 @@ function buildMobileEvents(applicationId: string) {
 function buildAdminEvents(applicationId: string) {
   const events: EventRecord[] = [];
   const sequence = { value: 40_000 };
-  const users = Array.from({ length: 5 }, (_, index) => `adm_user_${index + 1}`);
-  const pages = ['/admin', '/admin/quality', '/admin/reports', '/admin/settings/members'];
+  const users = Array.from(
+    { length: 5 },
+    (_, index) => `adm_user_${index + 1}`,
+  );
+  const pages = [
+    "/admin",
+    "/admin/quality",
+    "/admin/reports",
+    "/admin/settings/members",
+  ];
 
   users.forEach((userId, index) => {
     for (let day = 0; day <= 34; day += 1) {
@@ -1130,9 +1294,13 @@ function buildAdminEvents(applicationId: string) {
           events,
           sequence,
           applicationId,
-          'page_view',
+          "page_view",
           userId,
-          dateDaysAgo(day, 9 + pageIndex * 3, (index * 12 + pageIndex * 15) % 60),
+          dateDaysAgo(
+            day,
+            9 + pageIndex * 3,
+            (index * 12 + pageIndex * 15) % 60,
+          ),
           {
             path: pages[(index + day + pageIndex) % pages.length],
             duration: 90 + ((index + day + pageIndex) % 8) * 25,
@@ -1146,12 +1314,12 @@ function buildAdminEvents(applicationId: string) {
           events,
           sequence,
           applicationId,
-          'report_exported',
+          "report_exported",
           userId,
           dateDaysAgo(day, 16, 10),
           {
-            format: day % 2 === 0 ? 'csv' : 'json',
-            reportType: day % 3 === 0 ? 'funnel' : 'quality',
+            format: day % 2 === 0 ? "csv" : "json",
+            reportType: day % 3 === 0 ? "funnel" : "quality",
           },
           `admin_${userId}_${day}`,
         );
@@ -1179,11 +1347,11 @@ function buildAttributePayload(user: UserSeed): JsonMap {
 }
 
 async function seedWorkspaceUsers() {
-  const adminEmail = process.env.AUTH_ADMIN_EMAIL ?? 'admin@eventpulse.local';
-  const adminPassword = process.env.AUTH_ADMIN_PASSWORD ?? 'changeme12345';
-  const adminName = process.env.AUTH_ADMIN_NAME ?? 'EventPulse Admin';
-  const editorEmail = 'editor@eventpulse.local';
-  const viewerEmail = 'viewer@eventpulse.local';
+  const adminEmail = process.env.AUTH_ADMIN_EMAIL ?? "admin@eventpulse.local";
+  const adminPassword = process.env.AUTH_ADMIN_PASSWORD ?? "changeme12345";
+  const adminName = process.env.AUTH_ADMIN_NAME ?? "EventPulse Admin";
+  const editorEmail = "editor@eventpulse.local";
+  const viewerEmail = "viewer@eventpulse.local";
 
   await Promise.all([
     auth.api.signUpEmail({
@@ -1197,14 +1365,14 @@ async function seedWorkspaceUsers() {
       body: {
         email: editorEmail,
         password: adminPassword,
-        name: 'EventPulse Editor',
+        name: "EventPulse Editor",
       },
     }),
     auth.api.signUpEmail({
       body: {
         email: viewerEmail,
         password: adminPassword,
-        name: 'EventPulse Viewer',
+        name: "EventPulse Viewer",
       },
     }),
   ]);
@@ -1243,42 +1411,55 @@ async function seedWorkspaceUsers() {
     ],
   });
 
-  return { adminUser, editorUser, viewerUser, adminEmail, editorEmail, viewerEmail };
+  return {
+    adminUser,
+    editorUser,
+    viewerUser,
+    adminEmail,
+    editorEmail,
+    viewerEmail,
+  };
 }
 
 async function main() {
-  console.log('🌱 Rebuilding seed dataset…');
+  console.log("🌱 Rebuilding seed dataset…");
 
   await resetDatabase();
-  console.log('✅ Cleared existing data');
+  console.log("✅ Cleared existing data");
 
   const [webApp, mobileApp, adminApp] = await Promise.all([
     prisma.application.create({
       data: {
-        name: 'Demo Web App',
-        apiKey: 'demo_app_key_123',
-        status: 'ACTIVE',
+        name: "Demo Web App",
+        apiKey: "demo_app_key_123",
+        status: "ACTIVE",
       },
     }),
     prisma.application.create({
       data: {
-        name: 'EventPulse iOS',
-        apiKey: 'mobile_app_key_456',
-        status: 'ACTIVE',
+        name: "EventPulse iOS",
+        apiKey: "mobile_app_key_456",
+        status: "ACTIVE",
       },
     }),
     prisma.application.create({
       data: {
-        name: 'Admin Dashboard',
-        apiKey: 'admin_app_key_789',
-        status: 'INACTIVE',
+        name: "Admin Dashboard",
+        apiKey: "admin_app_key_789",
+        status: "INACTIVE",
       },
     }),
   ]);
-  console.log('✅ Applications created');
+  console.log("✅ Applications created");
 
-  const { adminUser, editorUser, viewerUser, adminEmail, editorEmail, viewerEmail } =
-    await seedWorkspaceUsers();
+  const {
+    adminUser,
+    editorUser,
+    viewerUser,
+    adminEmail,
+    editorEmail,
+    viewerEmail,
+  } = await seedWorkspaceUsers();
   console.log(
     `✅ Workspace users created: ${adminEmail}, ${editorEmail}, ${viewerEmail}`,
   );
@@ -1287,201 +1468,452 @@ async function main() {
     data: [
       {
         applicationId: webApp.id,
-        eventName: 'page_view',
+        eventName: "page_view",
         version: 1,
         schemaDefinition: {
           properties: {
-            path: { type: 'string', required: true },
-            referrer: { type: 'string', required: false },
-            duration: { type: 'number', required: false },
+            path: {
+              type: "string",
+              required: true,
+              description: "Visited URL path or screen route",
+            },
+            referrer: {
+              type: "string",
+              required: false,
+              description: "Source URL that referred the visitor",
+            },
+            duration: {
+              type: "number",
+              required: false,
+              description: "Time spent on the page in seconds",
+            },
+            pageType: {
+              type: "string",
+              required: false,
+              description:
+                "Category of page such as landing, pricing, docs, or workspace",
+            },
+            device: {
+              type: "string",
+              required: false,
+              description: "Device category used for the page view",
+            },
           },
         },
         isActive: true,
       },
       {
         applicationId: webApp.id,
-        eventName: 'signup',
+        eventName: "signup",
         version: 1,
         schemaDefinition: {
           properties: {
-            plan: { type: 'string', required: true },
-            source: { type: 'string', required: true },
-            invited: { type: 'boolean', required: false },
+            plan: {
+              type: "string",
+              required: true,
+              description: "Subscription tier selected during signup",
+            },
+            source: {
+              type: "string",
+              required: true,
+              description:
+                "Marketing or acquisition source that led to the signup",
+            },
+            invited: {
+              type: "boolean",
+              required: false,
+              description: "Whether the signup came from an invitation",
+            },
+            campaign: {
+              type: "string",
+              required: false,
+              description: "Marketing campaign associated with the signup",
+            },
+            region: {
+              type: "string",
+              required: false,
+              description: "Geographic region of the signed up account",
+            },
           },
         },
         isActive: true,
       },
       {
         applicationId: webApp.id,
-        eventName: 'button_click',
+        eventName: "button_click",
         version: 1,
         schemaDefinition: {
           properties: {
-            buttonId: { type: 'string', required: true },
-            page: { type: 'string', required: true },
-            label: { type: 'string', required: false },
+            buttonId: {
+              type: "string",
+              required: true,
+              description: "Stable identifier for the clicked button",
+            },
+            page: {
+              type: "string",
+              required: true,
+              description: "Page where the button click happened",
+            },
+            label: {
+              type: "string",
+              required: false,
+              description: "Visible button label shown to the user",
+            },
+            ctaVariant: {
+              type: "string",
+              required: false,
+              description: "Call-to-action styling or placement variant",
+            },
           },
         },
         isActive: true,
       },
       {
         applicationId: webApp.id,
-        eventName: 'purchase',
+        eventName: "purchase",
         version: 1,
         schemaDefinition: {
           properties: {
-            amount: { type: 'number', required: true },
-            currency: { type: 'string', required: true },
-            productId: { type: 'string', required: true },
+            amount: {
+              type: "number",
+              required: true,
+              description: "Transaction amount before tax",
+            },
+            currency: {
+              type: "string",
+              required: true,
+              description: "Three-letter currency code used for the purchase",
+            },
+            productId: {
+              type: "string",
+              required: true,
+              description: "Purchased product or plan identifier",
+            },
           },
         },
         isActive: false,
       },
       {
         applicationId: webApp.id,
-        eventName: 'purchase',
+        eventName: "purchase",
         version: 2,
         schemaDefinition: {
           properties: {
-            amount: { type: 'number', required: true },
-            currency: { type: 'string', required: true },
-            productId: { type: 'string', required: true },
-            quantity: { type: 'number', required: false },
-            coupon: { type: 'string', required: false },
+            amount: {
+              type: "number",
+              required: true,
+              description: "Transaction amount before tax",
+            },
+            currency: {
+              type: "string",
+              required: true,
+              description: "Three-letter currency code used for the purchase",
+            },
+            productId: {
+              type: "string",
+              required: true,
+              description: "Purchased product or plan identifier",
+            },
+            quantity: {
+              type: "number",
+              required: false,
+              description: "Number of seats or units purchased",
+            },
+            coupon: {
+              type: "string",
+              required: false,
+              description: "Coupon or discount code applied to the purchase",
+            },
+            billingCycle: {
+              type: "string",
+              required: false,
+              description:
+                "Billing period chosen for the purchase, such as monthly or annual",
+            },
+            paymentMethod: {
+              type: "string",
+              required: false,
+              description: "Payment method used to complete the purchase",
+            },
           },
         },
         isActive: true,
       },
       {
         applicationId: webApp.id,
-        eventName: 'onboarding_step_completed',
+        eventName: "onboarding_step_completed",
         version: 1,
         schemaDefinition: {
           properties: {
-            stepKey: { type: 'string', required: true },
-            stepIndex: { type: 'number', required: true },
-            channel: { type: 'string', required: false },
-            completed: { type: 'boolean', required: false },
+            stepKey: {
+              type: "string",
+              required: true,
+              description: "Unique identifier for the onboarding step",
+            },
+            stepIndex: {
+              type: "number",
+              required: true,
+              description: "Position of the step in the onboarding flow",
+            },
+            channel: {
+              type: "string",
+              required: false,
+              description:
+                "Acquisition or onboarding channel associated with the completion",
+            },
+            completed: {
+              type: "boolean",
+              required: false,
+              description: "Whether the step was completed successfully",
+            },
+            stepGroup: {
+              type: "string",
+              required: false,
+              description:
+                "Higher-level onboarding phase such as activation or workspace setup",
+            },
           },
         },
         isActive: true,
       },
       {
         applicationId: webApp.id,
-        eventName: 'workspace_created',
+        eventName: "workspace_created",
         version: 1,
         schemaDefinition: {
           properties: {
-            template: { type: 'string', required: true },
-            importedDemoData: { type: 'boolean', required: false },
-            memberCount: { type: 'number', required: false },
+            template: {
+              type: "string",
+              required: true,
+              description:
+                "Workspace template selected when the workspace was created",
+            },
+            importedDemoData: {
+              type: "boolean",
+              required: false,
+              description:
+                "Whether demo data was imported into the new workspace",
+            },
+            memberCount: {
+              type: "number",
+              required: false,
+              description:
+                "Number of team members added at workspace creation time",
+            },
+            useCase: {
+              type: "string",
+              required: false,
+              description:
+                "Primary analytics use case for the newly created workspace",
+            },
           },
         },
         isActive: true,
       },
       {
         applicationId: webApp.id,
-        eventName: 'integration_connected',
+        eventName: "integration_connected",
         version: 1,
         schemaDefinition: {
           properties: {
-            integration: { type: 'string', required: true },
-            category: { type: 'string', required: false },
-            success: { type: 'boolean', required: false },
-            setupMinutes: { type: 'number', required: false },
+            integration: {
+              type: "string",
+              required: true,
+              description: "Connected tool or platform name",
+            },
+            category: {
+              type: "string",
+              required: false,
+              description:
+                "Integration category such as data source or activation",
+            },
+            success: {
+              type: "boolean",
+              required: false,
+              description:
+                "Whether the integration setup completed successfully",
+            },
+            setupMinutes: {
+              type: "number",
+              required: false,
+              description: "Approximate setup time in minutes",
+            },
+            provider: {
+              type: "string",
+              required: false,
+              description:
+                "Connection method used for the integration, such as OAuth or API key",
+            },
           },
         },
         isActive: true,
       },
       {
         applicationId: webApp.id,
-        eventName: 'report_exported',
+        eventName: "report_exported",
         version: 1,
         schemaDefinition: {
           properties: {
-            format: { type: 'string', required: true },
-            reportType: { type: 'string', required: true },
-            rowCount: { type: 'number', required: false },
+            format: {
+              type: "string",
+              required: true,
+              description: "File format used for the export",
+            },
+            reportType: {
+              type: "string",
+              required: true,
+              description: "Analytics report type that was exported",
+            },
+            rowCount: {
+              type: "number",
+              required: false,
+              description: "Number of rows included in the export",
+            },
+            destination: {
+              type: "string",
+              required: false,
+              description:
+                "Delivery destination for the export, such as download, email, or Slack",
+            },
           },
         },
         isActive: true,
       },
       {
         applicationId: webApp.id,
-        eventName: 'invite_sent',
+        eventName: "invite_sent",
         version: 1,
         schemaDefinition: {
           properties: {
-            seatsRequested: { type: 'number', required: true },
-            channel: { type: 'string', required: false },
+            seatsRequested: {
+              type: "number",
+              required: true,
+              description: "Number of seats or invitations requested",
+            },
+            channel: {
+              type: "string",
+              required: false,
+              description: "Invitation delivery channel",
+            },
+            role: {
+              type: "string",
+              required: false,
+              description: "Workspace role requested for the invitee",
+            },
           },
         },
         isActive: true,
       },
       {
         applicationId: mobileApp.id,
-        eventName: 'app_open',
+        eventName: "app_open",
         version: 1,
         schemaDefinition: {
           properties: {
-            version: { type: 'string', required: true },
-            platform: { type: 'string', required: true },
-            cold: { type: 'boolean', required: false },
+            version: {
+              type: "string",
+              required: true,
+              description: "Mobile app version that was opened",
+            },
+            platform: {
+              type: "string",
+              required: true,
+              description: "Operating system and version",
+            },
+            cold: {
+              type: "boolean",
+              required: false,
+              description:
+                "Whether the app was launched cold from a terminated state",
+            },
           },
         },
         isActive: true,
       },
       {
         applicationId: mobileApp.id,
-        eventName: 'push_notification_tapped',
+        eventName: "push_notification_tapped",
         version: 1,
         schemaDefinition: {
           properties: {
-            campaignId: { type: 'string', required: true },
-            action: { type: 'string', required: false },
+            campaignId: {
+              type: "string",
+              required: true,
+              description: "Push campaign identifier",
+            },
+            action: {
+              type: "string",
+              required: false,
+              description: "Action taken after tapping the push notification",
+            },
           },
         },
         isActive: true,
       },
       {
         applicationId: mobileApp.id,
-        eventName: 'subscription_started',
+        eventName: "subscription_started",
         version: 1,
         schemaDefinition: {
           properties: {
-            plan: { type: 'string', required: true },
-            billingPeriod: { type: 'string', required: true },
+            plan: {
+              type: "string",
+              required: true,
+              description: "Mobile subscription plan that was started",
+            },
+            billingPeriod: {
+              type: "string",
+              required: true,
+              description:
+                "Subscription billing period, such as monthly or annual",
+            },
           },
         },
         isActive: true,
       },
       {
         applicationId: adminApp.id,
-        eventName: 'page_view',
+        eventName: "page_view",
         version: 1,
         schemaDefinition: {
           properties: {
-            path: { type: 'string', required: true },
-            duration: { type: 'number', required: false },
+            path: {
+              type: "string",
+              required: true,
+              description: "Visited admin dashboard route",
+            },
+            duration: {
+              type: "number",
+              required: false,
+              description: "Time spent on the admin page in seconds",
+            },
           },
         },
         isActive: true,
       },
       {
         applicationId: adminApp.id,
-        eventName: 'report_exported',
+        eventName: "report_exported",
         version: 1,
         schemaDefinition: {
           properties: {
-            format: { type: 'string', required: true },
-            reportType: { type: 'string', required: true },
+            format: {
+              type: "string",
+              required: true,
+              description: "File format used for the admin export",
+            },
+            reportType: {
+              type: "string",
+              required: true,
+              description: "Type of admin report that was exported",
+            },
           },
         },
         isActive: true,
       },
     ],
   });
-  console.log('✅ Event schemas created');
+  console.log("✅ Event schemas created");
 
   const webUsers = buildWebUsers();
   const events = [
@@ -1500,7 +1932,12 @@ async function main() {
 
   const eventStats = new Map<
     string,
-    { firstSeen: Date; lastSeen: Date; eventCount: number; lastEventName: string }
+    {
+      firstSeen: Date;
+      lastSeen: Date;
+      eventCount: number;
+      lastEventName: string;
+    }
   >();
 
   for (const event of events) {
@@ -1518,7 +1955,8 @@ async function main() {
     }
 
     current.eventCount += 1;
-    if (event.timestamp < current.firstSeen) current.firstSeen = event.timestamp;
+    if (event.timestamp < current.firstSeen)
+      current.firstSeen = event.timestamp;
     if (event.timestamp >= current.lastSeen) {
       current.lastSeen = event.timestamp;
       current.lastEventName = event.eventName;
@@ -1529,114 +1967,114 @@ async function main() {
     data: [
       {
         applicationId: webApp.id,
-        attributeKey: 'plan',
-        valueType: 'STRING',
-        description: 'Current subscription plan',
+        attributeKey: "plan",
+        valueType: "STRING",
+        description: "Current subscription plan",
         isIndexed: true,
       },
       {
         applicationId: webApp.id,
-        attributeKey: 'country',
-        valueType: 'STRING',
-        description: 'Primary user country',
+        attributeKey: "country",
+        valueType: "STRING",
+        description: "Primary user country",
         isIndexed: true,
       },
       {
         applicationId: webApp.id,
-        attributeKey: 'company',
-        valueType: 'STRING',
-        description: 'Associated company name',
+        attributeKey: "company",
+        valueType: "STRING",
+        description: "Associated company name",
         isIndexed: false,
       },
       {
         applicationId: webApp.id,
-        attributeKey: 'role',
-        valueType: 'STRING',
-        description: 'User role in account',
+        attributeKey: "role",
+        valueType: "STRING",
+        description: "User role in account",
         isIndexed: false,
       },
       {
         applicationId: webApp.id,
-        attributeKey: 'account_age_days',
-        valueType: 'NUMBER',
-        description: 'Days since original signup',
+        attributeKey: "account_age_days",
+        valueType: "NUMBER",
+        description: "Days since original signup",
         isIndexed: false,
       },
       {
         applicationId: webApp.id,
-        attributeKey: 'is_trial',
-        valueType: 'BOOLEAN',
-        description: 'Whether the user is currently on trial',
+        attributeKey: "is_trial",
+        valueType: "BOOLEAN",
+        description: "Whether the user is currently on trial",
         isIndexed: false,
       },
       {
         applicationId: webApp.id,
-        attributeKey: 'signed_up_at',
-        valueType: 'DATE',
-        description: 'Original signup timestamp',
+        attributeKey: "signed_up_at",
+        valueType: "DATE",
+        description: "Original signup timestamp",
         isIndexed: false,
       },
       {
         applicationId: webApp.id,
-        attributeKey: 'industry',
-        valueType: 'STRING',
-        description: 'Customer industry vertical',
+        attributeKey: "industry",
+        valueType: "STRING",
+        description: "Customer industry vertical",
         isIndexed: false,
       },
       {
         applicationId: webApp.id,
-        attributeKey: 'team_size',
-        valueType: 'NUMBER',
-        description: 'Estimated account team size',
+        attributeKey: "team_size",
+        valueType: "NUMBER",
+        description: "Estimated account team size",
         isIndexed: false,
       },
       {
         applicationId: webApp.id,
-        attributeKey: 'lifecycle_stage',
-        valueType: 'STRING',
-        description: 'Customer lifecycle segment',
+        attributeKey: "lifecycle_stage",
+        valueType: "STRING",
+        description: "Customer lifecycle segment",
         isIndexed: false,
       },
       {
         applicationId: webApp.id,
-        attributeKey: 'acquisition_channel',
-        valueType: 'STRING',
-        description: 'Primary acquisition channel',
+        attributeKey: "acquisition_channel",
+        valueType: "STRING",
+        description: "Primary acquisition channel",
         isIndexed: false,
       },
       {
         applicationId: webApp.id,
-        attributeKey: 'persona',
-        valueType: 'STRING',
-        description: 'Primary buyer or operator persona',
+        attributeKey: "persona",
+        valueType: "STRING",
+        description: "Primary buyer or operator persona",
         isIndexed: false,
       },
       {
         applicationId: webApp.id,
-        attributeKey: 'workspace_count',
-        valueType: 'NUMBER',
-        description: 'Number of workspaces associated with the account',
+        attributeKey: "workspace_count",
+        valueType: "NUMBER",
+        description: "Number of workspaces associated with the account",
         isIndexed: false,
       },
       {
         applicationId: webApp.id,
-        attributeKey: 'region',
-        valueType: 'STRING',
-        description: 'Commercial region bucket',
+        attributeKey: "region",
+        valueType: "STRING",
+        description: "Commercial region bucket",
         isIndexed: false,
       },
       {
         applicationId: webApp.id,
-        attributeKey: 'beta_opt_in',
-        valueType: 'BOOLEAN',
-        description: 'Whether the account opted into beta features',
+        attributeKey: "beta_opt_in",
+        valueType: "BOOLEAN",
+        description: "Whether the account opted into beta features",
         isIndexed: false,
       },
       {
         applicationId: webApp.id,
-        attributeKey: 'lead_score',
-        valueType: 'NUMBER',
-        description: 'Derived product-qualified lead score',
+        attributeKey: "lead_score",
+        valueType: "NUMBER",
+        description: "Derived product-qualified lead score",
         isIndexed: false,
       },
     ],
@@ -1644,13 +2082,12 @@ async function main() {
 
   for (const user of webUsers) {
     const attributes = buildAttributePayload(user);
-    const stat =
-      eventStats.get(`${webApp.id}:${user.userId}`) ?? {
-        firstSeen: dateDaysAgo(user.accountAgeDays, 9, 10),
-        lastSeen: dateDaysAgo(0, 12, 0),
-        eventCount: 0,
-        lastEventName: 'signup',
-      };
+    const stat = eventStats.get(`${webApp.id}:${user.userId}`) ?? {
+      firstSeen: dateDaysAgo(user.accountAgeDays, 9, 10),
+      lastSeen: dateDaysAgo(0, 12, 0),
+      eventCount: 0,
+      lastEventName: "signup",
+    };
 
     await prisma.userProfile.create({
       data: {
@@ -1693,7 +2130,7 @@ async function main() {
   }
   console.log(`✅ Web user profiles seeded (${webUsers.length})`);
 
-  const mobileCountries = ['US', 'CA', 'GB', 'DE', 'AU', 'JP'];
+  const mobileCountries = ["US", "CA", "GB", "DE", "AU", "JP"];
   for (let index = 0; index < 20; index += 1) {
     const userId = `mob_user_${index + 1}`;
     const stat = eventStats.get(`${mobileApp.id}:${userId}`);
@@ -1708,13 +2145,13 @@ async function main() {
         eventCount: stat.eventCount,
         lastEventName: stat.lastEventName,
         attributes: {
-          plan: index < 8 ? (index % 2 === 0 ? 'starter' : 'pro') : 'free',
+          plan: index < 8 ? (index % 2 === 0 ? "starter" : "pro") : "free",
           country: mobileCountries[index % mobileCountries.length],
         },
       },
     });
   }
-  console.log('✅ Mobile user profiles seeded');
+  console.log("✅ Mobile user profiles seeded");
 
   const qualityConfigs = [
     {
@@ -1766,12 +2203,20 @@ async function main() {
       const completenessRate = Math.max(
         0.82,
         config.completenessBase -
-          (config.alertDays.has(day) ? 0.09 : config.warningDays.has(day) ? 0.04 : 0) -
-          ((day % 4) * 0.002),
+          (config.alertDays.has(day)
+            ? 0.09
+            : config.warningDays.has(day)
+              ? 0.04
+              : 0) -
+          (day % 4) * 0.002,
       );
       const duplicateRate =
         config.duplicateBase +
-        (config.alertDays.has(day) ? 0.03 : config.warningDays.has(day) ? 0.012 : 0.003);
+        (config.alertDays.has(day)
+          ? 0.03
+          : config.warningDays.has(day)
+            ? 0.012
+            : 0.003);
 
       await prisma.dataQualityMetric.create({
         data: {
@@ -1786,21 +2231,21 @@ async function main() {
       });
     }
   }
-  console.log('✅ Data quality metrics created');
+  console.log("✅ Data quality metrics created");
 
   const segments = await Promise.all([
     prisma.segment.create({
       data: {
         applicationId: webApp.id,
-        name: 'High-value buyers',
-        description: 'Users with 3 or more purchases in the last 30 days',
+        name: "High-value buyers",
+        description: "Users with 3 or more purchases in the last 30 days",
         criteria: {
-          logic: 'AND',
+          logic: "AND",
           eventFilters: [
             {
-              eventName: 'purchase',
+              eventName: "purchase",
               count: { min: 3 },
-              timeWindow: { value: 30, unit: 'days' },
+              timeWindow: { value: 30, unit: "days" },
             },
           ],
         },
@@ -1809,15 +2254,15 @@ async function main() {
     prisma.segment.create({
       data: {
         applicationId: webApp.id,
-        name: 'Recent sign-ups',
-        description: 'Users who signed up in the last 7 days',
+        name: "Recent sign-ups",
+        description: "Users who signed up in the last 7 days",
         criteria: {
-          logic: 'AND',
+          logic: "AND",
           eventFilters: [
             {
-              eventName: 'signup',
+              eventName: "signup",
               count: { min: 1 },
-              timeWindow: { value: 7, unit: 'days' },
+              timeWindow: { value: 7, unit: "days" },
             },
           ],
         },
@@ -1826,15 +2271,15 @@ async function main() {
     prisma.segment.create({
       data: {
         applicationId: webApp.id,
-        name: 'Active readers',
-        description: 'Users with at least 10 page views in the last 14 days',
+        name: "Active readers",
+        description: "Users with at least 10 page views in the last 14 days",
         criteria: {
-          logic: 'AND',
+          logic: "AND",
           eventFilters: [
             {
-              eventName: 'page_view',
+              eventName: "page_view",
               count: { min: 10 },
-              timeWindow: { value: 14, unit: 'days' },
+              timeWindow: { value: 14, unit: "days" },
             },
           ],
         },
@@ -1843,15 +2288,15 @@ async function main() {
     prisma.segment.create({
       data: {
         applicationId: mobileApp.id,
-        name: 'Push-engaged users',
-        description: 'Users who tapped a push notification in the last 14 days',
+        name: "Push-engaged users",
+        description: "Users who tapped a push notification in the last 14 days",
         criteria: {
-          logic: 'AND',
+          logic: "AND",
           eventFilters: [
             {
-              eventName: 'push_notification_tapped',
+              eventName: "push_notification_tapped",
               count: { min: 1 },
-              timeWindow: { value: 14, unit: 'days' },
+              timeWindow: { value: 14, unit: "days" },
             },
           ],
         },
@@ -1860,21 +2305,21 @@ async function main() {
     prisma.segment.create({
       data: {
         applicationId: webApp.id,
-        name: 'Integration-ready accounts',
+        name: "Integration-ready accounts",
         description:
-          'Users who created a workspace and connected an integration in the last 30 days',
+          "Users who created a workspace and connected an integration in the last 30 days",
         criteria: {
-          logic: 'AND',
+          logic: "AND",
           eventFilters: [
             {
-              eventName: 'workspace_created',
+              eventName: "workspace_created",
               count: { min: 1 },
-              timeWindow: { value: 30, unit: 'days' },
+              timeWindow: { value: 30, unit: "days" },
             },
             {
-              eventName: 'integration_connected',
+              eventName: "integration_connected",
               count: { min: 1 },
-              timeWindow: { value: 30, unit: 'days' },
+              timeWindow: { value: 30, unit: "days" },
             },
           ],
         },
@@ -1883,15 +2328,15 @@ async function main() {
     prisma.segment.create({
       data: {
         applicationId: webApp.id,
-        name: 'Report exporters',
-        description: 'Users exporting analytics reports over the last 14 days',
+        name: "Report exporters",
+        description: "Users exporting analytics reports over the last 14 days",
         criteria: {
-          logic: 'AND',
+          logic: "AND",
           eventFilters: [
             {
-              eventName: 'report_exported',
+              eventName: "report_exported",
               count: { min: 2 },
-              timeWindow: { value: 14, unit: 'days' },
+              timeWindow: { value: 14, unit: "days" },
             },
           ],
         },
@@ -1902,56 +2347,56 @@ async function main() {
   for (const segment of segments) {
     await refreshSegmentCount(segment.id);
   }
-  console.log('✅ Segments created and refreshed');
+  console.log("✅ Segments created and refreshed");
 
   await prisma.webhookAlert.createMany({
     data: [
       {
         applicationId: webApp.id,
-        name: 'Slack Data Alerts',
-        url: 'https://alerts.example.com/slack/web',
-        secret: 'seed_webhook_secret_web',
-        minLevel: 'warning',
+        name: "Slack Data Alerts",
+        url: "https://alerts.example.com/slack/web",
+        secret: "seed_webhook_secret_web",
+        minLevel: "warning",
         isActive: true,
         lastTriggeredAt: dateDaysAgo(1, 13),
         lastStatus: 204,
       },
       {
         applicationId: webApp.id,
-        name: 'PagerDuty Escalation',
-        url: 'https://alerts.example.com/pagerduty/web',
-        secret: 'seed_webhook_secret_pd',
-        minLevel: 'error',
+        name: "PagerDuty Escalation",
+        url: "https://alerts.example.com/pagerduty/web",
+        secret: "seed_webhook_secret_pd",
+        minLevel: "error",
         isActive: true,
         lastTriggeredAt: dateDaysAgo(3, 8),
         lastStatus: 500,
       },
       {
         applicationId: mobileApp.id,
-        name: 'Mobile Ops Alert',
-        url: 'https://alerts.example.com/slack/mobile',
+        name: "Mobile Ops Alert",
+        url: "https://alerts.example.com/slack/mobile",
         secret: null,
-        minLevel: 'error',
+        minLevel: "error",
         isActive: false,
         lastTriggeredAt: dateDaysAgo(5, 10),
         lastStatus: 202,
       },
     ],
   });
-  console.log('✅ Webhooks created');
+  console.log("✅ Webhooks created");
 
   await prisma.funnel.create({
     data: {
-      id: 'seed_signup_activation_funnel',
+      id: "seed_signup_activation_funnel",
       applicationId: webApp.id,
-      name: 'Signup Activation',
-      description: 'How signups progress into product interaction and purchase',
+      name: "Signup Activation",
+      description: "How signups progress into product interaction and purchase",
       createdByUserId: adminUser.id,
       steps: {
         create: [
-          { position: 1, eventName: 'signup' },
-          { position: 2, eventName: 'button_click' },
-          { position: 3, eventName: 'purchase' },
+          { position: 1, eventName: "signup" },
+          { position: 2, eventName: "button_click" },
+          { position: 3, eventName: "purchase" },
         ],
       },
     },
@@ -1960,14 +2405,14 @@ async function main() {
   await prisma.funnel.create({
     data: {
       applicationId: mobileApp.id,
-      name: 'Mobile Re-engagement',
-      description: 'Push notification tap-through into subscription start',
+      name: "Mobile Re-engagement",
+      description: "Push notification tap-through into subscription start",
       createdByUserId: editorUser.id,
       steps: {
         create: [
-          { position: 1, eventName: 'push_notification_tapped' },
-          { position: 2, eventName: 'app_open' },
-          { position: 3, eventName: 'subscription_started' },
+          { position: 1, eventName: "push_notification_tapped" },
+          { position: 2, eventName: "app_open" },
+          { position: 3, eventName: "subscription_started" },
         ],
       },
     },
@@ -1976,15 +2421,15 @@ async function main() {
   await prisma.funnel.create({
     data: {
       applicationId: webApp.id,
-      name: 'Workspace Setup',
+      name: "Workspace Setup",
       description:
-        'Core onboarding path from signup into workspace creation and integration setup',
+        "Core onboarding path from signup into workspace creation and integration setup",
       createdByUserId: editorUser.id,
       steps: {
         create: [
-          { position: 1, eventName: 'signup' },
-          { position: 2, eventName: 'workspace_created' },
-          { position: 3, eventName: 'integration_connected' },
+          { position: 1, eventName: "signup" },
+          { position: 2, eventName: "workspace_created" },
+          { position: 3, eventName: "integration_connected" },
         ],
       },
     },
@@ -1993,77 +2438,79 @@ async function main() {
   await prisma.savedReport.createMany({
     data: [
       {
-        id: 'seed_signup_funnel_report',
-        name: 'Signup Funnel (30d)',
+        id: "seed_signup_funnel_report",
+        name: "Signup Funnel (30d)",
         reportType: SavedReportType.FUNNEL,
         applicationId: webApp.id,
         createdByUserId: adminUser.id,
         updatedByUserId: adminUser.id,
         config: {
-          funnelId: 'seed_signup_activation_funnel',
-          timeWindow: { value: 30, unit: 'days' },
+          funnelId: "seed_signup_activation_funnel",
+          timeWindow: { value: 30, unit: "days" },
         },
       },
       {
-        name: 'Web Retention (8w)',
+        name: "Web Retention (8w)",
         reportType: SavedReportType.RETENTION,
         applicationId: webApp.id,
         createdByUserId: editorUser.id,
         updatedByUserId: editorUser.id,
         config: {
           applicationId: webApp.id,
-          interval: 'weekly',
-          cohortWindow: { value: 8, unit: 'weeks' },
-          returnEventName: 'page_view',
+          interval: "weekly",
+          cohortWindow: { value: 8, unit: "weeks" },
+          returnEventName: "page_view",
         },
       },
       {
-        name: 'Revenue by Event',
+        name: "Revenue by Event",
         reportType: SavedReportType.QUERY,
         applicationId: webApp.id,
         createdByUserId: adminUser.id,
         updatedByUserId: viewerUser.id,
         config: {
           applicationId: webApp.id,
-          metric: 'count',
-          groupBy: 'eventName',
-          filters: [{ key: 'eventName', operator: 'in', value: ['purchase', 'signup'] }],
+          metric: "count",
+          groupBy: "eventName",
+          filters: [
+            { key: "eventName", operator: "in", value: ["purchase", "signup"] },
+          ],
         },
       },
       {
-        name: 'Weekly Revenue Trend',
+        name: "Weekly Revenue Trend",
         reportType: SavedReportType.QUERY,
         applicationId: webApp.id,
         createdByUserId: adminUser.id,
         updatedByUserId: adminUser.id,
         config: {
           applicationId: webApp.id,
-          eventName: 'purchase',
-          aggregation: 'sum',
-          aggregationField: 'amount',
-          groupBy: { kind: 'time', bucket: 'week' },
-          sort: { field: 'group', direction: 'asc' },
+          eventName: "purchase",
+          aggregation: "sum",
+          aggregationField: "amount",
+          groupBy: { kind: "time", bucket: "week" },
+          sort: { field: "group", direction: "asc" },
           startDate: addDays(today, -84).toISOString(),
           endDate: now.toISOString(),
         },
       },
       {
-        name: 'Integration Success by Type',
+        name: "Integration Success by Type",
         reportType: SavedReportType.QUERY,
         applicationId: webApp.id,
         createdByUserId: editorUser.id,
         updatedByUserId: editorUser.id,
         config: {
           applicationId: webApp.id,
-          eventName: 'integration_connected',
-          aggregation: 'count',
-          groupBy: 'integration',
-          sort: { field: 'value', direction: 'desc' },
+          eventName: "integration_connected",
+          aggregation: "count",
+          groupBy: "integration",
+          sort: { field: "value", direction: "desc" },
           propertyFilters: [
             {
-              key: 'success',
-              valueType: 'boolean',
-              operator: 'eq',
+              key: "success",
+              valueType: "boolean",
+              operator: "eq",
               value: true,
             },
           ],
@@ -2072,31 +2519,31 @@ async function main() {
         },
       },
       {
-        name: 'Report Exports by Format',
+        name: "Report Exports by Format",
         reportType: SavedReportType.QUERY,
         applicationId: webApp.id,
         createdByUserId: viewerUser.id,
         updatedByUserId: viewerUser.id,
         config: {
           applicationId: webApp.id,
-          eventName: 'report_exported',
-          aggregation: 'count',
-          groupBy: 'format',
-          sort: { field: 'value', direction: 'desc' },
+          eventName: "report_exported",
+          aggregation: "count",
+          groupBy: "format",
+          sort: { field: "value", direction: "desc" },
           startDate: addDays(today, -30).toISOString(),
           endDate: now.toISOString(),
         },
       },
     ],
   });
-  console.log('✅ Funnels and reports created');
+  console.log("✅ Funnels and reports created");
 
   await prisma.invitation.create({
     data: {
-      email: 'pending-analyst@eventpulse.local',
+      email: "pending-analyst@eventpulse.local",
       role: WorkspaceRole.EDITOR,
-      token: 'seed-invite-pending-analyst',
-      tokenHash: hashToken('seed-invite-pending-analyst'),
+      token: "seed-invite-pending-analyst",
+      tokenHash: hashToken("seed-invite-pending-analyst"),
       invitedByUserId: adminUser.id,
       expiresAt: addDays(today, 7),
     },
@@ -2106,31 +2553,31 @@ async function main() {
     data: [
       {
         actorUserId: adminUser.id,
-        action: 'workspace.member.invited',
-        targetType: 'invitation',
+        action: "workspace.member.invited",
+        targetType: "invitation",
         metadata: {
-          email: 'pending-analyst@eventpulse.local',
-          role: 'EDITOR',
+          email: "pending-analyst@eventpulse.local",
+          role: "EDITOR",
         },
       },
       {
         actorUserId: adminUser.id,
-        action: 'funnel.created',
-        targetType: 'funnel',
-        targetId: 'seed_signup_activation_funnel',
-        metadata: { name: 'Signup Activation' },
+        action: "funnel.created",
+        targetType: "funnel",
+        targetId: "seed_signup_activation_funnel",
+        metadata: { name: "Signup Activation" },
       },
       {
         actorUserId: editorUser.id,
-        action: 'report.created',
-        targetType: 'saved_report',
-        metadata: { name: 'Web Retention (8w)', type: 'RETENTION' },
+        action: "report.created",
+        targetType: "saved_report",
+        metadata: { name: "Web Retention (8w)", type: "RETENTION" },
       },
     ],
   });
-  console.log('✅ Invitations and audit entries created');
+  console.log("✅ Invitations and audit entries created");
 
-  console.log('\n🎉 Seed complete');
+  console.log("\n🎉 Seed complete");
   console.log(`   Applications: 3`);
   console.log(`   Events: ${events.length}`);
   console.log(`   Web users: ${webUsers.length}`);
@@ -2140,7 +2587,7 @@ async function main() {
 
 main()
   .catch((error) => {
-    console.error('❌ Seed failed', error);
+    console.error("❌ Seed failed", error);
     process.exit(1);
   })
   .finally(async () => {

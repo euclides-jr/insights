@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
-import { z } from 'zod';
-import { randomBytes, randomUUID } from 'crypto';
-import { fireQualityWebhooksIfNeeded } from '@/lib/services/webhook-service';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db/prisma";
+import { z } from "zod";
+import { randomBytes, randomUUID } from "crypto";
+import { fireQualityWebhooksIfNeeded } from "@/lib/services/webhook-service";
 
 // --- Schema enforcement ---
 
 type PropertyDef = {
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+  type: "string" | "number" | "boolean" | "object" | "array";
   required?: boolean;
+  description?: string;
 };
 
 type SchemaDefinition = {
@@ -38,7 +39,7 @@ function validatePropertiesAgainstSchema(
 
     // Check type if value is present
     if (value !== undefined && value !== null && def.type) {
-      const actualType = Array.isArray(value) ? 'array' : typeof value;
+      const actualType = Array.isArray(value) ? "array" : typeof value;
       if (actualType !== def.type) {
         violations.push({
           property: key,
@@ -85,9 +86,9 @@ async function updateDataQualityMetric(
 // Validation schema for incoming events
 const eventSchema = z.object({
   eventId: z.string().optional(), // Optional, will be generated if not provided
-  eventName: z.string().min(1, 'Event name is required'),
-  userId: z.string().min(1, 'User ID is required'),
-  sessionId: z.string().min(1, 'Session ID is required'),
+  eventName: z.string().min(1, "Event name is required"),
+  userId: z.string().min(1, "User ID is required"),
+  sessionId: z.string().min(1, "Session ID is required"),
   timestamp: z.coerce.date().optional(), // Optional, defaults to now
   properties: z.record(z.any()).optional().default({}),
 });
@@ -136,11 +137,11 @@ type EventInput = z.infer<typeof eventSchema>;
 export async function POST(request: NextRequest) {
   try {
     // 1. Authenticate via API key
-    const apiKey = request.headers.get('x-api-key');
+    const apiKey = request.headers.get("x-api-key");
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'Missing X-API-Key header' },
+        { error: "Missing X-API-Key header" },
         { status: 401 },
       );
     }
@@ -152,7 +153,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!application) {
-      return NextResponse.json({ error: 'Invalid API key' }, { status: 401 });
+      return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
     }
 
     // 2. Parse request body
@@ -169,7 +170,7 @@ export async function POST(request: NextRequest) {
       if (!validation.success) {
         return NextResponse.json(
           {
-            error: 'Validation failed',
+            error: "Validation failed",
             details: validation.error.errors,
           },
           { status: 400 },
@@ -181,7 +182,7 @@ export async function POST(request: NextRequest) {
       if (!validation.success) {
         return NextResponse.json(
           {
-            error: 'Validation failed',
+            error: "Validation failed",
             details: validation.error.errors,
           },
           { status: 400 },
@@ -244,7 +245,7 @@ export async function POST(request: NextRequest) {
       void fireQualityWebhooksIfNeeded(application.id, application.name);
       return NextResponse.json(
         {
-          error: 'Schema validation failed',
+          error: "Schema validation failed",
           received: validatedEvents.length,
           rejected: rejectedEvents.length,
           violations: rejectedEvents.map((r) => ({
@@ -258,7 +259,7 @@ export async function POST(request: NextRequest) {
 
     // 6. Generate unique eventIds for events that don't have them
     const eventsToCreate = acceptedEvents.map((event: EventInput) => ({
-      eventId: event.eventId || `evt_${randomBytes(16).toString('hex')}`,
+      eventId: event.eventId || `evt_${randomBytes(16).toString("hex")}`,
       applicationId: application.id,
       eventName: event.eventName,
       userId: event.userId,
@@ -335,7 +336,7 @@ export async function POST(request: NextRequest) {
         await prisma.$executeRawUnsafe(
           `INSERT INTO user_profiles
             (id, "applicationId", "userId", "firstSeen", "lastSeen", "eventCount", "lastEventName", attributes, "createdAt", "updatedAt")
-           VALUES ${valueRows.join(', ')}
+           VALUES ${valueRows.join(", ")}
            ON CONFLICT ("applicationId", "userId") DO UPDATE SET
              "lastSeen"      = GREATEST(user_profiles."lastSeen", excluded."lastSeen"),
              "firstSeen"     = LEAST(user_profiles."firstSeen", excluded."firstSeen"),
@@ -369,15 +370,15 @@ export async function POST(request: NextRequest) {
       // Handle duplicate eventId errors
       if (
         dbError &&
-        typeof dbError === 'object' &&
-        'code' in dbError &&
-        dbError.code === 'P2002'
+        typeof dbError === "object" &&
+        "code" in dbError &&
+        dbError.code === "P2002"
       ) {
         return NextResponse.json(
           {
-            error: 'Duplicate event ID detected',
+            error: "Duplicate event ID detected",
             message:
-              'One or more events with the provided eventId already exist',
+              "One or more events with the provided eventId already exist",
           },
           { status: 409 },
         );
@@ -385,14 +386,14 @@ export async function POST(request: NextRequest) {
       throw dbError;
     }
   } catch (error: unknown) {
-    console.error('Error processing events:', error);
+    console.error("Error processing events:", error);
 
     const errorMessage =
-      error instanceof Error ? error.message : 'Failed to process events';
+      error instanceof Error ? error.message : "Failed to process events";
 
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: "Internal server error",
         message: errorMessage,
       },
       { status: 500 },
@@ -407,15 +408,15 @@ export async function POST(request: NextRequest) {
  */
 export async function GET() {
   return NextResponse.json({
-    service: 'Event Ingestion API',
-    version: '1.0.0',
-    status: 'operational',
+    service: "Event Ingestion API",
+    version: "1.0.0",
+    status: "operational",
     endpoints: {
       POST: {
-        description: 'Submit events from web/mobile SDKs',
-        authentication: 'X-API-Key header',
-        contentType: 'application/json',
-        body: 'Single event object or array of events',
+        description: "Submit events from web/mobile SDKs",
+        authentication: "X-API-Key header",
+        contentType: "application/json",
+        body: "Single event object or array of events",
       },
     },
   });
