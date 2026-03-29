@@ -10,6 +10,7 @@ A self-hosted event analytics platform for tracking user interactions, monitorin
 - **User Segments** — Build dynamic user groups using event-based AND/OR criteria
 - **User Profiles & Attributes** — Store typed key-value attributes against user profiles, query users by attribute values and event behaviour
 - **Analytics Queries** — Filter, aggregate, and group events with typed property filters, time bucketing, schema-aware field suggestions, grouped pagination, saved-query hydration, export, and a table/chart toggle
+- **AI-Assisted Analytics** — Ask plain-English questions about your data; the AI panel generates a structured query, executes it, and returns a human-readable explanation of the results — powered by the Vercel AI SDK and OpenAI
 - **Data Quality Monitoring** — Track validation failures, duplicates, and completeness metrics with threshold-based alerting
 - **Dashboard** — View daily event volume trends, per-application event breakdowns, quality metric charts, and summary tiles at a glance
 
@@ -17,6 +18,7 @@ A self-hosted event analytics platform for tracking user interactions, monitorin
 
 - **[Next.js](https://nextjs.org/) 16** (App Router) + **[React](https://react.dev/) 19** + **[TypeScript](https://www.typescriptlang.org/) 5**
 - **[Prisma](https://www.prisma.io/) 7** ORM with **[PostgreSQL](https://www.postgresql.org/)**
+- **[Vercel AI SDK](https://sdk.vercel.ai/) 6** (`ai` + `@ai-sdk/openai`) for AI-assisted analytics
 - **[recharts](https://recharts.org/) v3** for interactive SVG charts
 - **[Tailwind CSS](https://tailwindcss.com/) 4** for styling
 - **[Zod](https://zod.dev/) 3** for schema validation
@@ -46,6 +48,11 @@ BETTER_AUTH_URL="http://localhost:3000"
 AUTH_ADMIN_EMAIL="admin@eventpulse.local"
 AUTH_ADMIN_PASSWORD="changeme12345"
 AUTH_ADMIN_NAME="EventPulse Admin"
+
+# AI-Assisted Analytics — required for POST /api/ai/generate and POST /api/ai/explain
+OPENAI_API_KEY="your-openai-api-key"
+# Optional: override the default model (default: gpt-4o-mini)
+# AI_MODEL=gpt-4o-mini
 ```
 
 ### 3. Set up the database
@@ -120,8 +127,42 @@ The Query Explorer at `/query` now supports:
 - grouped-result sorting, row limits, and pagination
 - saved report and URL hydration through a shared query-state model
 - CSV/JSON export of the current result set
+- **AI Analytics panel** — type a plain-English question and let the AI build, run, and explain the query for you (see [AI-Assisted Analytics](#ai-assisted-analytics) below)
 
 Saved query reports can be reopened directly into the Query Explorer from `/reports/[id]`.
+
+## AI-Assisted Analytics
+
+The **AI Analytics** panel on the Query Explorer page (`/query`) lets you query your event data using natural language instead of manually configuring filters.
+
+### How it works
+
+1. Select an application from the drop-down in the AI Analytics panel.
+2. Type a plain-English question, for example:
+   - _"How many signups happened in the last 7 days, grouped by plan?"_
+   - _"What was the total purchase amount in the last 30 days?"_
+   - _"Which referrers drove the most page views this week?"_
+3. The AI generates a structured query, executes it against your event data, and returns a human-readable explanation of the results.
+4. Expand the **Query Inspector** to review the generated query definition.
+5. Click **Load into Form** to copy the AI-generated query into the manual query builder for further customisation.
+
+### Configuration
+
+| Variable | Required | Description |
+|---|---|---|
+| `OPENAI_API_KEY` | **Yes** | Your OpenAI API key. Required for both `/api/ai/generate` and `/api/ai/explain`. |
+| `AI_MODEL` | No | Model to use (default: `gpt-4o-mini`). Any OpenAI chat-completion model is supported. |
+
+### API routes
+
+| Method | Route | Description |
+|---|---|---|
+| `POST` | `/api/ai/generate` | Translate a plain-English question into a `QueryDefinition` object. |
+| `POST` | `/api/ai/explain` | Summarise query results in plain English and suggest follow-up actions. |
+
+Both routes require a valid dashboard session cookie (same as all other `/api/*` routes).
+
+See [docs/AI_PROMPT_EXAMPLES.md](docs/AI_PROMPT_EXAMPLES.md) for a curated list of example prompts based on the seeded data.
 
 ## Sending Events
 
@@ -186,6 +227,9 @@ app/
     quality/        # Data quality metrics
     users/          # User profile & attribute endpoints
     charts/         # Chart data API routes (events-over-time, quality-trends, events-by-application)
+    ai/
+      generate/     # POST /api/ai/generate — translate natural language to QueryDefinition
+      explain/      # POST /api/ai/explain  — summarise query results in plain English
   applications/     # Application management pages
   events/           # Event browser pages
   schemas/          # Schema management pages
@@ -195,20 +239,22 @@ app/
   users/            # User profile pages
   page.tsx          # Main dashboard
 components/
+  ai/               # AI Analytics panel, query inspector, and explanation display
   charts/           # Recharts-based chart components (EventVolumeChart, QualityTrendsChart, etc.)
   forms/            # User attribute and profile forms
   tables/           # Data table components
   ui/               # Shared primitives (Button, Badge, Input, TimeRangeSelector, …)
 lib/
+  ai/               # AI helpers (date-range inference, error messages)
   charts/           # Shared chart types, colour constants, and alert thresholds
-  services/         # Business logic (query builder, segment engine, user attribute service)
+  services/         # Business logic (query builder, segment engine, user attribute service, ai-analytics)
   utils/            # Formatting helpers
   db/               # Prisma client configuration
 prisma/
   schema.prisma     # Database schema
   migrations/       # Applied migrations
   seed.ts           # Sample data seeder
-docs/               # API documentation
+docs/               # API documentation and AI prompt examples
 tests/
   unit/             # Vitest unit tests
   api/              # Vitest API/integration tests
